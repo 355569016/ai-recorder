@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI录音卡 App 需求文档 v3.0</title>
+  <style>
+    :root {
+      --ink: #303030;
+      --muted: #737373;
+      --line: #e6e6e6;
+      --soft: #f7f7f7;
+      --code: #f3f4f6;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #fff;
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    main {
+      width: min(1060px, calc(100vw - 96px));
+      margin: 0 auto;
+      padding: 54px 0 96px;
+    }
+    h1 {
+      margin: 0 0 18px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--line);
+      font-size: 36px;
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+    h2 {
+      margin: 54px 0 20px;
+      padding-top: 24px;
+      border-top: 2px solid var(--line);
+      font-size: 29px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+    h3 {
+      margin: 30px 0 16px;
+      font-size: 23px;
+      line-height: 1.3;
+    }
+    h4, h5, h6 {
+      margin: 24px 0 12px;
+      font-size: 18px;
+      line-height: 1.35;
+    }
+    p, li {
+      color: #4d4d4d;
+      font-size: 16px;
+      line-height: 1.82;
+    }
+    ul {
+      padding-left: 24px;
+    }
+    table {
+      width: 100%;
+      margin: 18px 0 34px;
+      border-collapse: collapse;
+      border: 1px solid #dde2e7;
+      font-size: 15px;
+    }
+    th, td {
+      padding: 11px 14px;
+      border: 1px solid #dde2e7;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: var(--soft);
+      font-weight: 800;
+    }
+    tr:nth-child(even) td {
+      background: #fcfcfc;
+    }
+    code {
+      padding: 2px 6px;
+      border: 1px solid #e0e4e8;
+      border-radius: 4px;
+      background: var(--code);
+      color: #333;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .92em;
+    }
+    pre {
+      margin: 18px 0 30px;
+      padding: 18px;
+      overflow: auto;
+      border: 1px solid #dde2e7;
+      border-radius: 8px;
+      background: #f7f8fa;
+      color: #333;
+      line-height: 1.58;
+    }
+    pre code {
+      padding: 0;
+      border: 0;
+      background: transparent;
+      white-space: pre;
+    }
+    .diagram {
+      margin: 22px 0 42px;
+      padding: 24px;
+      overflow: auto;
+      border: 1px solid #e2e4ea;
+      border-radius: 12px;
+      background: #fbfbfa;
+    }
+    .diagram figcaption {
+      margin-bottom: 18px;
+      color: #222;
+      font-size: 16px;
+      font-weight: 800;
+    }
+    .diagram-card {
+      min-width: 120px;
+      min-height: 46px;
+      display: grid;
+      place-items: center;
+      gap: 2px;
+      padding: 10px 14px;
+      border: 1px solid #d9dde5;
+      border-radius: 6px;
+      background: #fff;
+      color: #303030;
+      text-align: center;
+      font-size: 14px;
+      line-height: 1.35;
+      box-shadow: 0 4px 12px rgba(25, 30, 45, .04);
+    }
+    .diagram-card.root {
+      min-width: 180px;
+      background: #111;
+      color: #fff;
+      border-color: #111;
+      font-weight: 800;
+    }
+    .overview-root {
+      display: grid;
+      place-items: center;
+      margin-bottom: 24px;
+    }
+    .overview-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(210px, 1fr));
+      gap: 16px;
+    }
+    .diagram-group {
+      padding: 14px;
+      border-radius: 10px;
+      border: 1px solid #e1e4eb;
+      background: #fff;
+    }
+    .diagram-group h4 {
+      margin: 0 0 12px;
+      color: #222;
+      font-size: 15px;
+    }
+    .diagram-group > div {
+      display: grid;
+      gap: 8px;
+    }
+    .diagram-group.blue { border-top: 4px solid #4b8cff; }
+    .diagram-group.green { border-top: 4px solid #59c436; }
+    .diagram-group.amber { border-top: 4px solid #f2a32b; }
+    .diagram-group.purple { border-top: 4px solid #8b6cff; }
+    .diagram-group.gray { border-top: 4px solid #8d949e; }
+    .diagram-group.red { border-top: 4px solid #ff6b5e; }
+    .flow-row,
+    .state-chain {
+      min-width: 920px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .flow-step {
+      display: grid;
+      gap: 8px;
+      justify-items: center;
+    }
+    .flow-step b {
+      width: 26px;
+      height: 26px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      background: #111;
+      color: #fff;
+      font-size: 13px;
+    }
+    .diagram-arrow,
+    .down-arrow {
+      color: #6b7280;
+      font-size: 22px;
+      font-weight: 800;
+    }
+    .core-grid {
+      min-width: 820px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+    .core-grid section {
+      display: grid;
+      justify-items: center;
+      gap: 8px;
+    }
+    .core-grid h4 {
+      margin: 0 0 8px;
+      font-size: 15px;
+    }
+    .generic-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    hr {
+      height: 1px;
+      margin: 42px 0 0;
+      border: 0;
+      background: var(--line);
+    }
+    @media (max-width: 860px) {
+      main { width: calc(100vw - 36px); padding-top: 28px; }
+      h1 { font-size: 30px; }
+      h2 { font-size: 24px; }
+      table { display: block; overflow: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main class="markdown-preview">
+<h1>PRD - AI录音卡 App</h1>
+<table><thead><tr><th>属性</th><th>值</th></tr></thead><tbody><tr><td>版本</td><td>v3.0</td></tr><tr><td>适用范围</td><td>iOS / Android 首版 App，美国与日本首发市场</td></tr><tr><td>创建日期</td><td>2026-07-07</td></tr><tr><td>产品设计</td><td>ANDY.MA</td></tr><tr><td>关联原型</td><td><code>04_APP设计与开发/interactive-prd-ai-recorder/index.html</code></td></tr></tbody></table>
+<hr>
+<h2>1. 概述</h2>
+<h3>1.1 业务全景图</h3>
+<figure class="diagram overview-diagram">
+    <figcaption>业务全景图</figcaption>
+    <div class="overview-root"><div class="diagram-card root"><span>AI录音卡 App</span></div></div>
+    <div class="overview-grid">
+      <section class="diagram-group blue">
+        <h4>首启与账号</h4>
+        <div><div class="diagram-card "><span>登录/注册</span></div><div class="diagram-card "><span>协议隐私</span></div><div class="diagram-card "><span>权限说明</span></div><div class="diagram-card "><span>AI 授权</span></div></div>
+      </section><section class="diagram-group green">
+        <h4>设备与硬件录音</h4>
+        <div><div class="diagram-card "><span>设备扫描</span></div><div class="diagram-card "><span>绑定确认</span></div><div class="diagram-card "><span>连接状态</span></div><div class="diagram-card "><span>录音控制</span></div></div>
+      </section><section class="diagram-group amber">
+        <h4>文件同步与管理</h4>
+        <div><div class="diagram-card "><span>录音后同步</span></div><div class="diagram-card "><span>CRC 校验</span></div><div class="diagram-card "><span>导入音频</span></div><div class="diagram-card "><span>文件列表</span></div></div>
+      </section><section class="diagram-group purple">
+        <h4>转写与 AI 笔记</h4>
+        <div><div class="diagram-card "><span>生成确认</span></div><div class="diagram-card "><span>转写状态</span></div><div class="diagram-card "><span>AI 摘要</span></div><div class="diagram-card "><span>导出分享</span></div></div>
+      </section><section class="diagram-group gray">
+        <h4>用量与会员</h4>
+        <div><div class="diagram-card "><span>剩余分钟</span></div><div class="diagram-card "><span>扣减账本</span></div><div class="diagram-card "><span>失败返还</span></div></div>
+      </section><section class="diagram-group red">
+        <h4>隐私与异常</h4>
+        <div><div class="diagram-card "><span>录音同意</span></div><div class="diagram-card "><span>云端删除</span></div><div class="diagram-card "><span>设备异常</span></div><div class="diagram-card "><span>额度不足</span></div></div>
+      </section>
+    </div>
+  </figure>
+<p>图 1-1：AI录音卡 App 首版业务全景。App 的核心不是单纯控制硬件，而是把硬件录音转化为可同步、可管理、可转写、可总结和可导出的资料资产。</p>
+<h3>1.2 业务完整流程</h3>
+<figure class="diagram flow-diagram">
+    <figcaption>端到端业务流程图</figcaption>
+    <div class="flow-row">
+      <div class="flow-step">
+        <b>1</b>
+        <div class="diagram-card "><span>首次使用</span><span>登录 / 注册</span><span>协议与权限确认</span></div>
+      </div><span class="diagram-arrow">→</span><div class="flow-step">
+        <b>2</b>
+        <div class="diagram-card "><span>绑定设备</span><span>扫描设备</span><span>确认绑定关系</span></div>
+      </div><span class="diagram-arrow">→</span><div class="flow-step">
+        <b>3</b>
+        <div class="diagram-card "><span>硬件录音</span><span>开始录音</span><span>标记和结束</span></div>
+      </div><span class="diagram-arrow">→</span><div class="flow-step">
+        <b>4</b>
+        <div class="diagram-card "><span>同步文件</span><span>上传文件</span><span>CRC 校验</span></div>
+      </div><span class="diagram-arrow">→</span><div class="flow-step">
+        <b>5</b>
+        <div class="diagram-card "><span>生成内容</span><span>转写</span><span>AI 摘要</span></div>
+      </div><span class="diagram-arrow">→</span><div class="flow-step">
+        <b>6</b>
+        <div class="diagram-card "><span>使用结果</span><span>查看笔记</span><span>导出分享</span></div>
+      </div>
+    </div>
+  </figure>
+<p>图 1-2：首版端到端流程。用户必须先登录并绑定设备，录音由硬件完成，录音结束后才进入同步，文件进入列表后再发起转写与 AI 笔记生成。</p>
+<h3>1.3 背景与目标</h3>
+<p>AI录音卡是软硬件一体化产品。硬件负责长时、稳定、低打扰录音；App 负责账号、设备绑定、录音控制、同步管理、文件资产管理、转写、AI 笔记、导出和用量透明。</p>
+<p>目标：</p>
+<table><thead><tr><th>目标</th><th>说明</th><th>优先级</th></tr></thead><tbody><tr><td>设备可用</td><td>完成扫描、绑定、连接、状态查看、解绑和恢复出厂入口</td><td>P0</td></tr><tr><td>录音可信</td><td>用户能明确看到硬件是否在录音、是否暂停、是否结束保存</td><td>P0</td></tr><tr><td>同步可靠</td><td>录音结束后进入同步队列，支持进度、失败原因、重试和 CRC 失败提示</td><td>P0</td></tr><tr><td>文件可管理</td><td>支持文件列表、来源区分、播放、重命名、删除、回收站和导入音频</td><td>P0</td></tr><tr><td>AI 闭环</td><td>未转写文件显示生成入口，支持自动生成/自定义生成、转写结果和 AI 笔记</td><td>P0</td></tr><tr><td>用量透明</td><td>转写前展示预计消耗，转写失败返还额度并展示账本记录</td><td>P0</td></tr><tr><td>隐私可控</td><td>提供 AI 授权、云端删除、账号删除、日志上传授权和录音合规提示</td><td>P0</td></tr></tbody></table>
+<p>非目标：</p>
+<table><thead><tr><th>非目标</th><th>说明</th></tr></thead><tbody><tr><td>App 手机自身录音</td><td>当前版本不支持 App 使用手机麦克风录音；仅支持硬件录音和音频文件导入</td></tr><tr><td>团队协作/企业后台</td><td>首版不做团队空间、权限协作和企业后台</td></tr><tr><td>跨文件 Ask / 知识库</td><td>首版不做跨文件问答和长期知识库</td></tr><tr><td>CRM/自动工作流</td><td>首版不接入 CRM、自动任务流和第三方业务系统</td></tr><tr><td>私有化部署</td><td>首版不做私有化部署</td></tr></tbody></table>
+<p>成功指标：</p>
+<table><thead><tr><th>指标</th><th>首版目标</th><th>验证方式</th></tr></thead><tbody><tr><td>首次绑定可完成</td><td>测试设备可完成扫描、选择、绑定和进入文件首页</td><td>App + 固件联调</td></tr><tr><td>录音状态可信</td><td>录音中、暂停中、结束保存、断连提示均可被用户识别</td><td>用例验收</td></tr><tr><td>文件同步可恢复</td><td>同步失败后可重试，断连后不丢文件状态</td><td>BLE 联调</td></tr><tr><td>生成链路闭环</td><td>未转写文件可提交生成，成功后能查看转写和 AI 笔记</td><td>云端联调</td></tr><tr><td>额度争议可追踪</td><td>扣减和返还均在用量账本中展示关联任务</td><td>用量服务联调</td></tr></tbody></table>
+<h3>1.4 范围定义</h3>
+<table><thead><tr><th>范围</th><th>内容</th></tr></thead><tbody><tr><td>首版市场</td><td>美国、日本</td></tr><tr><td>App 平台</td><td>iOS / Android</td></tr><tr><td>用户范围</td><td>单用户、个人账号、单账号设备绑定</td></tr><tr><td>P0 主链路</td><td>登录注册 -&gt; 绑定设备 -&gt; 硬件录音 -&gt; 结束后同步 -&gt; 文件列表 -&gt; 转写/AI笔记 -&gt; 导出 -&gt; 用量账本</td></tr><tr><td>P1 延后</td><td>OTA 完整升级、PDF 导出、链接分享、文件夹增强、帮助与诊断、支付升级</td></tr><tr><td>前置依赖</td><td>BLE 协议、设备录音/保存/标记能力、云端账号、设备绑定、文件上传、转写服务、AI 服务、用量服务、合规文案</td></tr></tbody></table>
+<h3>1.5 术语与分类</h3>
+<table><thead><tr><th>术语</th><th>英文标识</th><th>说明</th></tr></thead><tbody><tr><td>硬件录音</td><td><code>hardware_recording</code></td><td>由 AI 录音卡设备采集并保存的录音</td></tr><tr><td>导入文件</td><td><code>imported_audio</code></td><td>用户通过系统文件选择器导入 App 的外部音频文件</td></tr><tr><td>录音主按钮</td><td><code>global_record_button</code></td><td>位于底部中间的全局录音入口，不是普通 Tab</td></tr><tr><td>智能识别场景</td><td><code>auto_scene</code></td><td>不手动选模板，直接开始硬件录音，后续由系统自动匹配处理策略</td></tr><tr><td>自定义生成</td><td><code>custom_generation</code></td><td>用户选择模板、说话人标注、音频语言和 AI 模型后提交生成</td></tr><tr><td>用量账本</td><td><code>usage_ledger</code></td><td>展示转写分钟余额、扣减、返还和关联任务的页面</td></tr><tr><td>CRC 校验</td><td><code>crc_check</code></td><td>文件同步后的完整性校验，具体协议待固件定义</td></tr></tbody></table>
+<p>分类枚举：</p>
+<ul>
+<li>文件来源：<code>硬件录音</code> / <code>导入文件</code></li>
+<li>录音状态：<code>待机</code> / <code>录音中</code> / <code>暂停中</code> / <code>保存中</code></li>
+<li>同步状态：<code>待同步</code> / <code>同步中</code> / <code>同步失败</code> / <code>同步完成</code></li>
+<li>生成状态：<code>未转写</code> / <code>上传中</code> / <code>转写中</code> / <code>转写完成</code> / <code>AI生成中</code> / <code>AI已生成</code> / <code>失败</code></li>
+<li>生成方式：<code>自动生成</code> / <code>自定义生成</code></li>
+</ul>
+<hr>
+<h2>2. 流程与规则</h2>
+<h3>2.1 核心业务流程</h3>
+<figure class="diagram core-diagram">
+    <figcaption>核心业务流程</figcaption>
+    <div class="core-grid">
+      <section>
+        <h4>入口检查</h4>
+        <div class="diagram-card "><span>打开 App</span></div><span class="down-arrow">↓</span><div class="diagram-card "><span>登录状态检查</span></div><span class="down-arrow">↓</span><div class="diagram-card "><span>设备绑定检查</span></div>
+      </section><section>
+        <h4>录音与同步</h4>
+        <div class="diagram-card "><span>开始硬件录音</span></div><span class="down-arrow">↓</span><div class="diagram-card "><span>结束后回到首页</span></div><span class="down-arrow">↓</span><div class="diagram-card "><span>存在同步任务时展示进度</span></div>
+      </section><section>
+        <h4>文件处理</h4>
+        <div class="diagram-card "><span>进入文件列表</span></div><span class="down-arrow">↓</span><div class="diagram-card "><span>生成方式与用量确认</span></div><span class="down-arrow">↓</span><div class="diagram-card "><span>转写 / AI 生成</span></div>
+      </section><section>
+        <h4>结果使用</h4>
+        <div class="diagram-card "><span>文件详情</span></div><span class="down-arrow">↓</span><div class="diagram-card "><span>分享 / 导出</span></div><span class="down-arrow">↓</span><div class="diagram-card "><span>用量账本</span></div>
+      </section>
+    </div>
+  </figure>
+<p>图 2-1：核心业务流程。关键门槛为登录、绑定、设备连接、电量、存储和用量；硬件录音只在结束后同步。</p>
+<h3>2.2 子流程详述</h3>
+<h3>2.2.1 首次使用与设备绑定</h3>
+<ol>
+<li>用户打开 App。</li>
+<li>App 检查登录状态；未登录进入登录/注册。</li>
+<li>登录后检查用户协议、隐私政策、AI 数据处理说明是否已确认。</li>
+<li>App 展示蓝牙、附近设备/定位、通知、文件访问的权限说明；麦克风不默认请求。</li>
+<li>用户进入设备扫描页，App 通过 BLE 扫描附近录音卡。</li>
+<li>设备列表展示设备名、SN、RSSI、绑定状态。</li>
+<li>用户选择设备后进入绑定确认页，确认完整 SN 和绑定账号。</li>
+<li>App 与设备、云端完成绑定关系写入；成功后进入文件首页。</li>
+<li>若设备已被其他账号绑定，禁止继续读取文件并展示售后/解绑指引。</li>
+</ol>
+<h3>2.2.2 开始硬件录音</h3>
+<ol>
+<li>用户点击底部中间录音主按钮。</li>
+<li>App 依次检查登录、设备绑定、设备连接、电量、存储。</li>
+<li>任一条件不满足时，进入对应异常状态或引导页。</li>
+<li>条件满足时，展示录音方式选择弹层。</li>
+<li>用户选择“开始录音（智能识别场景）”时，App 直接下发硬件开始录音命令。</li>
+<li>用户选择“选择录音场景”时，进入场景模板选择页，选择后下发开始录音命令。</li>
+<li>“开始录音（智能识别场景）”支持勾选“下次默认”；默认恢复方式【待确认】。</li>
+<li>录音开始成功后进入录音中页。</li>
+</ol>
+<h3>2.2.3 录音暂停、结束与同步</h3>
+<ol>
+<li>录音中页展示计时、连接、电量、存储、录音模式、标记时间轴。</li>
+<li>用户可添加标记；硬件短按标记和 App 标记统一进入文件时间轴。</li>
+<li>用户点击暂停后，设备进入暂停中；页面显示继续和结束。</li>
+<li>用户点击继续后，设备恢复录音中。</li>
+<li>用户点击结束后，设备保存录音文件，App 显示保存中。</li>
+<li>保存成功后文件进入待同步；录音中不做实时文件同步。</li>
+<li>同步通过 BLE 分片传输；App 展示进度、失败原因和重试入口。</li>
+<li>CRC 校验通过后，文件进入列表；失败则进入同步失败/CRC 失败状态。</li>
+</ol>
+<h3>2.2.4 音频导入</h3>
+<ol>
+<li>用户从文件首页或文件列表点击导入音频。</li>
+<li>App 调起系统文件选择器。</li>
+<li>用户选择文件后，App 校验格式、大小、可读性；具体限制【待确认】。</li>
+<li>导入成功后创建本地文件记录，来源标记为 <code>导入文件</code>。</li>
+<li>导入文件进入文件列表，未转写状态显示生成按钮。</li>
+<li>当前版本导入文件不等于 App 手机录音，不触发麦克风权限。</li>
+</ol>
+<h3>2.2.5 转写与 AI 笔记</h3>
+<ol>
+<li>文件列表和文件详情对未转写音频展示生成按钮。</li>
+<li>用户点击生成后进入生成方式与用量确认弹层。</li>
+<li>自动生成使用默认策略：智能匹配模板、自动标注说话人开启、音频语言 English、AI 模型自动。</li>
+<li>自定义生成支持选择模板、自动标注说话人开关、音频语言、AI 模型。</li>
+<li>提交前展示预计消耗分钟、剩余额度和云端处理提示。</li>
+<li>额度不足时禁止提交，引导查看用量/会员。</li>
+<li>提交后进入上传、转写、AI 生成任务状态。</li>
+<li>转写成功后展示转写结果；AI 成功后展示 AI 笔记。</li>
+<li>转写失败时，若已扣减或预扣额度，必须返还对应额度并写入用量账本。</li>
+<li>AI 生成失败时保留已完成转写结果，允许重试 AI 生成。</li>
+</ol>
+<h3>2.3 状态流转</h3>
+<figure class="diagram state-diagram">
+    <figcaption>关键状态流转</figcaption>
+    <div class="state-chain">
+      <div class="diagram-card "><span>待登录</span></div><span class="diagram-arrow">→</span><div class="diagram-card "><span>待绑定</span></div><span class="diagram-arrow">→</span><div class="diagram-card "><span>设备可用</span></div><span class="diagram-arrow">→</span><div class="diagram-card "><span>录音中</span></div><span class="diagram-arrow">→</span><div class="diagram-card "><span>同步中</span></div><span class="diagram-arrow">→</span><div class="diagram-card "><span>待生成</span></div><span class="diagram-arrow">→</span><div class="diagram-card "><span>生成中</span></div><span class="diagram-arrow">→</span><div class="diagram-card "><span>可查看 / 可分享</span></div>
+    </div>
+  </figure>
+<p>图 2-2：设备、文件、转写和 AI 的状态流转。App 页面必须避免把“设备仍在录音”“文件已保存”“文件已同步”“转写已完成”混为同一状态。</p>
+<table><thead><tr><th>状态</th><th>触发条件</th><th>下一状态</th><th>备注</th></tr></thead><tbody><tr><td>未登录</td><td>首次打开或会话失效</td><td>已登录</td><td>未登录不可绑定和录音</td></tr><tr><td>未绑定</td><td>登录后无绑定设备</td><td>已绑定未连接</td><td>可导入音频是否允许【待确认】</td></tr><tr><td>已连接</td><td>BLE 连接成功</td><td>录音中/同步中</td><td>可读取设备状态</td></tr><tr><td>录音中</td><td>硬件开始录音</td><td>暂停中/保存中</td><td>App 断连不代表设备停止录音</td></tr><tr><td>暂停中</td><td>用户暂停</td><td>录音中/保存中</td><td>暂停不进入同步</td></tr><tr><td>保存中</td><td>用户结束录音</td><td>待同步</td><td>设备关闭文件</td></tr><tr><td>同步失败</td><td>BLE 断连、超时、CRC 失败</td><td>同步中</td><td>需保留重试/续传状态</td></tr><tr><td>转写失败</td><td>ASR 任务失败</td><td>未转写</td><td>返还额度后允许重试</td></tr><tr><td>AI 生成失败</td><td>AI 任务失败</td><td>转写完成</td><td>保留转写结果</td></tr></tbody></table>
+<h3>2.4 业务规则索引</h3>
+<table><thead><tr><th>规则ID</th><th>规则名称</th><th>描述</th><th>引用章节</th></tr></thead><tbody><tr><td>R01</td><td>登录门槛</td><td>用户必须登录后才能绑定设备、开始硬件录音、提交转写/AI 生成、查看用量账本</td><td>3.1 / 3.2 / 3.6</td></tr><tr><td>R02</td><td>绑定门槛</td><td>未绑定设备不能开始硬件录音；点击录音主按钮需引导绑定</td><td>3.2 / 3.3</td></tr><tr><td>R03</td><td>设备连接门槛</td><td>开始录音和同步文件前需要设备连接；断连时进入对应异常状态</td><td>3.2 / 3.4</td></tr><tr><td>R04</td><td>非手机录音</td><td>首版不支持 App 手机自身录音，不默认请求麦克风权限</td><td>3.1 / 3.3</td></tr><tr><td>R05</td><td>录音结束后同步</td><td>硬件录音文件只在录音结束并保存后进入同步；录音中不做实时文件同步</td><td>3.4 / 3.5</td></tr><tr><td>R06</td><td>文件来源必显</td><td>文件列表和详情必须区分 <code>硬件录音</code> 与 <code>导入文件</code></td><td>3.5</td></tr><tr><td>R07</td><td>未转写显示生成</td><td>未转写文件显示生成按钮；已转写文件显示转写结果</td><td>3.5 / 3.6</td></tr><tr><td>R08</td><td>自定义生成默认值</td><td>自定义生成默认自动标注说话人开启、音频语言 English、AI 模型自动</td><td>3.6</td></tr><tr><td>R09</td><td>用量确认</td><td>提交转写前展示预计消耗和剩余额度；额度不足禁止提交</td><td>3.6 / 3.8</td></tr><tr><td>R10</td><td>失败返还</td><td>转写失败后返还对应额度，并在用量账本展示返还记录和关联任务</td><td>3.7 / 3.8</td></tr><tr><td>R11</td><td>隐私授权</td><td>AI 数据改进授权需独立开关；默认不把用户音频用于训练</td><td>3.9</td></tr><tr><td>R12</td><td>美国/日本合规提示</td><td>首发市场需提供英文/日文隐私政策、权限说明和录音同意提示，文案需法务确认</td><td>3.9 / 4.3</td></tr></tbody></table>
+<h3>2.5 边界与异常</h3>
+<table><thead><tr><th>场景</th><th>触发条件</th><th>处理方式</th></tr></thead><tbody><tr><td>未登录</td><td>绑定、录音、生成、用量等动作前发现未登录</td><td>进入登录/注册，完成后回到原动作入口</td></tr><tr><td>未绑定</td><td>点击录音主按钮但无设备</td><td>进入未绑定状态页，引导设备扫描</td></tr><tr><td>蓝牙权限拒绝</td><td>扫描或连接前权限不足</td><td>展示权限用途和系统设置入口</td></tr><tr><td>搜不到设备</td><td>扫描超时或附近无广播</td><td>提示靠近、唤醒、检查电量、重新扫描</td></tr><tr><td>设备已被其他账号绑定</td><td>绑定确认或云端校验发现占用</td><td>禁止绑定和读取文件，展示售后/解绑指引</td></tr><tr><td>设备未连接</td><td>开始录音或同步前 BLE 未连接</td><td>引导重连，失败进入帮助/诊断</td></tr><tr><td>低电量</td><td>设备电量低于阈值</td><td>提示风险；是否禁止录音【待确认】</td></tr><tr><td>存储不足</td><td>设备剩余存储低于阈值</td><td>禁止开始录音或提示即将停止；阈值【待确认】</td></tr><tr><td>录音中 BLE 断连</td><td>录音中 App 与设备断开</td><td>提示设备仍在本地录音，重连后同步状态</td></tr><tr><td>同步失败</td><td>BLE 断连、超时、CRC 失败</td><td>保留进度，允许重试/续传；错误码待固件定义</td></tr><tr><td>上传失败</td><td>网络异常或上传服务失败</td><td>保留本地文件，允许重试</td></tr><tr><td>转写失败</td><td>ASR 任务失败</td><td>返还额度，记录账本，文件回到可重试状态</td></tr><tr><td>AI 生成失败</td><td>LLM 任务失败</td><td>保留转写结果，允许重试 AI</td></tr><tr><td>额度不足</td><td>预计分钟大于剩余额度</td><td>禁止提交，进入用量/会员入口</td></tr></tbody></table>
+<hr>
+<h2>3. 交互原型</h2>
+<p>交互说明以当前 <code>interactive-prd-ai-recorder</code> 为关联原型。页面级标注内容维护在 <code>content/pages/*.md</code>，页面结构维护在 <code>data/pages.json</code>，异常说明维护在 <code>content/errors/*.md</code>。</p>
+<h3>3.1 首启与账号</h3>
+<p>对应原型/页面：<code>APP-ONB-01</code> 至 <code>APP-ONB-05</code>，当前交互式 PRD 可在后续补充完整首启页面。</p>
+<p>标注点说明：</p>
+<table><thead><tr><th>#</th><th>内容</th><th>说明</th></tr></thead><tbody><tr><td>1</td><td>登录/注册</td><td>作为绑定设备、硬件录音、云端转写和用量账本的前置条件</td></tr><tr><td>2</td><td>协议与隐私</td><td>用户协议、隐私政策、AI 数据处理说明、美国/日本录音同意提示</td></tr><tr><td>3</td><td>权限说明</td><td>蓝牙、Nearby Devices/定位、通知、文件访问；麦克风不默认请求</td></tr><tr><td>4</td><td>AI 数据授权</td><td>独立开关，默认不用于训练</td></tr><tr><td>5</td><td>异常提示</td><td>登录失败、网络异常、权限拒绝</td></tr></tbody></table>
+<p>字段定义：</p>
+<table><thead><tr><th>界面字段</th><th>控件</th><th>数据字段</th><th>规则</th></tr></thead><tbody><tr><td>登录状态</td><td>状态文本</td><td><code>auth_state</code></td><td>引用 R01</td></tr><tr><td>协议版本</td><td>链接/勾选</td><td><code>agreement_version</code></td><td>地区版本需记录</td></tr><tr><td>隐私政策</td><td>链接/勾选</td><td><code>privacy_version</code></td><td>英文/日文版本需法务确认</td></tr><tr><td>AI 数据授权</td><td>开关</td><td><code>ai_data_opt_in</code></td><td>引用 R11</td></tr><tr><td>权限状态</td><td>状态列表</td><td><code>permission_state</code></td><td>系统权限按平台展示</td></tr></tbody></table>
+<p>交互行为：</p>
+<ul>
+<li>用户未登录点击绑定/录音/生成 → 进入登录/注册（引用 R01）。</li>
+<li>用户拒绝协议 → 阻止进入核心功能。</li>
+<li>用户拒绝蓝牙权限 → 进入权限异常页。</li>
+<li>当前版本不触发手机麦克风权限（引用 R04）。</li>
+</ul>
+<h3>3.2 设备扫描与绑定</h3>
+<p>对应页面：<code>APP-DEV-01 设备扫描页</code>、<code>APP-DEV-02 设备绑定确认页</code>、<code>APP-DEV-03 设备详情页</code>。</p>
+<p>标注点说明：</p>
+<table><thead><tr><th>#</th><th>内容</th><th>说明</th></tr></thead><tbody><tr><td>1</td><td>扫描状态</td><td>显示扫描中、已发现、未发现、权限拒绝</td></tr><tr><td>2</td><td>设备列表</td><td>展示设备名、SN、RSSI、绑定状态</td></tr><tr><td>3</td><td>绑定确认</td><td>展示完整 SN、账号绑定说明、确认按钮</td></tr><tr><td>4</td><td>设备状态</td><td>电量、存储、录音、同步、固件版本</td></tr><tr><td>5</td><td>设备操作</td><td>重连、解绑、恢复出厂、OTA 占位</td></tr></tbody></table>
+<p>字段定义：</p>
+<table><thead><tr><th>界面字段</th><th>控件</th><th>数据字段</th><th>规则</th></tr></thead><tbody><tr><td>设备名</td><td>文本</td><td><code>device_name</code></td><td>BLE 广播包或云端设备</td></tr><tr><td>SN</td><td>文本</td><td><code>device_sn</code></td><td>完整 SN 在绑定确认页展示</td></tr><tr><td>RSSI</td><td>文本/图标</td><td><code>rssi</code></td><td>来自系统蓝牙能力</td></tr><tr><td>绑定状态</td><td>标签</td><td><code>bind_state</code></td><td>设备占用时禁止绑定</td></tr><tr><td>设备电量</td><td>指标</td><td><code>battery_level</code></td><td>阈值待固件/产品确认</td></tr><tr><td>设备存储</td><td>指标</td><td><code>storage_remaining</code></td><td>阈值待固件/产品确认</td></tr></tbody></table>
+<p>交互行为：</p>
+<ul>
+<li>未登录进入设备绑定 → 先登录（引用 R01）。</li>
+<li>搜不到设备 → 展示靠近设备、唤醒设备、重新扫描。</li>
+<li>设备已被其他账号绑定 → 禁止读取文件，展示售后/解绑指引。</li>
+<li>绑定成功 → 进入文件首页。</li>
+</ul>
+<h3>3.3 文件首页与录音主按钮</h3>
+<p>对应页面：<code>APP-HOME-01 文件首页</code>、底部中间录音主按钮。</p>
+<p>标注点说明：</p>
+<table><thead><tr><th>#</th><th>内容</th><th>说明</th></tr></thead><tbody><tr><td>1</td><td>顶部设备入口</td><td>当前设备名、连接状态、设备详情入口</td></tr><tr><td>2</td><td>设备状态卡</td><td>电量、存储、录音状态、同步状态</td></tr><tr><td>3</td><td>同步摘要</td><td>待同步、同步中、同步失败数量</td></tr><tr><td>4</td><td>最近文件</td><td>文件名、来源、时长、状态、生成按钮</td></tr><tr><td>5</td><td>导入入口</td><td>进入系统文件选择器</td></tr><tr><td>6</td><td>底部中间录音按钮</td><td>全局主按钮，不是普通 Tab</td></tr></tbody></table>
+<p>字段定义：</p>
+<table><thead><tr><th>界面字段</th><th>控件</th><th>数据字段</th><th>规则</th></tr></thead><tbody><tr><td>当前设备</td><td>卡片</td><td><code>current_device</code></td><td>未绑定显示添加设备</td></tr><tr><td>连接状态</td><td>标签</td><td><code>connection_state</code></td><td>引用 R03</td></tr><tr><td>同步摘要</td><td>卡片</td><td><code>sync_summary</code></td><td>引用 R05</td></tr><tr><td>文件来源</td><td>标签</td><td><code>file_source</code></td><td>引用 R06</td></tr><tr><td>文件状态</td><td>标签</td><td><code>file_state</code></td><td>支持同步/转写/AI 状态</td></tr><tr><td>录音主按钮</td><td>浮动按钮</td><td><code>global_record_button</code></td><td>引用 R02/R03</td></tr></tbody></table>
+<p>交互行为：</p>
+<ul>
+<li>点击设备状态卡 → 进入设备详情；未绑定进入设备扫描。</li>
+<li>点击同步摘要 → 进入同步队列或同步失败状态。</li>
+<li>点击导入音频 → 打开系统文件选择器。</li>
+<li>点击录音主按钮 → 先做登录、绑定、连接、电量、存储检查，再进入录音方式选择。</li>
+</ul>
+<h3>3.4 录音控制</h3>
+<p>对应页面：<code>APP-REC-02 录音方式选择弹层</code>、<code>APP-REC-03 录音场景模板选择页</code>、<code>APP-REC-04 录音中页</code>、<code>APP-REC-05 设备保存中页</code>。</p>
+<p>标注点说明：</p>
+<table><thead><tr><th>#</th><th>内容</th><th>说明</th></tr></thead><tbody><tr><td>1</td><td>录音方式</td><td>开始录音（智能识别场景）/选择录音场景</td></tr><tr><td>2</td><td>下次默认</td><td>勾选后后续点击主按钮可直接使用智能识别场景</td></tr><tr><td>3</td><td>录音计时</td><td>录音中/暂停中的核心状态证明</td></tr><tr><td>4</td><td>设备保护信息</td><td>连接、电量、存储、剩余可录时长【待确认】</td></tr><tr><td>5</td><td>标记时间轴</td><td>App 标记和硬件短按标记合并展示</td></tr><tr><td>6</td><td>操作按钮</td><td>添加标记、暂停/继续、结束录音</td></tr></tbody></table>
+<p>字段定义：</p>
+<table><thead><tr><th>界面字段</th><th>控件</th><th>数据字段</th><th>规则</th></tr></thead><tbody><tr><td>录音模式</td><td>选择项</td><td><code>record_mode</code></td><td><code>auto_scene</code> / <code>scene_template</code></td></tr><tr><td>下次默认</td><td>复选框</td><td><code>default_record_mode</code></td><td>取消入口【待确认】</td></tr><tr><td>录音时长</td><td>计时器</td><td><code>record_duration</code></td><td>断连时本地计时策略【待确认】</td></tr><tr><td>录音状态</td><td>标签</td><td><code>record_state</code></td><td><code>录音中</code> / <code>暂停中</code> / <code>保存中</code></td></tr><tr><td>标记点</td><td>时间轴</td><td><code>marker_list</code></td><td>硬件/APP 标记来源需记录</td></tr></tbody></table>
+<p>交互行为：</p>
+<ul>
+<li>点击开始录音 → 下发硬件录音命令，成功后进入录音中页。</li>
+<li>点击暂停 → 下发暂停命令，页面进入暂停中。</li>
+<li>点击继续 → 下发继续命令，页面恢复录音中。</li>
+<li>点击结束 → 下发结束命令，进入设备保存中。</li>
+<li>录音中断连 → 显示“设备仍在本地录音，重连后同步状态”。</li>
+<li>录音文件只在结束保存后同步（引用 R05）。</li>
+</ul>
+<h3>3.5 文件同步与文件管理</h3>
+<p>对应页面：<code>APP-HOME-02 文件列表页</code>、<code>APP-FILE-01 文件详情页</code>、同步队列/同步失败状态、回收站。</p>
+<p>标注点说明：</p>
+<table><thead><tr><th>#</th><th>内容</th><th>说明</th></tr></thead><tbody><tr><td>1</td><td>筛选栏</td><td>全部、硬件、导入、未转写、失败</td></tr><tr><td>2</td><td>文件卡片</td><td>文件名、来源、日期、时长、大小、状态</td></tr><tr><td>3</td><td>生成按钮</td><td>仅未转写文件展示</td></tr><tr><td>4</td><td>播放器</td><td>播放、暂停、进度、倍速、标记点</td></tr><tr><td>5</td><td>页签</td><td>转写、AI 笔记、信息</td></tr><tr><td>6</td><td>文件操作</td><td>重命名、删除、恢复、彻底删除、Markdown 导出</td></tr></tbody></table>
+<p>字段定义：</p>
+<table><thead><tr><th>界面字段</th><th>控件</th><th>数据字段</th><th>规则</th></tr></thead><tbody><tr><td>文件名</td><td>文本</td><td><code>file_name</code></td><td>可重命名</td></tr><tr><td>来源</td><td>标签</td><td><code>file_source</code></td><td>引用 R06</td></tr><tr><td>同步状态</td><td>标签</td><td><code>sync_state</code></td><td>待同步/同步中/失败/完成</td></tr><tr><td>生成状态</td><td>标签</td><td><code>generation_state</code></td><td>引用 R07</td></tr><tr><td>音频路径</td><td>播放源</td><td><code>audio_path</code></td><td>本地文件系统</td></tr><tr><td>云端对象</td><td>隐藏字段</td><td><code>cloud_object_key</code></td><td>上传后生成，接口待后端定义</td></tr></tbody></table>
+<p>交互行为：</p>
+<ul>
+<li>同步完成或导入成功 → 文件进入列表。</li>
+<li>未转写文件 → 显示生成按钮（引用 R07）。</li>
+<li>已转写文件 → 文件详情显示转写结果。</li>
+<li>删除文件 → 进入回收站；云端删除、分享撤销、索引清理规则【待确认】。</li>
+<li>Markdown 导出 → 有转写或 AI 笔记时可导出，结构【待确认】。</li>
+</ul>
+<h3>3.6 转写配置与 AI 生成</h3>
+<p>对应页面：<code>APP-AI-01 生成方式与用量确认弹层</code>、<code>APP-AI-02 自定义生成配置区</code>、<code>APP-AI-03 转写任务状态页</code>。</p>
+<p>标注点说明：</p>
+<table><thead><tr><th>#</th><th>内容</th><th>说明</th></tr></thead><tbody><tr><td>1</td><td>文件摘要</td><td>文件名、时长、来源</td></tr><tr><td>2</td><td>自动生成</td><td>使用默认策略生成转写和 AI 笔记</td></tr><tr><td>3</td><td>自定义生成</td><td>展示模板、说话人、语言、AI 模型配置</td></tr><tr><td>4</td><td>用量确认</td><td>预计消耗分钟、剩余额度</td></tr><tr><td>5</td><td>云端处理提示</td><td>告知音频上传云端处理</td></tr><tr><td>6</td><td>任务进度</td><td>上传、转写、AI 生成分阶段展示</td></tr></tbody></table>
+<p>字段定义：</p>
+<table><thead><tr><th>界面字段</th><th>控件</th><th>数据字段</th><th>规则</th></tr></thead><tbody><tr><td>生成方式</td><td>单选</td><td><code>generation_mode</code></td><td><code>自动生成</code> / <code>自定义生成</code></td></tr><tr><td>模板</td><td>选择器</td><td><code>template_id</code></td><td>模板列表【待确认】</td></tr><tr><td>自动标注说话人</td><td>开关</td><td><code>speaker_diarization_enabled</code></td><td>默认开启，引用 R08</td></tr><tr><td>音频语言</td><td>选择器</td><td><code>audio_language</code></td><td>默认 English，引用 R08</td></tr><tr><td>AI 模型</td><td>选择器</td><td><code>ai_model</code></td><td>默认自动，引用 R08</td></tr><tr><td>预计消耗</td><td>数字</td><td><code>estimated_minutes</code></td><td>引用 R09</td></tr><tr><td>剩余额度</td><td>数字</td><td><code>remaining_minutes</code></td><td>引用 R09</td></tr></tbody></table>
+<p>交互行为：</p>
+<ul>
+<li>点击生成 → 打开生成方式与用量确认弹层。</li>
+<li>自动生成 → 使用默认策略，不要求用户配置。</li>
+<li>自定义生成 → 展开模板、说话人、语言、模型。</li>
+<li>额度不足 → 禁止提交，进入用量/会员入口。</li>
+<li>提交后 → 进入任务状态页，展示上传、转写、AI 生成。</li>
+<li>上传失败 → 保留文件，可重试。</li>
+<li>转写失败 → 返还额度（引用 R10）。</li>
+<li>AI 生成失败 → 保留转写结果，可重试 AI。</li>
+</ul>
+<h3>3.7 转写结果与 AI 笔记</h3>
+<p>对应页面：<code>APP-AI-04 转写结果页签</code>、<code>APP-AI-06 AI 笔记页</code>、<code>APP-AI-07 Markdown 导出弹层</code>。</p>
+<p>标注点说明：</p>
+<table><thead><tr><th>#</th><th>内容</th><th>说明</th></tr></thead><tbody><tr><td>1</td><td>转写结果</td><td>文本、时间戳、说话人</td></tr><tr><td>2</td><td>AI 笔记</td><td>摘要、重点、行动项</td></tr><tr><td>3</td><td>模板信息</td><td>显示本次生成所用模板【待确认】</td></tr><tr><td>4</td><td>复制</td><td>复制转写或笔记文本</td></tr><tr><td>5</td><td>Markdown 导出</td><td>导出转写和 AI 笔记</td></tr><tr><td>6</td><td>重新生成</td><td>支持重新生成，保留/覆盖策略【待确认】</td></tr></tbody></table>
+<p>字段定义：</p>
+<table><thead><tr><th>界面字段</th><th>控件</th><th>数据字段</th><th>规则</th></tr></thead><tbody><tr><td>转写文本</td><td>文本区</td><td><code>transcript_text</code></td><td>转写完成后展示</td></tr><tr><td>说话人</td><td>标签</td><td><code>speaker_label</code></td><td>是否支持识别【待确认】</td></tr><tr><td>时间戳</td><td>文本</td><td><code>timestamp</code></td><td>由转写服务返回</td></tr><tr><td>摘要</td><td>文本区</td><td><code>summary</code></td><td>AI 服务生成</td></tr><tr><td>重点</td><td>列表</td><td><code>key_points</code></td><td>AI 服务生成</td></tr><tr><td>行动项</td><td>列表</td><td><code>action_items</code></td><td>AI 服务生成</td></tr></tbody></table>
+<p>交互行为：</p>
+<ul>
+<li>已转写文件打开详情 → 默认可查看转写结果。</li>
+<li>AI 已生成 → 展示摘要、重点、行动项。</li>
+<li>点击复制 → 复制当前页签内容。</li>
+<li>点击 Markdown 导出 → 选择导出范围，生成 <code>.md</code> 文件或系统分享。</li>
+</ul>
+<h3>3.8 用量与会员</h3>
+<p>对应页面：<code>APP-ME-02 用量账本页</code>、<code>APP-ME-03 会员状态页</code>、额度不足状态页。</p>
+<p>标注点说明：</p>
+<table><thead><tr><th>#</th><th>内容</th><th>说明</th></tr></thead><tbody><tr><td>1</td><td>剩余分钟</td><td>用户当前可用转写额度</td></tr><tr><td>2</td><td>预计消耗</td><td>转写提交前展示</td></tr><tr><td>3</td><td>扣减记录</td><td>任务成功或预扣记录</td></tr><tr><td>4</td><td>返还记录</td><td>转写失败后的额度返还</td></tr><tr><td>5</td><td>关联任务</td><td>每条记录关联文件和任务</td></tr><tr><td>6</td><td>会员入口</td><td>购买/升级 P1，首版可占位</td></tr></tbody></table>
+<p>字段定义：</p>
+<table><thead><tr><th>界面字段</th><th>控件</th><th>数据字段</th><th>规则</th></tr></thead><tbody><tr><td>剩余分钟</td><td>数字</td><td><code>remaining_minutes</code></td><td>用量服务返回</td></tr><tr><td>账本类型</td><td>标签</td><td><code>ledger_type</code></td><td>扣减/返还/赠送【待确认】</td></tr><tr><td>关联文件</td><td>链接</td><td><code>file_id</code></td><td>可跳转文件详情</td></tr><tr><td>关联任务</td><td>文本</td><td><code>task_id</code></td><td>接口待后端定义</td></tr><tr><td>失败原因</td><td>文本</td><td><code>failure_reason</code></td><td>转写失败返还必须展示</td></tr></tbody></table>
+<p>交互行为：</p>
+<ul>
+<li>生成前查看预计消耗和剩余额度（引用 R09）。</li>
+<li>转写失败后写入返还记录（引用 R10）。</li>
+<li>点击账本记录 → 跳转关联文件或任务状态。</li>
+<li>支付/升级流程首版为 P1，占位展示。</li>
+</ul>
+<h3>3.9 我的、设置、隐私与安全</h3>
+<p>对应页面：<code>APP-ME-01 我的首页</code>、<code>APP-ME-04 隐私与安全页</code>、<code>APP-ME-05 帮助与诊断页</code>、<code>APP-ME-06 账号删除页</code>。</p>
+<p>标注点说明：</p>
+<table><thead><tr><th>#</th><th>内容</th><th>说明</th></tr></thead><tbody><tr><td>1</td><td>我的首页</td><td>用量、会员、设备、设置、帮助入口</td></tr><tr><td>2</td><td>隐私控制</td><td>AI 数据授权、云端文件删除、转写/AI 笔记删除</td></tr><tr><td>3</td><td>账号删除</td><td>二次确认，删除范围和保留期【待确认】</td></tr><tr><td>4</td><td>诊断授权</td><td>日志上传需用户授权并脱敏</td></tr><tr><td>5</td><td>合规提示</td><td>美国/日本录音同意、隐私政策、数据处理说明</td></tr></tbody></table>
+<p>字段定义：</p>
+<table><thead><tr><th>界面字段</th><th>控件</th><th>数据字段</th><th>规则</th></tr></thead><tbody><tr><td>AI 数据授权</td><td>开关</td><td><code>ai_data_opt_in</code></td><td>引用 R11</td></tr><tr><td>云端文件删除</td><td>按钮</td><td><code>delete_cloud_files</code></td><td>删除范围【待确认】</td></tr><tr><td>账号删除</td><td>按钮</td><td><code>delete_account</code></td><td>法务保留期【待确认】</td></tr><tr><td>日志上传</td><td>按钮/开关</td><td><code>diagnostic_upload</code></td><td>默认不上传，需授权</td></tr><tr><td>录音同意提示</td><td>链接/说明</td><td><code>recording_consent_notice</code></td><td>引用 R12</td></tr></tbody></table>
+<p>交互行为：</p>
+<ul>
+<li>用户可关闭 AI 数据改进授权。</li>
+<li>用户可发起云端文件、转写文本、AI 笔记删除。</li>
+<li>用户可发起账号删除，必须二次确认。</li>
+<li>上传诊断日志前必须说明范围并取得授权。</li>
+</ul>
+<h3>3.10 异常状态</h3>
+<p>对应页面：<code>APP-ERR-01</code> 至异常库 <code>content/errors/*.md</code>。</p>
+<p>标注点说明：</p>
+<table><thead><tr><th>#</th><th>内容</th><th>说明</th></tr></thead><tbody><tr><td>1</td><td>异常标题</td><td>明确当前阻断原因</td></tr><tr><td>2</td><td>影响范围</td><td>告知哪些操作不可继续</td></tr><tr><td>3</td><td>下一步</td><td>登录、绑定、授权、重连、重试、查看帮助</td></tr><tr><td>4</td><td>错误码</td><td>BLE/云端/AI 错误码待后端和固件定义</td></tr><tr><td>5</td><td>诊断入口</td><td>必要时上传日志</td></tr></tbody></table>
+<p>异常清单：</p>
+<table><thead><tr><th>异常</th><th>触发页面</th><th>用户可操作</th><th>研发依赖</th></tr></thead><tbody><tr><td>未登录</td><td>绑定/录音/生成/用量</td><td>登录/注册</td><td>账号服务</td></tr><tr><td>未绑定</td><td>录音主按钮/文件首页</td><td>去绑定</td><td>云端设备/BLE</td></tr><tr><td>权限拒绝</td><td>设备扫描/文件导入</td><td>去系统设置</td><td>系统权限</td></tr><tr><td>设备未连接</td><td>录音/同步</td><td>重连/帮助</td><td>BLE 状态</td></tr><tr><td>低电量</td><td>录音/OTA</td><td>充电/继续规则待确认</td><td>BLE 状态包</td></tr><tr><td>存储不足</td><td>录音前/录音中</td><td>清理/同步后删除策略待确认</td><td>BLE 状态包</td></tr><tr><td>同步失败</td><td>同步队列</td><td>重试/续传</td><td>BLE 分片/CRC</td></tr><tr><td>上传失败</td><td>转写任务</td><td>重试</td><td>云端文件</td></tr><tr><td>转写失败</td><td>任务状态</td><td>返还额度/重试</td><td>转写服务/用量服务</td></tr><tr><td>AI 失败</td><td>任务状态</td><td>保留转写/重试 AI</td><td>AI 服务</td></tr><tr><td>额度不足</td><td>生成确认</td><td>查看用量/升级</td><td>用量服务</td></tr></tbody></table>
+<hr>
+<h2>4. 质量属性</h2>
+<h3>4.1 性能与可用性</h3>
+<table><thead><tr><th>指标</th><th>要求</th><th>验证依据</th></tr></thead><tbody><tr><td>设备扫描</td><td>App 触发扫描后应尽快展示附近设备；具体发现时间需联调确认</td><td>BLE 联调</td></tr><tr><td>设备状态刷新</td><td>文件首页应能展示最近一次设备连接、电量、存储和录音状态</td><td>App + BLE 状态包</td></tr><tr><td>录音状态表达</td><td>录音中、暂停中、保存中、断连仍录音必须视觉区分</td><td>产品验收</td></tr><tr><td>同步可靠性</td><td>同步失败必须可重试，断点续传规则需固件确认</td><td>BLE 分片传输</td></tr><tr><td>文件播放</td><td>同步完成或导入成功的音频可播放</td><td>本地文件系统</td></tr><tr><td>转写任务可追踪</td><td>上传、转写、AI 生成各阶段均有状态反馈</td><td>云端任务状态</td></tr><tr><td>用量透明</td><td>预估、扣减、返还、余额均可追踪</td><td>用量服务</td></tr></tbody></table>
+<p>可用性要求：</p>
+<ul>
+<li>录音入口固定在底部中间，全局可达。</li>
+<li>录音状态优先级高于 AI、会员、营销信息。</li>
+<li>未登录、未绑定、未连接等阻断状态必须明确下一步。</li>
+<li>文件来源、同步状态、转写状态、AI 状态必须在列表和详情中可见。</li>
+</ul>
+<h3>4.2 安全与权限</h3>
+<table><thead><tr><th>类别</th><th>要求</th></tr></thead><tbody><tr><td>登录</td><td>绑定设备、硬件录音、转写生成、用量账本必须登录</td></tr><tr><td>设备绑定</td><td>一台设备绑定到一个账号；设备被其他账号绑定时禁止读取文件</td></tr><tr><td>本地数据</td><td>音频、转写文本、AI 笔记按高敏感数据处理</td></tr><tr><td>云端上传</td><td>转写/AI 前明确提示音频会上传云端处理</td></tr><tr><td>AI 授权</td><td>AI 数据改进授权独立开关，默认不用于训练</td></tr><tr><td>删除权</td><td>提供云端文件、转写文本、AI 笔记、账号删除入口</td></tr><tr><td>诊断日志</td><td>默认脱敏，上传前需用户授权</td></tr><tr><td>权限请求</td><td>蓝牙/附近设备/定位按功能触发；麦克风当前不默认请求</td></tr><tr><td>合规文案</td><td>美国/日本录音同意提示和隐私政策需法务确认</td></tr></tbody></table>
+<p>权限与前置条件矩阵：</p>
+<table><thead><tr><th>功能</th><th>需要登录</th><th>需要绑定设备</th><th>需要设备连接</th><th>需要网络</th><th>需要蓝牙权限</th><th>需要云端授权</th><th>备注</th></tr></thead><tbody><tr><td>扫描设备</td><td>是</td><td>否</td><td>否</td><td>否</td><td>是</td><td>否</td><td>Android 定位/Nearby Devices 按系统要求</td></tr><tr><td>绑定设备</td><td>是</td><td>否</td><td>是</td><td>是</td><td>是</td><td>是</td><td>云端绑定和设备端鉴权一致</td></tr><tr><td>开始硬件录音</td><td>是</td><td>是</td><td>是</td><td>否</td><td>是</td><td>否</td><td>设备本地录音</td></tr><tr><td>停止录音</td><td>是</td><td>是</td><td>是</td><td>否</td><td>是</td><td>否</td><td>断连时需重连确认</td></tr><tr><td>同步文件</td><td>是</td><td>是</td><td>是</td><td>否</td><td>是</td><td>否</td><td>云端上传另需网络</td></tr><tr><td>播放本地文件</td><td>是</td><td>否</td><td>否</td><td>否</td><td>否</td><td>否</td><td>已导入/已同步文件</td></tr><tr><td>导入音频文件</td><td>是</td><td>否</td><td>否</td><td>否</td><td>否</td><td>否</td><td>文件访问权限按系统触发</td></tr><tr><td>上传转写</td><td>是</td><td>否</td><td>否</td><td>是</td><td>否</td><td>是</td><td>需用量确认</td></tr><tr><td>生成 AI 笔记</td><td>是</td><td>否</td><td>否</td><td>是</td><td>否</td><td>是</td><td>依赖转写结果</td></tr><tr><td>Markdown 导出</td><td>是</td><td>否</td><td>否</td><td>否</td><td>否</td><td>否</td><td>系统分享能力【待确认】</td></tr><tr><td>删除本地文件</td><td>是</td><td>否</td><td>否</td><td>否</td><td>否</td><td>否</td><td>回收站规则【待确认】</td></tr><tr><td>删除云端文件</td><td>是</td><td>否</td><td>否</td><td>是</td><td>否</td><td>是</td><td>删除范围【待确认】</td></tr><tr><td>查看用量账本</td><td>是</td><td>否</td><td>否</td><td>是</td><td>否</td><td>是</td><td>缓存展示策略【待确认】</td></tr><tr><td>上传诊断日志</td><td>是</td><td>否</td><td>否</td><td>是</td><td>否</td><td>是</td><td>需授权与脱敏</td></tr></tbody></table>
+<h3>4.3 风险与依赖</h3>
+<table><thead><tr><th>风险</th><th>影响</th><th>可能性</th><th>应对措施</th></tr></thead><tbody><tr><td>BLE 协议未冻结</td><td>设备扫描、状态、录音命令、分片同步、CRC 和错误码无法稳定实现</td><td>高</td><td>固件先输出协议草案和错误码表，App 以适配层封装</td></tr><tr><td>长时录音文件同步慢</td><td>用户等待时间长，失败率高</td><td>高</td><td>设计同步队列、断点续传、失败原因和后台等待提示</td></tr><tr><td>录音中断连误解</td><td>用户误以为录音停止或文件丢失</td><td>高</td><td>录音页明确“设备仍本地录音”，重连后同步状态</td></tr><tr><td>用量扣减争议</td><td>用户对失败后扣费产生争议</td><td>中</td><td>采用账本记录，失败返还必须可追踪</td></tr><tr><td>AI 模板未定</td><td>自定义生成页面和笔记结构不稳定</td><td>中</td><td>模板列表、输出结构标注【待确认】，首版先保留少量模板</td></tr><tr><td>美国/日本录音合规</td><td>上架和用户使用风险</td><td>高</td><td>法务确认录音同意提示、隐私政策、权限文案</td></tr><tr><td>App 误请求麦克风</td><td>与“不支持 App 手机录音”冲突，引发隐私疑虑</td><td>中</td><td>当前版本不默认请求麦克风，导入文件走文件权限</td></tr><tr><td>云端服务状态不一致</td><td>文件、转写、AI、用量状态不同步</td><td>中</td><td>任务状态以服务端为准，本地缓存需可恢复</td></tr></tbody></table>
+<h3>4.4 开放问题</h3>
+<table><thead><tr><th>#</th><th>分类</th><th>问题</th><th>影响页面</th><th>建议确认对象</th><th>优先级</th></tr></thead><tbody><tr><td>1</td><td>硬件</td><td>低电量阈值、存储不足阈值是多少（低电量提醒≤20%；低电量强提醒≤10%、存储不足提醒剩余 &lt;10% 或 &lt;2小时，禁止新录音剩余 &lt;10分钟容量）</td><td>录音中页、异常页、设备详情</td><td>硬件/固件</td><td>P0</td></tr><tr><td>2</td><td>BLE/固件</td><td>BLE 同步失败、CRC 失败、断点续传错误码如何定义</td><td>同步队列、异常页</td><td>固件</td><td>P0</td></tr><tr><td>3</td><td>BLE/固件</td><td>录音中断连后 App 如何恢复真实录音状态和计时（录音中仅同步状态，链接后显示录音时间状态更新计时即可）</td><td>录音中页</td><td>固件/App</td><td>P0</td></tr><tr><td>4</td><td>文件同步</td><td>同步中是否允许后台、暂停、取消（暂不考虑，连接如果未同步自动同步）</td><td>同步队列</td><td>App/固件</td><td>P0</td></tr><tr><td>5</td><td>App</td><td>未绑定但已登录是否允许仅使用导入文件能力</td><td>文件首页、导入流程</td><td>产品</td><td>P0</td></tr><tr><td>6</td><td>AI</td><td>录音场景模板有哪些，是否与 AI 笔记模板共用</td><td>录音方式、AI 模板</td><td>产品/AI</td><td>P0</td></tr><tr><td>7</td><td>AI</td><td>AI 笔记模板数量待定，暂定为 5 个</td><td>自定义生成、AI 笔记</td><td>产品/AI</td><td>P0</td></tr><tr><td>8</td><td>AI</td><td>支持说话人识别</td><td>转写结果、自定义生成</td><td>AI</td><td>P0</td></tr><tr><td>9</td><td>AI</td><td>音频语言选择列表和默认 English 是否按地区调整（按地区）</td><td>自定义生成</td><td>AI/产品</td><td>P0</td></tr><tr><td>10</td><td>用量</td><td>预扣、成功扣减、失败返还的精确规则</td><td>用量确认、账本</td><td>后端/产品</td><td>P0</td></tr><tr><td>11</td><td>导出</td><td>Markdown 导出结构是否包含元信息、时间戳、AI 笔记</td><td>AI 笔记、导出</td><td>产品</td><td>P0</td></tr><tr><td>12</td><td>分享</td><td>PDF / 链接分享是否进入首版</td><td>导出弹层</td><td>产品</td><td>P1</td></tr><tr><td>13</td><td>设备</td><td>恢复出厂由 App 触发还是设备按键触发</td><td>设备详情</td><td>硬件/固件</td><td>P0</td></tr><tr><td>14</td><td>合规</td><td>美国/日本录音同意提示和隐私政策文案</td><td>首启、隐私安全</td><td>法务</td><td>P0</td></tr><tr><td>15</td><td>运营</td><td>会员与支付是否进入首版，免费额度如何设置</td><td>用量/会员</td><td>产品/运营</td><td>P1</td></tr></tbody></table>
+<hr>
+<h2>附录</h2>
+<h3>A. 原型文件对照</h3>
+<table><thead><tr><th>PRD 章节</th><th>原型/资料文件</th><th>说明</th></tr></thead><tbody><tr><td>3.3 文件首页与录音主按钮</td><td><code>interactive-prd-ai-recorder/content/pages/home.md</code></td><td>文件首页标注说明</td></tr><tr><td>3.4 录音控制</td><td><code>interactive-prd-ai-recorder/content/pages/recording.md</code></td><td>录音中页标注说明</td></tr><tr><td>3.5 文件同步与文件管理</td><td><code>interactive-prd-ai-recorder/content/pages/file-list.md</code> / <code>file-detail.md</code></td><td>文件列表和详情</td></tr><tr><td>3.6 转写配置与 AI 生成</td><td><code>interactive-prd-ai-recorder/content/pages/generate.md</code> / <code>task-status.md</code></td><td>生成弹层和任务状态</td></tr><tr><td>3.7 转写结果与 AI 笔记</td><td><code>interactive-prd-ai-recorder/content/pages/ai-note.md</code></td><td>AI 笔记</td></tr><tr><td>3.8 用量与会员</td><td><code>interactive-prd-ai-recorder/content/pages/usage.md</code></td><td>用量账本</td></tr><tr><td>3.9 隐私与安全</td><td><code>interactive-prd-ai-recorder/content/pages/privacy.md</code></td><td>隐私控制</td></tr><tr><td>3.10 异常状态</td><td><code>interactive-prd-ai-recorder/content/errors/*.md</code></td><td>16 类异常说明</td></tr></tbody></table>
+<h3>B. 图表清单</h3>
+<table><thead><tr><th>图表</th><th>Mermaid 类型</th><th>对应章节</th></tr></thead><tbody><tr><td>业务全景图</td><td><code>flowchart LR</code></td><td>1.1</td></tr><tr><td>业务完整流程</td><td><code>flowchart LR</code></td><td>1.2</td></tr><tr><td>核心业务流程</td><td><code>flowchart TD</code></td><td>2.1</td></tr><tr><td>状态流转</td><td><code>stateDiagram-v2</code></td><td>2.3</td></tr></tbody></table>
+<h3>C. 业务规则完整索引</h3>
+<table><thead><tr><th>规则ID</th><th>规则名称</th><th>定义章节</th><th>引用章节</th></tr></thead><tbody><tr><td>R01</td><td>登录门槛</td><td>2.4</td><td>3.1 / 3.2 / 3.6</td></tr><tr><td>R02</td><td>绑定门槛</td><td>2.4</td><td>3.2 / 3.3</td></tr><tr><td>R03</td><td>设备连接门槛</td><td>2.4</td><td>3.2 / 3.4</td></tr><tr><td>R04</td><td>非手机录音</td><td>2.4</td><td>3.1 / 3.3</td></tr><tr><td>R05</td><td>录音结束后同步</td><td>2.4</td><td>3.4 / 3.5</td></tr><tr><td>R06</td><td>文件来源必显</td><td>2.4</td><td>3.5</td></tr><tr><td>R07</td><td>未转写显示生成</td><td>2.4</td><td>3.5 / 3.6</td></tr><tr><td>R08</td><td>自定义生成默认值</td><td>2.4</td><td>3.6</td></tr><tr><td>R09</td><td>用量确认</td><td>2.4</td><td>3.6 / 3.8</td></tr><tr><td>R10</td><td>失败返还</td><td>2.4</td><td>3.7 / 3.8</td></tr><tr><td>R11</td><td>隐私授权</td><td>2.4</td><td>3.9</td></tr><tr><td>R12</td><td>美国/日本合规提示</td><td>2.4</td><td>3.9 / 4.3</td></tr></tbody></table>
+<h3>D. 变更记录</h3>
+<table><thead><tr><th>日期</th><th>版本</th><th>变更内容</th><th>作者</th></tr></thead><tbody><tr><td>2026-07-07</td><td>v3.0</td><td>输出 AI录音卡 App PRD</td><td>ANDY.MA</td></tr></tbody></table>
+  </main>
+</body>
+</html>
