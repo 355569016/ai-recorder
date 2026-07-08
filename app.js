@@ -19,7 +19,7 @@ const pages = [
     group: "首启与账号",
     title: "登录 / 注册",
     priority: "P0",
-    goal: "完成账号登录，作为绑定设备、硬件录音、云端生成和用量账本的前置条件。",
+    goal: "完成账号登录，作为绑定设备、硬件录音、云端生成和我的页用量服务的前置条件。",
     entry: "首次打开 App、会话失效、点击绑定/录音/生成时未登录。",
     fields: [["auth_state", "登录状态", "云端账号"], ["login_method", "登录方式", "Google / Apple / Email / 验证码"], ["agreement_version", "协议版本", "云端账号/本地缓存"], ["privacy_opt_in", "资讯授权", "用户勾选"]],
     rules: ["未勾选用户协议、隐私政策和 AI 数据处理说明时不可提交登录/注册。", "第三方登录、邮箱密码登录、验证码登录共用同一协议确认状态。", "未登录不可绑定设备、不可开始硬件录音、不可提交转写与 AI 生成。", "登录后检查协议与隐私版本，版本更新需重新确认。"],
@@ -501,16 +501,160 @@ const pages = [
   },
   {
     id: "APP-ME-02",
-    group: "用量",
-    title: "用量账本",
+    group: "我的",
+    title: "我的",
     priority: "P0",
-    goal: "展示剩余分钟、扣减记录、返还记录和关联任务。",
-    entry: "我的首页、额度不足页、转写任务页。",
-    fields: [["remaining_minutes", "剩余分钟", "用量服务"], ["ledger_type", "账本类型", "用量服务"], ["ledger_minutes", "分钟数", "用量服务"], ["task_id", "关联任务", "用量服务"], ["file_id", "关联文件", "云端文件/本地库"]],
-    rules: ["转写前展示预计消耗。", "转写失败返还记录必须展示关联任务和原因。", "支付/购买入口 P1。"],
-    states: ["免费版", "额度充足", "额度不足", "扣减记录", "返还记录"],
-    deps: ["用量服务：余额、账本、会员状态。"],
-    acceptance: ["扣减和返还记录都能追踪到文件。", "余额、会员状态和任务记录同屏可读。"]
+    goal: "展示会员状态、剩余转写分钟、云同步、购买与支持入口，并承载隐私与安全入口。",
+    entry: "底部导航点击我的。",
+    fields: [["membership_level", "会员等级", "用量服务/会员服务"], ["remaining_minutes", "剩余分钟", "用量服务"], ["cloud_sync_state", "私有云同步", "云端账号"], ["billing_support_items", "账单与支持", "本地配置/客服系统"], ["privacy_security", "隐私与安全", "设置页"]],
+    rules: ["顶部为黑色会员状态区，展示标准会员、剩余分钟、进度条和升级入口。", "内容区按发现、账单与支持、隐私与安全分组。", "隐私与安全入口进入隐私与安全页。", "购买、兑换码、账单、恢复购买、使用记录、常见问题为后续入口占位。"],
+    states: ["标准会员", "剩余分钟充足", "云同步未开启", "入口占位"],
+    deps: ["用量服务：余额、会员状态。", "云端账号：私有云同步状态。", "客服与支付入口待定义。"],
+    acceptance: ["我的页样式参考截图，包含黑色会员头部、发现区、账单与支持区和隐私与安全入口。", "底部我的 Tab 处于选中态。"]
+  },
+  {
+    id: "APP-ME-05",
+    group: "我的",
+    title: "私有云同步",
+    priority: "P0",
+    goal: "开启和管理私有云同步、Wi-Fi 同步策略、云端存储空间与云端录音删除。",
+    entry: "我的页点击私有云同步。",
+    fields: [["cloud_sync_enabled", "私有云同步", "云端账号"], ["wifi_only_sync", "仅 Wi-Fi 同步", "本地设置"], ["cloud_storage_usage", "云端存储占用", "云端文件"], ["delete_cloud_recordings", "删除云端录音", "云端文件"]],
+    rules: ["开启私有云同步后自动备份数据，支持 App 与 Web 多端同步。", "仅 Wi-Fi 同步为从属开关，未开启云同步时不可用。", "管理存储空间进入本地缓存清理页。", "删除云端录音进入危险操作确认链路。"],
+    states: ["云同步开启", "Wi-Fi 同步关闭", "管理存储", "删除云端录音"],
+    deps: ["云端账号：同步开关与云端容量。", "本地缓存：已同步录音体积。"],
+    acceptance: ["私有云同步页样式参考截图。", "管理存储空间和删除云端录音入口可点击。"]
+  },
+  {
+    id: "APP-ME-06",
+    group: "我的",
+    title: "优化 App 储存空间",
+    priority: "P1",
+    goal: "管理本地已同步录音缓存，释放 App 存储空间。",
+    entry: "私有云同步页点击管理存储空间。",
+    fields: [["optimize_storage_enabled", "优化 App 储存空间", "本地设置"], ["recording_cache_size", "录音文件体积", "本地缓存"], ["clear_local_cache", "清理本地缓存", "本地缓存"]],
+    rules: ["开启后不再自动下载云端录音。", "清理仅移除本地已同步录音，云端录音保留。", "点击清理进入二次确认弹窗。"],
+    states: ["优化开启", "本地缓存可清理"],
+    deps: ["本地缓存：录音文件大小。", "云端文件：已同步状态。"],
+    acceptance: ["页面结构参考管理存储空间截图。", "清理入口进入确认弹窗。"]
+  },
+  {
+    id: "APP-ME-07",
+    group: "我的",
+    title: "清理 App 存储空间",
+    priority: "P1",
+    goal: "确认是否清理已同步录音的本地缓存。",
+    entry: "优化 App 储存空间页点击清理 App 存储空间。",
+    fields: [["clear_scope", "清理范围", "本地缓存"], ["confirm_action", "确认清理", "用户操作"]],
+    rules: ["只清理已同步到云端的本地录音。", "清理后用户可重新下载。", "取消返回管理存储空间页。"],
+    states: ["待确认", "取消", "确认清理"],
+    deps: ["本地缓存。"],
+    acceptance: ["确认弹窗文案和按钮参考截图。"]
+  },
+  {
+    id: "APP-ME-13",
+    group: "我的",
+    title: "删除云端的录音",
+    priority: "P1",
+    goal: "提供删除云端所有录音的危险操作入口。",
+    entry: "私有云同步页点击删除云端的录音。",
+    fields: [["delete_cloud_recordings", "删除云端所有录音", "云端文件"]],
+    rules: ["页面仅展示危险入口和说明。", "点击入口进入二次确认弹窗。"],
+    states: ["危险入口", "待确认"],
+    deps: ["云端文件。"],
+    acceptance: ["红色危险入口样式参考截图。"]
+  },
+  {
+    id: "APP-ME-14",
+    group: "我的",
+    title: "删除云端录音确认",
+    priority: "P1",
+    goal: "确认云端所有录音永久删除。",
+    entry: "删除云端的录音页点击删除云端的所有录音。",
+    fields: [["delete_scope", "删除范围", "云端文件"], ["confirm_delete", "确认删除", "用户操作"]],
+    rules: ["删除后云端及所有同步 App 中的录音永久删除。", "取消返回删除云端录音页。"],
+    states: ["待确认", "取消", "确认删除"],
+    deps: ["云端文件。"],
+    acceptance: ["危险确认弹窗样式参考截图。"]
+  },
+  {
+    id: "APP-ME-08",
+    group: "我的",
+    title: "兑换码",
+    priority: "P1",
+    goal: "输入兑换码并提交兑换。",
+    entry: "我的页点击兑换码。",
+    fields: [["redeem_code", "兑换码", "用户输入"], ["redeem_state", "兑换状态", "用量服务"]],
+    rules: ["兑换码区分大小写。", "未输入时兑换按钮置灰。", "输入框聚焦时展示键盘状态。"],
+    states: ["未输入", "输入中", "提交中", "兑换成功", "兑换失败"],
+    deps: ["用量服务：兑换码校验。"],
+    acceptance: ["兑换码弹窗样式参考截图。"]
+  },
+  {
+    id: "APP-ME-15",
+    group: "我的",
+    title: "兑换码输入中",
+    priority: "P1",
+    goal: "展示兑换码输入框聚焦和系统键盘状态。",
+    entry: "兑换码弹窗点击输入框。",
+    fields: [["redeem_code_input", "兑换码输入", "用户输入"]],
+    rules: ["键盘弹起时弹窗上移。", "兑换码未完整输入时按钮仍置灰。"],
+    states: ["键盘弹起", "输入中"],
+    deps: ["系统键盘。"],
+    acceptance: ["键盘状态参考截图。"]
+  },
+  {
+    id: "APP-ME-09",
+    group: "我的",
+    title: "账单详情",
+    priority: "P1",
+    goal: "展示账单记录空态或账单列表。",
+    entry: "我的页点击账单详情。",
+    fields: [["billing_records", "账单记录", "支付系统"]],
+    rules: ["无账单时展示空态。", "有账单时可展示账单列表，后续补充明细。"],
+    states: ["暂无账单记录", "有账单记录"],
+    deps: ["支付系统。"],
+    acceptance: ["空态参考账单详情截图。"]
+  },
+  {
+    id: "APP-ME-10",
+    group: "我的",
+    title: "恢复购买中",
+    priority: "P1",
+    goal: "展示恢复购买请求处理中状态。",
+    entry: "我的页点击恢复购买。",
+    fields: [["restore_state", "恢复状态", "支付系统"]],
+    rules: ["点击恢复购买后展示加载态。", "未找到购买记录时进入失败提示弹窗。"],
+    states: ["加载中", "未找到记录"],
+    deps: ["支付系统。"],
+    acceptance: ["加载态参考截图。"],
+    prototypeLinks: [["未找到购买记录", "APP-ME-11"]]
+  },
+  {
+    id: "APP-ME-11",
+    group: "我的",
+    title: "恢复购买失败",
+    priority: "P1",
+    goal: "提示未找到以前的购买记录。",
+    entry: "恢复购买中未找到历史购买。",
+    fields: [["restore_error", "恢复失败原因", "支付系统"]],
+    rules: ["用户确认后返回我的页。", "提示查看收据或订阅历史记录后重试。"],
+    states: ["未找到购买记录"],
+    deps: ["支付系统。"],
+    acceptance: ["失败弹窗参考截图。"]
+  },
+  {
+    id: "APP-ME-12",
+    group: "我的",
+    title: "使用记录",
+    priority: "P1",
+    goal: "按日期展示转写用量记录和消耗时长。",
+    entry: "我的页点击使用记录。",
+    fields: [["usage_date", "使用日期", "用量服务"], ["usage_duration", "消耗时长", "用量服务"]],
+    rules: ["列表按时间倒序。", "点击单条记录后续可进入用量明细。"],
+    states: ["有记录", "加载更多"],
+    deps: ["用量服务。"],
+    acceptance: ["使用记录列表样式参考截图。"]
   },
   {
     id: "APP-DEV-03",
@@ -1620,13 +1764,235 @@ function renderGenerate() {
   `;
 }
 
+function meRow(label, opts = {}) {
+  const attrs = opts.go ? ` data-go="${opts.go}"` : "";
+  return `<button class="me-row"${attrs}>${opts.icon ? `<span class="${opts.icon}"></span>` : ""}<b>${h(label)}</b>${opts.value ? `<em>${h(opts.value)}</em>` : ""}<i>›</i></button>`;
+}
+
+function meTop(title, opts = {}) {
+  return `
+    <div class="statusbar me-simple-status"><span>9:41</span><span>5G</span><span>82%</span></div>
+    <header class="me-simple-top">
+      <button data-go="${opts.back || "APP-ME-02"}">‹</button>
+      <strong>${h(title)}</strong>
+      ${opts.close ? `<button data-go="${opts.close}">×</button>` : "<span></span>"}
+    </header>
+  `;
+}
+
+function togglePill(on = false, disabled = false) {
+  return `<span class="toggle-pill ${on ? "on" : ""} ${disabled ? "disabled" : ""}"><i></i></span>`;
+}
+
+function meSettingRow(label, opts = {}) {
+  const attrs = opts.go ? ` data-go="${opts.go}"` : "";
+  return `
+    <button class="me-setting-row ${opts.danger ? "danger" : ""}"${attrs}>
+      <span>
+        <b>${h(label)}</b>
+        ${opts.note ? `<small>${h(opts.note)}</small>` : ""}
+      </span>
+      ${opts.value ? `<em>${h(opts.value)}</em>` : ""}
+      ${opts.toggle !== undefined ? togglePill(opts.toggle, opts.disabled) : `<i>›</i>`}
+    </button>
+  `;
+}
+
 function renderUsage() {
-  return screen(`
-    ${card("剩余分钟", `<div style="font-size:54px;font-weight:650;line-height:1">420</div><p class="caption">免费版 · 购买/升级入口 P1</p>`, "soft")}
-    ${metrics([["本月扣减", "107m"], ["失败返还", "73m"], ["任务数", "3"]])}
-    ${card("账本记录", `${row("-73 分钟", "Board meeting 预扣")}${row("+73 分钟", "转写失败返还")}${row("-34 分钟", "Interview 成功扣减")}${row("关联任务", "点击可回到文件详情")}`)}
-    <button class="secondary-btn">筛选记录</button>
-  `, { title: "用量账本", back: "APP-HOME-01", active: "me" });
+  return `
+    <main class="me-page">
+      <section class="me-hero">
+        <div class="statusbar me-statusbar"><span>9:41</span><span>5G</span><span>82%</span></div>
+        <div class="me-hero-content">
+          <div class="me-member-row">
+            <h1>标准会员</h1>
+            <button>更多详情 ›</button>
+          </div>
+          <div class="me-progress"><b style="width:38%"></b><i></i></div>
+          <div class="me-quota-row">
+            <span>剩余259 / 300 分钟 <b>i</b></span>
+            <button>∞ 升级至卓越会员</button>
+          </div>
+          <button class="me-ai-trial">免费试用无限 AI 能力</button>
+        </div>
+      </section>
+      <section class="me-content">
+        <h2>发现</h2>
+        <div class="me-line"></div>
+        <div class="me-card-group">
+          ${meRow("私有云同步", { value: "开启", go: "APP-ME-05" })}
+          ${meRow("购买转写时长")}
+          ${meRow("兑换码", { go: "APP-ME-08" })}
+        </div>
+        <section class="me-section">
+          <h3>账单与支持</h3>
+          <div class="me-line"></div>
+          ${meRow("账单详情", { go: "APP-ME-09" })}
+          ${meRow("恢复购买", { go: "APP-ME-10" })}
+          ${meRow("使用记录", { go: "APP-ME-12" })}
+          ${meRow("常见问题")}
+          ${meRow("服务条款")}
+          ${meRow("隐私与安全", { go: "APP-ME-04" })}
+        </section>
+      </section>
+    </main>
+    ${bottom("me")}
+  `;
+}
+
+function renderPrivateCloudSync() {
+  return `
+    <main class="me-simple-page">
+      ${meTop("私有云同步")}
+      <section class="cloud-sync-page">
+        <div class="cloud-hero-icon"><span class="me-icon cloud"></span></div>
+        <h1>私有云同步</h1>
+        <p>私有云同步是 AI录音卡 App 为用户提供的安全私有云服务，开启后可以：<br>1. 自动备份数据，防止丢失<br>2. 修改内容多端同步（App 与 Web），方便查看与管理</p>
+        <div class="me-line"></div>
+        ${meSettingRow("开启私有云同步", { toggle: true })}
+        ${meSettingRow("仅在 Wi-Fi 下同步", { toggle: false, disabled: true, note: "开启后，仅通过 Wi-Fi 自动同步数据" })}
+        <div class="me-line"></div>
+        ${meSettingRow("管理存储空间", { value: "41.23 MB", go: "APP-ME-06" })}
+        ${meSettingRow("删除云端的录音", { go: "APP-ME-13" })}
+      </section>
+    </main>
+  `;
+}
+
+function renderCloudStorage() {
+  return `
+    <main class="me-simple-page">
+      ${meTop("优化 App 储存空间", { back: "APP-ME-05" })}
+      <section class="cloud-storage-page">
+        ${meSettingRow("优化 AI录音卡 App 储存空间", { toggle: true, note: "开启后，AI录音卡 App 将不再自动下载云端录音，你可随时手动下载。" })}
+        <div class="me-line"></div>
+        ${meSettingRow("录音文件", { value: "41.23 MB" })}
+        ${meSettingRow("清理 AI录音卡 App 存储空间", { go: "APP-ME-07", note: "清理 AI录音卡 App 中已同步至云端的录音，释放储存空间，你可随时重新下载。" })}
+      </section>
+    </main>
+  `;
+}
+
+function renderCloudStorageConfirm() {
+  return `
+    ${renderCloudStorage()}
+    <div class="scrim" data-go="APP-ME-06"></div>
+    <section class="me-sheet">
+      <button class="sheet-close" data-go="APP-ME-06">×</button>
+      <h2>是否清理 AI录音卡 App 储存空间?</h2>
+      <div class="me-line"></div>
+      <p>已同步至云端的录音将从 AI录音卡 App 本地移除，你可随时重新下载。</p>
+      <div class="me-sheet-actions two">
+        <button class="outline" data-go="APP-ME-06">取消</button>
+        <button class="dark" data-go="APP-ME-06">清理</button>
+      </div>
+    </section>
+  `;
+}
+
+function renderDeleteCloudRecord() {
+  return `
+    <main class="me-simple-page">
+      ${meTop("删除云端的录音", { back: "APP-ME-05" })}
+      <section class="delete-cloud-page">
+        ${meSettingRow("删除云端的所有录音", { danger: true, go: "APP-ME-14" })}
+        <p>录音将从云端及所有同步的 AI录音卡 App 中永久删除。</p>
+      </section>
+    </main>
+  `;
+}
+
+function renderDeleteCloudRecordConfirm() {
+  return `
+    ${renderDeleteCloudRecord()}
+    <div class="scrim" data-go="APP-ME-13"></div>
+    <section class="me-sheet danger-sheet">
+      <h2>云端的所有录音将被删除</h2>
+      <div class="me-line"></div>
+      <p>录音将从云端及所有同步的 AI录音卡 App 中永久删除。</p>
+      <button class="danger-fill" data-go="APP-ME-05">删除</button>
+      <button class="outline" data-go="APP-ME-13">取消</button>
+    </section>
+  `;
+}
+
+function renderRedeemCode(keyboard = false) {
+  return `
+    ${renderUsage()}
+    <div class="scrim" data-go="APP-ME-02"></div>
+    <section class="me-sheet redeem-sheet ${keyboard ? "with-keyboard" : ""}">
+      <button class="sheet-close" data-go="APP-ME-02">×</button>
+      <h2>兑换码</h2>
+      <div class="me-line"></div>
+      <button class="redeem-input" data-go="APP-ME-15">请输入兑换码，区分大小写</button>
+      <button class="disabled-btn">兑换</button>
+    </section>
+    ${keyboard ? keyboardMock("text") : ""}
+  `;
+}
+
+function renderBillingDetail() {
+  return `
+    <main class="me-simple-page">
+      ${meTop("账单详情", { close: "APP-ME-02" })}
+      <section class="bill-empty">
+        <div class="bill-empty-icon"></div>
+        <p>暂无账单记录</p>
+      </section>
+    </main>
+  `;
+}
+
+function renderRestorePurchaseLoading() {
+  return `
+    ${renderUsage()}
+    <div class="scrim" data-go="APP-ME-02"></div>
+    <button class="restore-loader" data-go="APP-ME-11"><span></span></button>
+  `;
+}
+
+function renderRestorePurchaseFailed() {
+  return `
+    ${renderUsage()}
+    <div class="scrim" data-go="APP-ME-02"></div>
+    <section class="me-sheet restore-sheet">
+      <h2>未找到以前的购买记录</h2>
+      <div class="me-line"></div>
+      <p>没有找到这个账号之前的购买记录。请查看你的收据或订阅历史记录，并再次尝试恢复。</p>
+      <button class="dark" data-go="APP-ME-02">确认</button>
+    </section>
+  `;
+}
+
+function renderUsageRecords() {
+  const records = [
+    ["2026-07-08 12:04:45", "1分 10秒"],
+    ["2026-07-04 15:21:25", "1分 22秒"],
+    ["2026-07-04 15:16:03", "8分 37秒"],
+    ["2026-07-04 15:15:41", "1分 14秒"],
+    ["2026-07-04 15:12:25", "7分 4秒"],
+    ["2026-06-30 14:27:23", "12分 17秒"],
+    ["2026-06-29 17:30:54", "53秒"],
+    ["2026-06-29 16:32:20", "26秒"],
+    ["2026-06-29 15:30:19", "7分 4秒"],
+    ["2026-06-29 15:24:01", "46秒"]
+  ];
+  return `
+    <main class="me-simple-page usage-record-page">
+      ${meTop("使用记录", { close: "APP-ME-02" })}
+      <section>
+        <h1>日期 & 时长</h1>
+        <div class="me-line"></div>
+        ${records.map(([date, duration]) => `
+          <button class="usage-record-row">
+            <span>${h(date)}</span>
+            <b>${h(duration)}</b>
+            <i>›</i>
+          </button>
+        `).join("")}
+      </section>
+    </main>
+  `;
 }
 
 function renderDeviceDetail() {
@@ -1708,6 +2074,17 @@ const renderers = {
   "APP-FILE-15": renderFileDetailGenerating,
   "APP-AI-01": renderGenerate,
   "APP-ME-02": renderUsage,
+  "APP-ME-05": renderPrivateCloudSync,
+  "APP-ME-06": renderCloudStorage,
+  "APP-ME-07": renderCloudStorageConfirm,
+  "APP-ME-13": renderDeleteCloudRecord,
+  "APP-ME-14": renderDeleteCloudRecordConfirm,
+  "APP-ME-08": () => renderRedeemCode(false),
+  "APP-ME-15": () => renderRedeemCode(true),
+  "APP-ME-09": renderBillingDetail,
+  "APP-ME-10": renderRestorePurchaseLoading,
+  "APP-ME-11": renderRestorePurchaseFailed,
+  "APP-ME-12": renderUsageRecords,
   "APP-DEV-03": renderDeviceDetail,
   "APP-ME-04": renderPrivacy,
   "APP-ERR-01": renderError
@@ -1726,7 +2103,7 @@ function renderNav() {
 }
 
 function renderFlow() {
-  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-HOME-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-02"];
+  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-HOME-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-02", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-10", "APP-ME-11", "APP-ME-12"];
   document.getElementById("flowStrip").innerHTML = flow.map((id, index) => {
     const page = pageById(id);
     return `<button class="${id === currentPageId ? "active" : ""}" data-go="${id}">${index + 1}. ${h(page.title)}</button>`;
