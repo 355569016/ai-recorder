@@ -86,11 +86,11 @@ const pages = [
     priority: "P0",
     goal: "引导用户将设备靠近手机，并在绑定过程中开启蓝牙和定位权限。",
     entry: "登录并确认协议后、绑定设备前、导入文件前。",
-    fields: [["bluetooth_permission", "蓝牙权限", "系统权限"], ["location_permission", "定位权限", "系统权限"], ["bind_step", "绑定步骤", "本地状态"], ["estimated_time", "预计耗时", "产品配置"]],
-    rules: ["点击开始后进入搜索设备状态。", "蓝牙和定位权限是扫描和连接设备的必需条件。", "绑定页只说明靠近手机、预计耗时和开始操作，不展示复杂权限清单。"],
-    states: ["待开始", "权限待开启", "权限拒绝"],
+    fields: [["bluetooth_permission", "蓝牙权限", "系统权限"], ["location_permission", "定位权限", "系统权限"], ["bind_step", "绑定步骤", "本地状态"], ["estimated_time", "预计耗时", "产品配置"], ["purchase_link", "购买设备链接", "线上商场渠道"]],
+    rules: ["点击开始后进入搜索设备状态。", "蓝牙和定位权限是扫描和连接设备的必需条件。", "如未授权，点击开始时申请获取对应的蓝牙权限和定位权限（如需）。", "用户拒绝权限时停留本页并提示必须授权后才能扫描和连接设备。", "点击“还没有 AI Recorder 设备?”跳转购买页面，线上商场渠道链接待补充。", "绑定页只说明靠近手机、预计耗时和开始操作，不展示复杂权限清单。"],
+    states: ["待开始", "权限待开启", "权限申请中", "权限拒绝", "购买入口"],
     deps: ["iOS CoreBluetooth 权限文案。", "Android Nearby Devices / 定位权限文案。", "设备广播和绑定状态协议待固件定义。"],
-    acceptance: ["页面名显示为绑定你的设备。", "说明文案为请将设备靠近手机，绑定过程中需要开启蓝牙和定位权限。", "点击开始进入正在搜索设备页。"]
+    acceptance: ["页面名显示为绑定你的设备。", "说明文案为请将设备靠近手机，绑定过程中需要开启蓝牙和定位权限。", "点击开始前如缺少蓝牙或定位权限，必须先触发系统权限申请。", "权限授权后进入正在搜索设备页。", "“还没有 AI Recorder 设备?”有购买链路占位。"]
   },
   {
     id: "APP-DEV-01",
@@ -182,7 +182,7 @@ const pages = [
     rules: ["筛选是用户可见操作，作为 App 内弹层展示。", "默认按创建时间排序。", "全部文件、未分类、回收站为固定入口。", "来源区分硬件设备和导入音频。"],
     states: ["默认", "已选择文件夹", "已选择来源", "清空筛选"],
     deps: ["本地数据库：文件夹、来源、删除状态、设备来源。"],
-    acceptance: ["文件首页点击筛选按钮打开筛选和排序弹层。", "弹层样式参考 Plaud 的筛选和排序面板。"]
+    acceptance: ["文件首页点击筛选按钮打开筛选和排序弹层。", "弹层为底部筛选和排序面板，包含创建时间、文件夹和来源筛选。"]
   },
   {
     id: "APP-FILE-13",
@@ -218,7 +218,7 @@ const pages = [
     goal: "展示搜索词命中的转写、文件和 AI 笔记内容。",
     entry: "搜索页输入关键词或点击最近搜索。",
     fields: [["search_query", "搜索词", "用户输入"], ["matched_results", "相关结果", "本地数据库/云端索引"], ["highlight_text", "命中文本", "转写/AI 笔记索引"]],
-    rules: ["搜索结果页归属于文件模块。", "顶部仅保留返回和搜索框。", "结果页不展示向 Plaud 提问入口，相关结果整体上移。", "命中的关键词以蓝色高亮。"],
+    rules: ["搜索结果页归属于文件模块。", "顶部仅保留返回和搜索框。", "结果页不展示 AI 提问入口，相关结果整体上移。", "命中的关键词以蓝色高亮。"],
     states: ["有结果", "无结果", "加载中"],
     deps: ["本地数据库：文件名、时间、转写文本。", "AI 索引：笔记内容。"],
     acceptance: ["搜索结果页面样式参考搜索结果图。", "搜索词和命中片段清晰可见。"]
@@ -269,11 +269,11 @@ const pages = [
     priority: "P0",
     goal: "明确证明硬件正在录音，并支持标记、暂停、继续和结束。",
     entry: "硬件开始录音成功后。",
-    fields: [["record_duration", "录音时长", "BLE 状态包/本地计时"], ["record_state", "录音状态", "BLE 状态包"], ["battery_level", "电量", "BLE 状态包"], ["storage_remaining", "存储", "BLE 状态包"], ["marker_list", "标记时间轴", "BLE 标记包/本地数据库"]],
-    rules: ["暂停后停留录音中页。", "结束录音后直接回到文件首页；如果存在同步中音频，在首页同步状态条展示进度。", "断连时提示设备仍在本地录音。"],
-    states: ["录音中", "暂停中", "设备断连但仍录音", "低电量", "存储不足"],
-    deps: ["BLE 命令包：暂停、继续、结束、添加标记。", "BLE 状态包：录音状态、电量、存储。"],
-    acceptance: ["计时、连接、电量、存储、标记和结束按钮清晰可见。", "点击暂停后按钮变为继续。", "点击结束直接回到文件首页。"]
+    fields: [["record_duration", "录音时长", "BLE 状态包/本地计时"], ["record_state", "录音状态", "BLE 状态包"], ["battery_level", "电量", "BLE 状态包"], ["storage_remaining", "存储", "BLE 状态包"], ["marker_list", "标记时间轴", "BLE 标记包/本地数据库"], ["marker_assets", "标记附件", "备注/手机拍照"], ["disconnect_timer_mode", "断连计时模式", "本地时钟"]],
+    rules: ["暂停后停留录音中页。", "结束录音后直接回到文件首页；如果存在同步中音频，在首页同步状态条展示进度。", "用户点击添加标记或拍照标记时，必须记录当前录音时间戳、标记类型、备注或照片附件。", "录音标记必须在文件详情中形成锚点映射，例如在文字记录 05:12 对应文字右侧内嵌当时拍摄的照片或备注。", "蓝牙断连时硬件仍在本地录音，App 波形图置灰，计时器继续以手机本地时钟模拟增长。", "蓝牙断连期间显示轻微呼吸红点和文案：蓝牙已断开，硬件仍安全录音中，靠近后自动恢复同步。", "蓝牙恢复后根据硬件录音状态包校准本地模拟计时和标记时间戳。"],
+    states: ["录音中", "暂停中", "设备断连但仍录音", "本地模拟计时", "蓝牙恢复同步", "低电量", "存储不足"],
+    deps: ["BLE 命令包：暂停、继续、结束、添加标记。", "BLE 状态包：录音状态、电量、存储。", "本地数据库：标记时间戳、备注、照片附件。", "文件详情：文字记录锚点映射。"],
+    acceptance: ["计时、连接、电量、存储、标记和结束按钮清晰可见。", "点击暂停后按钮变为继续。", "点击结束直接回到文件首页。", "录音中的备注标记和拍照标记必须能在文件详情文字记录中按时间戳定位展示。", "蓝牙断连时界面必须置灰波形、持续模拟计时并给出安全录音提示。"]
   },
   {
     id: "APP-FILE-01",
@@ -282,11 +282,11 @@ const pages = [
     priority: "P0",
     goal: "集中播放音频、查看 AI 转录后的大纲、智能总结、文字记录、待办事项和思维导图。",
     entry: "文件列表点击文件、同步完成通知、任务完成通知。",
-    fields: [["display_title", "展示标题", "文件名/云端同步数据/AI 摘要"], ["title_source", "标题来源", "本地数据库/云端/AI"], ["ai_tags", "AI 标签", "AI 会议总结"], ["audio_progress", "播放进度", "本地播放器"], ["skip_silence_enabled", "跳过空白片段", "播放器设置"], ["playback_rate", "播放倍速", "播放器设置"], ["ai_sections", "AI 内容结构", "AI 模板"], ["note_question", "笔记提问", "AI 问答"], ["share_state", "分享状态", "云端分享"]],
-    rules: ["开启同步云端时，标题优先根据云端同步数据提炼。", "未开启同步云端时，标题默认使用文件名称。", "生成 AI 会议摘要后，标题根据 AI 会议内容重新提炼总结。", "生成 AI 会议总结后，根据会议内容提取关键标签。", "播放器进度条支持点击和拖动调整音频进度。", "播放器控制区包含音频设置、快退 15 秒、播放、快进 15 秒、倍速，不展示额外方向箭头。", "播放器下方快速定位标签根据 AI 模板结构展示，点击后定位到对应内容区域。", "页面底部固定展示对此笔记提问输入框。", "右上角分享按钮打开分享弹窗，三个点打开更多操作浮层。"],
+    fields: [["display_title", "展示标题", "文件名/云端同步数据/AI 摘要"], ["title_source", "标题来源", "本地数据库/云端/AI"], ["ai_tags", "AI 标签", "AI 会议总结"], ["audio_progress", "播放进度", "本地播放器"], ["skip_silence_enabled", "跳过空白片段", "播放器设置"], ["playback_rate", "播放倍速", "播放器设置"], ["ai_sections", "AI 内容结构", "AI 模板"], ["marker_anchor_map", "标记锚点映射", "录音标记/转写时间戳"], ["note_question", "笔记提问", "AI 问答"], ["share_state", "分享状态", "云端分享"]],
+    rules: ["开启同步云端时，标题优先根据云端同步数据提炼。", "未开启同步云端时，标题默认使用文件名称。", "生成 AI 会议摘要后，标题根据 AI 会议内容重新提炼总结。", "生成 AI 会议总结后，根据会议内容提取关键标签。", "播放器进度条支持点击和拖动调整音频进度。", "播放器控制区包含音频设置、快退 15 秒、播放、快进 15 秒、倍速，不展示额外方向箭头。", "录音中产生的备注标记和拍照标记必须根据时间戳映射到文字记录时间轴。", "在文字记录对应时间点右侧内嵌用户当时拍摄的照片或备注，形成可回溯锚点。", "播放器下方快速定位标签根据 AI 模板结构展示，点击后定位到对应内容区域。", "页面底部固定展示对此笔记提问输入框。", "右上角分享按钮打开分享弹窗，三个点打开更多操作浮层。"],
     states: ["未生成 AI 摘要", "AI 已生成", "音频设置", "倍速选择", "分享", "更多操作", "文件损坏", "删除确认"],
-    deps: ["本地播放器：进度、跳转、快退快进、倍速。", "音频分析：静音/无声片段识别。", "转写服务：文字记录和时间戳。", "AI 服务：标题、标签、大纲、总结、待办、思维导图、笔记问答。", "云端分享：分享链接和权限。"],
-    acceptance: ["文件详情播放器样式参考 Plaud 文件详情。", "播放器下方必须有大纲、智能总结、文字记录、待办事项、思维导图快速定位标签。", "思维导图按卡片预览呈现。", "音频设置和倍速按钮能打开对应弹窗。", "底部有对此笔记提问输入框。", "标题和标签规则在字段与交互说明中明确。"],
+    deps: ["本地播放器：进度、跳转、快退快进、倍速。", "音频分析：静音/无声片段识别。", "转写服务：文字记录和时间戳。", "本地数据库：录音标记、备注、照片附件。", "AI 服务：标题、标签、大纲、总结、待办、思维导图、笔记问答。", "云端分享：分享链接和权限。"],
+    acceptance: ["播放器下方必须有大纲、智能总结、文字记录、待办事项、思维导图快速定位标签。", "思维导图按卡片预览呈现。", "音频设置和倍速按钮能打开对应弹窗。", "底部有对此笔记提问输入框。", "标题和标签规则在字段与交互说明中明确。", "录音中创建的备注标记和拍照标记必须在文字记录中按时间戳展示锚点内容。"],
     prototypeLinks: [["文件详情已转写", "APP-FILE-01"], ["文件详情为空", "APP-FILE-10"]]
   },
   {
@@ -300,7 +300,7 @@ const pages = [
     rules: ["空状态保留标题、创建时间、音频播放器和右上角操作。", "标签区仅显示添加标签入口。", "内容区显示可生成笔记提示，底部固定生成主按钮。", "点击生成先进入生成方式与用量确认弹层。"],
     states: ["未生成 AI 摘要", "可生成笔记", "生成中", "生成失败"],
     deps: ["本地播放器。", "AI 服务：生成入口和状态。", "用量服务：生成前确认。"],
-    acceptance: ["空详情样式参考 Plaud 未生成笔记页面。", "空状态不展示已转写内容和笔记提问框。", "底部生成按钮清晰可见。"],
+    acceptance: ["空详情展示未生成笔记状态。", "空状态不展示已转写内容和笔记提问框。", "底部生成按钮清晰可见。"],
     prototypeLinks: [["文件详情已转写", "APP-FILE-01"], ["文件详情为空", "APP-FILE-10"], ["生成方式选择", "APP-AI-01"], ["生成中", "APP-FILE-15"]]
   },
   {
@@ -415,11 +415,11 @@ const pages = [
     priority: "P0",
     goal: "查看每位说话人的片段并为说话人命名。",
     entry: "更多操作点击为说话人命名。",
-    fields: [["speaker_name", "说话人名称", "用户输入"], ["speaker_duration", "说话时长", "说话人分离结果"], ["speaker_segments", "说话片段", "转写服务"]],
-    rules: ["以底部大弹层展示说话人列表。", "每位说话人包含可编辑名称、总时长、片段播放和片段预览。", "确认后自动更新本文档中的说话人名称。"],
-    states: ["默认", "编辑中", "保存中", "保存成功"],
-    deps: ["说话人分离。", "转写片段索引。", "本地数据库。"],
-    acceptance: ["弹层样式参考为说话人命名截图。", "底部包含取消和确认按钮。"]
+    fields: [["speaker_name", "说话人名称", "用户输入"], ["speaker_duration", "说话时长", "说话人分离结果"], ["speaker_segments", "说话片段", "转写服务"], ["voiceprint_feature", "声纹特征", "AI 声纹识别"], ["global_apply_scope", "全局应用范围", "本设备其他录音"]],
+    rules: ["以底部大弹层展示说话人列表。", "每位说话人包含可编辑名称、总时长、片段播放和片段预览。", "确认后自动更新本文档中的说话人名称。", "当用户将说话人 1 重命名为具体姓名时，弹出提示：是否应用到本设备的其他录音中？", "用户确认全局应用后，AI 提取声纹特征，并在后台将本设备其他文件中的相同声纹重命名为该姓名。", "全局声纹匹配应降低重复命名成本，但必须允许用户取消，仅更新当前文件。"],
+    states: ["默认", "编辑中", "全局应用确认", "声纹后台匹配中", "保存中", "保存成功"],
+    deps: ["说话人分离。", "转写片段索引。", "AI 声纹识别：声纹特征提取与相似声纹匹配。", "本地数据库：跨文件说话人名称映射。"],
+    acceptance: ["弹层样式参考为说话人命名截图。", "底部包含取消和确认按钮。", "重命名说话人后必须出现是否应用到本设备其他录音的确认提示。", "确认全局应用后，后台可将同设备其他录音中的相同声纹同步命名。"]
   },
   {
     id: "APP-FILE-08",
@@ -493,24 +493,115 @@ const pages = [
     priority: "P0",
     goal: "作为文件生成前的方式选择和用量确认弹层，选择自动或自定义并确认用量。",
     entry: "文件列表点击生成、文件详情为空点击生成。",
-    fields: [["generation_mode", "生成方式", "用户选择"], ["estimated_minutes", "预计消耗", "用量服务"], ["remaining_minutes", "剩余额度", "用量服务"], ["speaker_diarization_enabled", "自动标注说话人", "用户选择"], ["audio_language", "音频语言", "用户选择"], ["ai_model", "AI 模型", "用户选择"]],
-    rules: ["文件列表和文件详情为空的生成入口必须先进入本页。", "点击立即生成后进入文件详情生成中页面。", "自动生成使用默认策略。", "自定义生成默认自动标注说话人开启、语言 English、AI 模型自动。", "额度不足时禁止提交。"],
-    states: ["自动生成", "自定义生成", "额度充足", "额度不足", "模板加载失败"],
-    deps: ["用量服务：预估分钟、余额。", "AI 服务：模板列表、模型列表。", "云端文件：上传凭证。"],
-    acceptance: ["弹层展示预计消耗、剩余额度和云端处理提示。", "立即生成进入文件详情生成中。"]
+    fields: [["generation_mode", "生成方式", "用户选择"], ["estimated_minutes", "预计消耗", "用量服务"], ["remaining_minutes", "剩余额度", "用量服务"], ["purchase_minutes_entry", "立即购买分钟数", "用量服务/支付"], ["upgrade_subscription_entry", "升级订阅会员", "会员服务/支付"], ["speaker_diarization_enabled", "自动标注说话人", "用户选择"], ["audio_language", "音频语言", "用户选择"], ["ai_model", "AI 模型", "用户选择"]],
+    rules: ["文件列表和文件详情为空的生成入口必须先进入本页。", "点击立即生成后进入文件详情生成中页面。", "自动生成使用默认策略。", "自定义生成默认自动标注说话人开启、语言 English、AI 模型自动。", "额度不足时立即生成按钮置灰并禁止提交。", "仅额度不足时在立即生成按钮上方展示“立即购买分钟数”和“升级订阅会员”的直达按钮。", "额度充足时隐藏购买分钟数和升级订阅会员入口。", "购买或升级完成后返回本页并重新校验剩余额度。"],
+    states: ["自动生成", "自定义生成", "额度充足", "额度不足", "购买入口", "升级订阅入口", "模板加载失败"],
+    deps: ["用量服务：预估分钟、余额。", "会员服务：订阅等级与权益。", "支付服务：购买分钟数、升级订阅。", "AI 服务：模板列表、模型列表。", "云端文件：上传凭证。"],
+    acceptance: ["弹层展示预计消耗、剩余额度和云端处理提示。", "额度不足时立即生成按钮必须置灰且不可提交，并展示购买分钟数和升级订阅会员入口。", "额度充足时不展示购买分钟数和升级订阅会员入口，立即生成可提交并进入文件详情生成中。"]
   },
   {
     id: "APP-ME-02",
     group: "我的",
     title: "我的",
     priority: "P0",
-    goal: "展示会员状态、剩余转写分钟、云同步、购买与支持入口，并承载隐私与安全入口。",
+    goal: "展示会员状态、剩余转写分钟、账号设置、云同步、购买与支持入口，并承载隐私与安全入口。",
     entry: "底部导航点击我的。",
-    fields: [["membership_level", "会员等级", "用量服务/会员服务"], ["remaining_minutes", "剩余分钟", "用量服务"], ["cloud_sync_state", "私有云同步", "云端账号"], ["billing_support_items", "账单与支持", "本地配置/客服系统"], ["privacy_security", "隐私与安全", "设置页"]],
-    rules: ["顶部为黑色会员状态区，展示标准会员、剩余分钟、进度条和升级入口。", "内容区按发现、账单与支持、隐私与安全分组。", "隐私与安全入口进入隐私与安全页。", "购买、兑换码、账单、恢复购买、使用记录、常见问题为后续入口占位。"],
+    fields: [["membership_level", "会员等级", "用量服务/会员服务"], ["remaining_minutes", "剩余分钟", "用量服务"], ["account_settings", "账号设置", "账号系统"], ["cloud_sync_state", "私有云同步", "云端账号"], ["billing_support_items", "账单与支持", "本地配置/客服系统"], ["privacy_security", "隐私与安全", "设置页"]],
+    rules: ["顶部为黑色会员状态区，展示标准会员、剩余分钟、进度条和升级入口。", "发现区第一项为账号设置，随后展示私有云同步、购买与兑换入口。", "内容区按发现、账单与支持、隐私与安全分组。", "隐私与安全入口进入隐私与安全页。", "购买、兑换码、账单、恢复购买、使用记录、常见问题为后续入口占位。"],
     states: ["标准会员", "剩余分钟充足", "云同步未开启", "入口占位"],
     deps: ["用量服务：余额、会员状态。", "云端账号：私有云同步状态。", "客服与支付入口待定义。"],
     acceptance: ["我的页样式参考截图，包含黑色会员头部、发现区、账单与支持区和隐私与安全入口。", "底部我的 Tab 处于选中态。"]
+  },
+  {
+    id: "APP-ME-16",
+    group: "我的",
+    title: "设置",
+    priority: "P1",
+    goal: "展示账号概览、使用统计、偏好设置与账号入口。",
+    entry: "我的页点击账号设置。",
+    fields: [["profile_avatar", "头像", "账号系统"], ["usage_stats", "使用统计", "本地数据库/用量服务"], ["activity_heatmap", "使用热力图", "本地数据库"], ["preference_settings", "偏好设置", "本地设置"], ["account", "账号", "账号系统"]],
+    rules: ["顶部展示头像、账号名、使用天数、录音总数和总使用时长。", "底部列表包含偏好设置和账号入口。", "点击账号进入账号管理页。"],
+    states: ["默认账号", "头像编辑入口", "账号入口"],
+    deps: ["账号系统：用户头像与账号名。", "本地数据库：录音统计。"],
+    acceptance: ["设置页样式参考截图，账号入口可进入账号页。"]
+  },
+  {
+    id: "APP-ME-17",
+    group: "我的",
+    title: "账号",
+    priority: "P1",
+    goal: "管理登录方式、已登录设备、两步验证、国家地区、退出登录和删除账号。",
+    entry: "设置页点击账号。",
+    fields: [["login_methods", "登录方式", "账号系统"], ["logged_in_devices", "已登录设备", "账号系统"], ["two_step_verification", "两步验证", "账号安全"], ["region", "国家/地区", "账号系统"], ["logout", "退出登录", "账号系统"], ["delete_account", "删除账号", "账号系统"]],
+    rules: ["列表入口使用统一行样式。", "退出登录进入确认弹窗。", "删除账号进入独立风险说明页。"],
+    states: ["默认", "退出登录确认", "删除账号"],
+    deps: ["账号系统。"],
+    acceptance: ["账号页与参考截图一致，核心入口都有可点击链路。"]
+  },
+  {
+    id: "APP-ME-18",
+    group: "我的",
+    title: "管理登录方式",
+    priority: "P1",
+    goal: "管理邮箱、密码以及第三方登录绑定方式。",
+    entry: "账号页点击登录方式。",
+    fields: [["email", "邮箱", "账号系统"], ["change_password", "更改密码", "账号系统"], ["google_binding", "Google 绑定", "第三方登录"], ["apple_binding", "Apple 绑定", "第三方登录"]],
+    rules: ["邮箱仅展示当前账号。", "更改密码进入重置密码链路。", "Google 和 Apple 展示添加状态。"],
+    states: ["邮箱登录", "第三方未绑定"],
+    deps: ["账号系统。", "第三方登录服务。"],
+    acceptance: ["页面样式参考登录方式截图。"]
+  },
+  {
+    id: "APP-ME-19",
+    group: "我的",
+    title: "已登录设备",
+    priority: "P1",
+    goal: "展示当前账号已登录的设备和异常登录提醒。",
+    entry: "账号页点击已登录设备。",
+    fields: [["device_name", "设备名称", "账号系统"], ["device_type", "登录类型", "账号系统"], ["last_active_at", "上次活跃时间", "账号系统"], ["logout_device", "退出登录", "账号系统"]],
+    rules: ["当前设备以标签标识。", "单设备右侧提供退出登录按钮。", "底部固定展示安全提醒。"],
+    states: ["当前设备", "可退出登录"],
+    deps: ["账号系统：登录会话。"],
+    acceptance: ["已登录设备页样式参考截图。"]
+  },
+  {
+    id: "APP-ME-20",
+    group: "我的",
+    title: "两步验证",
+    priority: "P1",
+    goal: "展示邮箱验证码两步验证开关和安全说明。",
+    entry: "账号页点击两步验证。",
+    fields: [["email_otp_enabled", "邮箱验证码", "账号安全"]],
+    rules: ["默认关闭。", "开启后邮箱密码登录时发送一次性验证码。"],
+    states: ["关闭", "开启"],
+    deps: ["账号安全服务。"],
+    acceptance: ["两步验证页样式参考截图。"]
+  },
+  {
+    id: "APP-ME-21",
+    group: "我的",
+    title: "退出登录",
+    priority: "P1",
+    goal: "确认是否退出当前账号。",
+    entry: "账号页点击退出登录。",
+    fields: [["logout_confirm", "退出确认", "用户操作"]],
+    rules: ["取消返回账号页。", "确认退出后回到登录/注册页。", "提醒用户确认转写任务已完成。"],
+    states: ["待确认", "取消", "退出登录"],
+    deps: ["账号系统。"],
+    acceptance: ["退出登录弹窗样式参考截图。"]
+  },
+  {
+    id: "APP-ME-22",
+    group: "我的",
+    title: "删除账号",
+    priority: "P1",
+    goal: "在删除账号前说明风险并要求用户阅读确认。",
+    entry: "账号页点击删除账号。",
+    fields: [["delete_account_terms", "删除说明", "本地文案"], ["read_confirmed", "阅读确认", "用户操作"], ["next_step", "下一步", "账号系统"]],
+    rules: ["未勾选阅读确认时下一步禁用。", "强调数据、会员资格、账号权限与工作空间影响。", "返回按钮回到账号页。"],
+    states: ["未勾选", "已勾选", "下一步"],
+    deps: ["账号系统。"],
+    acceptance: ["删除账号页样式参考截图，底部确认区固定。"]
   },
   {
     id: "APP-ME-05",
@@ -820,7 +911,7 @@ function authField(value, opts = {}) {
 function authAgreement() {
   return `<div class="auth-agreements">
     <div><span class="check-dot">✓</span><p>我同意在中国注册我的账号，并接受用户协议和隐私政策。</p></div>
-    <div><span class="check-dot">✓</span><p>请让我及时了解 Plaud 的最新资讯和优惠活动。</p></div>
+    <div><span class="check-dot">✓</span><p>请让我及时了解 AI 录音卡的最新资讯和优惠活动。</p></div>
   </div>`;
 }
 
@@ -914,7 +1005,7 @@ function renderPermissions() {
       <p class="bind-copy">请将设备靠近手机，绑定过程中需要开启蓝牙和定位权限</p>
     </section>
     <div class="bind-bottom">
-      <button class="link-btn center">还没有 AI Recorder 设备?</button>
+      <button class="link-btn center" data-url="TODO_STORE_URL">还没有 AI Recorder 设备?</button>
       <button class="primary-btn" data-go="APP-DEV-01">开始</button>
     </div>
   `, { title: "绑定你的设备", back: "APP-ONB-01", bottom: false, compact: true });
@@ -1740,6 +1831,7 @@ function renderShareExpiryDateSheet() {
 }
 
 function renderGenerate() {
+  const quotaInsufficient = false;
   return `
     ${renderFileDetail()}
     <div class="scrim" data-go="APP-FILE-01"></div>
@@ -1759,7 +1851,13 @@ function renderGenerate() {
       ${generationMode === "custom" ? `${row("模板", "会议纪要 · 查看全部")}${row("自动标注说话人", "开启")}${row("音频语言", "English (US)")}${row("AI 模型", "自动")}` : ""}
       ${card("用量确认", `${row("预计消耗", "73 分钟")}${row("剩余额度", "420 分钟")}`, "warn")}
       <p class="caption">音频将上传云端用于转写和 AI 笔记生成。</p>
-      <button class="primary-btn" data-go="APP-FILE-15">立即生成</button>
+      ${quotaInsufficient ? `
+        <div class="ai-purchase-row">
+          <button data-go="APP-ME-02">立即购买分钟数</button>
+          <button data-go="APP-ME-02">升级订阅会员</button>
+        </div>
+      ` : ""}
+      <button class="primary-btn ${quotaInsufficient ? "disabled" : ""}" ${quotaInsufficient ? "" : 'data-go="APP-FILE-15"'}>立即生成</button>
     </section>
   `;
 }
@@ -1786,6 +1884,7 @@ function togglePill(on = false, disabled = false) {
 
 function meSettingRow(label, opts = {}) {
   const attrs = opts.go ? ` data-go="${opts.go}"` : "";
+  const tail = opts.toggle !== undefined ? togglePill(opts.toggle, opts.disabled) : (opts.arrow === false ? "<span></span>" : "<i>›</i>");
   return `
     <button class="me-setting-row ${opts.danger ? "danger" : ""}"${attrs}>
       <span>
@@ -1793,9 +1892,29 @@ function meSettingRow(label, opts = {}) {
         ${opts.note ? `<small>${h(opts.note)}</small>` : ""}
       </span>
       ${opts.value ? `<em>${h(opts.value)}</em>` : ""}
-      ${opts.toggle !== undefined ? togglePill(opts.toggle, opts.disabled) : `<i>›</i>`}
+      ${tail}
     </button>
   `;
+}
+
+function accountIcon(type) {
+  return `<span class="account-row-icon ${type || "default"}"></span>`;
+}
+
+function accountRow(label, opts = {}) {
+  const attrs = opts.go ? ` data-go="${opts.go}"` : "";
+  return `
+    <button class="account-row ${opts.icon ? "" : "no-icon"} ${opts.danger ? "danger" : ""}"${attrs}>
+      ${opts.icon ? accountIcon(opts.icon) : ""}
+      <b>${h(label)}</b>
+      ${opts.value ? `<em>${h(opts.value)}</em>` : ""}
+      ${opts.arrow === false ? "<span></span>" : "<i>›</i>"}
+    </button>
+  `;
+}
+
+function heatmapDots() {
+  return Array.from({ length: 112 }, (_, index) => `<i class="${index > 102 && index % 3 !== 0 ? "active" : ""}"></i>`).join("");
 }
 
 function renderUsage() {
@@ -1820,6 +1939,7 @@ function renderUsage() {
         <h2>发现</h2>
         <div class="me-line"></div>
         <div class="me-card-group">
+          ${meRow("账号设置", { go: "APP-ME-16" })}
           ${meRow("私有云同步", { value: "开启", go: "APP-ME-05" })}
           ${meRow("购买转写时长")}
           ${meRow("兑换码", { go: "APP-ME-08" })}
@@ -1837,6 +1957,144 @@ function renderUsage() {
       </section>
     </main>
     ${bottom("me")}
+  `;
+}
+
+function renderAccountSettingsHome() {
+  return `
+    <main class="me-simple-page account-settings-home">
+      ${meTop("设置")}
+      <section class="account-profile">
+        <div class="account-avatar">
+          <span>3</span>
+          <button aria-label="更换头像"></button>
+        </div>
+        <h1>355569016</h1>
+        <div class="account-stats">
+          <div><span>使用天数</span><b>5</b></div>
+          <div><span>录音总数</span><b>34</b></div>
+          <div><span>总使用时长</span><b>3.6<small>小时</small></b></div>
+        </div>
+        <div class="account-heatmap">${heatmapDots()}</div>
+      </section>
+      <section class="account-settings-list">
+        ${accountRow("偏好设置", { icon: "sliders" })}
+        ${accountRow("账号", { icon: "user", go: "APP-ME-17" })}
+      </section>
+    </main>
+  `;
+}
+
+function renderAccountPage() {
+  return `
+    <main class="me-simple-page account-page">
+      ${meTop("账号", { back: "APP-ME-16" })}
+      <section class="account-menu">
+        ${meSettingRow("登录方式", { go: "APP-ME-18" })}
+        ${meSettingRow("已登录设备", { go: "APP-ME-19" })}
+        ${meSettingRow("两步验证", { go: "APP-ME-20" })}
+        ${meSettingRow("国家/地区", { value: "中国", arrow: false })}
+        <button class="account-outline-btn" data-go="APP-ME-21">退出登录</button>
+        <button class="account-danger-btn" data-go="APP-ME-22">删除账号</button>
+        <p class="account-warning"><b>警告：</b>你的账号信息和所有文件将被永久删除。</p>
+      </section>
+    </main>
+  `;
+}
+
+function renderLoginMethods() {
+  return `
+    <main class="me-simple-page login-methods-page">
+      ${meTop("", { back: "APP-ME-17" })}
+      <section>
+        <h1>管理我的登录方式</h1>
+        ${accountRow("邮箱", { value: "355569016@qq.com", arrow: false })}
+        ${accountRow("更改密码", { go: "APP-ONB-05" })}
+        <div class="me-line"></div>
+        ${accountRow("Google", { icon: "google", value: "添加", arrow: false })}
+        ${accountRow("Apple", { icon: "apple", value: "添加", arrow: false })}
+        <p>添加多个登录方式，可随时通过任一绑定方式登录。</p>
+      </section>
+    </main>
+  `;
+}
+
+function renderLoggedInDevices() {
+  return `
+    <main class="me-simple-page logged-devices-page">
+      ${meTop("已登录设备", { back: "APP-ME-17" })}
+      <section>
+        <div class="logged-device-card">
+          <div>
+            <h2>AI录音卡 Web1 <span>当前设备</span></h2>
+            <p>通过 web 登录<br>上次活跃时间：2026-07-09 00:59:14</p>
+          </div>
+          <button>退出登录</button>
+        </div>
+        <div class="me-line"></div>
+      </section>
+      <p class="logged-device-warning"><b>注意：</b> 如发现异常登录，请立即登出并重置密码以保护账号安全。</p>
+    </main>
+  `;
+}
+
+function renderTwoStepVerification() {
+  return `
+    <main class="me-simple-page two-step-page">
+      ${meTop("两步验证", { back: "APP-ME-17" })}
+      <section>
+        <div class="two-step-row">
+          <div>
+            <h2>邮箱验证码</h2>
+            <p>使用邮箱与密码登录时，系统将向你的邮箱发送一次性验证码，用于提升账号安全性。</p>
+          </div>
+          ${togglePill(false)}
+        </div>
+      </section>
+    </main>
+  `;
+}
+
+function renderLogoutConfirm() {
+  return `
+    ${renderAccountPage()}
+    <div class="scrim" data-go="APP-ME-17"></div>
+    <section class="me-sheet account-action-sheet">
+      <button class="sheet-close" data-go="APP-ME-17">×</button>
+      <h2>退出登录</h2>
+      <div class="me-line"></div>
+      <p>退出登录吗?<br>请确认所有转写任务已完成。</p>
+      <button class="dark" data-go="APP-ME-17">取消</button>
+      <button class="outline" data-go="APP-ONB-01">退出登录</button>
+    </section>
+  `;
+}
+
+function renderDeleteAccount() {
+  return `
+    <main class="me-simple-page delete-account-page">
+      ${meTop("删除账号", { back: "APP-ME-17" })}
+      <section>
+        <p>尊敬的用户：<br>感谢你一直以来对 AI录音卡 的支持。<br>删除账号将导致以下内容被永久清除：</p>
+        <ol class="delete-account-risk">
+          <li>你的所有数据，包括云端和本地文件；</li>
+          <li>当前会员资格（不予退款）；</li>
+          <li>账号使用权限，若要继续使用 AI录音卡，你需重新注册账号；</li>
+          <li>你将退出所有已加入的工作空间。</li>
+        </ol>
+        <div class="me-line"></div>
+        <p>在继续操作前，请务必完成以下检查：</p>
+        <ol>
+          <li>请检查你的账号是否仍有绑定的 AI Recorder A1。如果有，请先解除绑定。否则，该设备将无法与其他新账号绑定。</li>
+          <li>请备份所有重要文件。账号删除后，与此账号相关的数据将无法恢复。</li>
+          <li>请检查并取消 AI录音卡 的所有有效订阅，以避免产生额外费用。</li>
+        </ol>
+      </section>
+      <div class="delete-account-footer">
+        <label><i></i><span>我已阅读并理解上述条款。</span></label>
+        <button class="disabled-btn">下一步</button>
+      </div>
+    </main>
   `;
 }
 
@@ -2074,6 +2332,13 @@ const renderers = {
   "APP-FILE-15": renderFileDetailGenerating,
   "APP-AI-01": renderGenerate,
   "APP-ME-02": renderUsage,
+  "APP-ME-16": renderAccountSettingsHome,
+  "APP-ME-17": renderAccountPage,
+  "APP-ME-18": renderLoginMethods,
+  "APP-ME-19": renderLoggedInDevices,
+  "APP-ME-20": renderTwoStepVerification,
+  "APP-ME-21": renderLogoutConfirm,
+  "APP-ME-22": renderDeleteAccount,
   "APP-ME-05": renderPrivateCloudSync,
   "APP-ME-06": renderCloudStorage,
   "APP-ME-07": renderCloudStorageConfirm,
@@ -2103,7 +2368,7 @@ function renderNav() {
 }
 
 function renderFlow() {
-  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-HOME-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-02", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-10", "APP-ME-11", "APP-ME-12"];
+  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-HOME-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-02", "APP-ME-16", "APP-ME-17", "APP-ME-18", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-10", "APP-ME-11", "APP-ME-12"];
   document.getElementById("flowStrip").innerHTML = flow.map((id, index) => {
     const page = pageById(id);
     return `<button class="${id === currentPageId ? "active" : ""}" data-go="${id}">${index + 1}. ${h(page.title)}</button>`;
@@ -2167,6 +2432,11 @@ document.addEventListener("click", (event) => {
   if (action && action.dataset.action === "toggle-pause") {
     recordPaused = !recordPaused;
     render();
+    return;
+  }
+  const urlLink = event.target.closest("[data-url]");
+  if (urlLink) {
+    alert("购买页面链接待线上商场渠道补充");
     return;
   }
   const link = event.target.closest("[data-go]");
