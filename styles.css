@@ -3288,7 +3288,7 @@ button {
 
 .delete-account-page section {
   padding-top: 28px;
-  padding-bottom: 150px;
+  padding-bottom: 220px;
 }
 
 .delete-account-page p,
@@ -3307,10 +3307,14 @@ button {
 }
 
 .delete-account-footer {
-  position: absolute;
-  left: 22px;
-  right: 22px;
-  bottom: 28px;
+  position: sticky;
+  z-index: 12;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 16px 22px 24px;
+  background: #fff;
+  box-shadow: 0 -14px 22px rgba(255, 255, 255, .96);
 }
 
 .delete-account-footer label {
