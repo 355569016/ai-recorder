@@ -130,7 +130,77 @@ const pages = [
     rules: ["已绑定其他账号的设备不可绑定到当前账号。", "必须展示脱敏账号、帮助与支持入口、确认按钮和移除设备指引。", "关闭弹层后留在设备发现页或返回重新搜索。"],
     states: ["设备已绑定", "连接失败", "等待用户确认"],
     deps: ["云端设备：设备绑定关系查询。", "帮助中心：如何移除设备。"],
-    acceptance: ["连接失败底部弹层说明该设备已绑定至脱敏账号。", "用户可点击好的关闭，也可查看如何移除设备。"]
+    acceptance: ["连接失败底部弹层说明该设备已绑定至脱敏账号。", "用户可点击好的关闭，也可查看如何移除设备。"],
+    prototypeLinks: [["如何移除设备", "APP-DEV-05"]]
+  },
+  {
+    id: "APP-DEV-05",
+    group: "设备",
+    title: "解绑设备说明",
+    priority: "P0",
+    goal: "说明设备已绑定其他账号时的解绑路径，并提供无法访问原账号时的联系入口。",
+    entry: "连接失败页点击“如何移除设备?”。",
+    fields: [["unbind_instruction", "解绑说明", "本地文案"], ["original_account", "原账号", "用户操作"], ["support_contact", "官方邮箱", "客服配置"]],
+    rules: ["已绑定其他账号的设备必须先从原账号移除后才可绑定至新账号。", "说明步骤必须包含登录原账号、进入设备详情、移除设备、重新绑定。", "无法访问原账号时展示官方邮箱待定占位。"],
+    states: ["说明弹窗", "返回失败页", "退出登录"],
+    deps: ["云端设备解绑关系。", "客服邮箱配置待补充。"],
+    acceptance: ["点击如何移除设备后展示解绑设备说明弹层。", "文案中不出现未确认品牌名，设备统一为 AI Recorder A1。", "好的返回连接失败页，退出登录回到登录 / 注册页。"]
+  },
+  {
+    id: "APP-DEV-06",
+    group: "设备",
+    title: "固件更新提示",
+    priority: "P0",
+    goal: "在设备详情点击更新或 App 主动推送时，说明固件更新内容并让用户选择立即更新、稍后再说或跳过本次更新。",
+    entry: "设备详情 OTA 显示更新时点击；App 启动检测到新固件版本时主动弹出。",
+    fields: [["firmware_version", "新固件版本", "云端固件服务"], ["release_notes", "更新说明", "云端固件服务"], ["skip_this_version", "跳过此更新", "用户操作"], ["update_transport", "更新方式", "硬件能力/固件服务"]],
+    rules: ["有新版本时 OTA 按钮显示为更新；无新版本时显示检查更新。", "点击立即更新后，如硬件支持 Wi-Fi 热点更新则进入连接设备热点页；否则默认走蓝牙更新并进入固件更新中页。", "跳过此更新只跳过当前固件版本，下一版本仍可提醒。"],
+    states: ["新版本提示", "跳过本版本", "稍后再说", "立即更新"],
+    deps: ["云端固件版本服务。", "设备能力：Wi-Fi 热点更新/蓝牙更新支持情况。"],
+    acceptance: ["更新弹窗展示更新内容、跳过此更新、立即更新和稍后再说。", "立即更新链路进入连接设备热点或蓝牙更新流程。"],
+    prototypeLinks: [["立即更新", "APP-DEV-07"], ["蓝牙更新", "APP-DEV-08"]]
+  },
+  {
+    id: "APP-DEV-07",
+    group: "设备",
+    title: "连接设备热点",
+    priority: "P1",
+    goal: "在支持 Wi-Fi 固件更新时，引导手机连接设备热点以传输固件包。",
+    entry: "固件更新提示点击立即更新且设备支持 Wi-Fi 热点更新。",
+    fields: [["hotspot_ssid", "设备热点", "设备广播"], ["update_transport", "更新方式", "硬件能力"], ["system_join_prompt", "系统加入弹窗", "系统权限"]],
+    rules: ["如果硬件不支持 Wi-Fi 更新，本页不展示，直接使用蓝牙更新。", "出现系统加入无线局域网弹窗时，用户选择加入。", "点击继续后进入固件更新中页。"],
+    states: ["等待连接热点", "系统弹窗", "连接成功", "取消"],
+    deps: ["iOS / Android Wi-Fi 热点连接能力。", "硬件热点协议待确认。"],
+    acceptance: ["页面解释手机将连接 AI Recorder A1 热点完成更新。", "继续进入固件更新中页，取消返回设备详情。"],
+    prototypeLinks: [["继续", "APP-DEV-08"], ["连接失败", "APP-DEV-09"]]
+  },
+  {
+    id: "APP-DEV-08",
+    group: "设备",
+    title: "固件更新中",
+    priority: "P0",
+    goal: "展示固件更新进度，提醒用户保持设备充电、未录音且不要退出 App。",
+    entry: "连接设备热点成功后；或蓝牙更新开始后。",
+    fields: [["firmware_package", "固件包", "云端固件服务"], ["update_step", "更新步骤", "固件更新服务"], ["update_progress", "更新进度", "本地任务状态"], ["device_safe_state", "设备安全状态", "BLE 状态包"]],
+    rules: ["更新前必须确认设备未录音且电量满足更新要求。", "更新中保持设备充电状态，不允许发起录音。", "更新过程失败时进入连接失败弹窗。", "更新完成后返回设备详情并刷新固件版本。"],
+    states: ["下载固件包", "连接设备", "传输固件包", "安装固件包", "更新完成", "连接失败"],
+    deps: ["云端固件包下载。", "BLE / Wi-Fi 传输协议。", "设备安装进度回传。"],
+    acceptance: ["更新中页展示设备图、步骤列表和禁用的更新中按钮。", "失败链路进入连接失败页，完成链路返回设备详情。"],
+    prototypeLinks: [["连接失败", "APP-DEV-09"], ["更新完成", "APP-DEV-03"]]
+  },
+  {
+    id: "APP-DEV-09",
+    group: "设备",
+    title: "固件更新连接失败",
+    priority: "P0",
+    goal: "更新过程中 Wi-Fi 热点或蓝牙连接失败时，说明原因并提供重试或改用蓝牙更新。",
+    entry: "固件更新中连接设备失败。",
+    fields: [["failure_reason", "失败原因", "系统网络/BLE"], ["retry_action", "重试", "用户操作"], ["fallback_transport", "备用更新方式", "硬件能力"]],
+    rules: ["热点连接失败时提示靠近设备或改用蓝牙更新。", "蓝牙更新失败时提示靠近设备并重试。", "改用蓝牙更新后回到固件更新中页并切换更新方式。"],
+    states: ["热点失败", "蓝牙失败", "重试", "改用蓝牙更新"],
+    deps: ["系统 Wi-Fi 连接状态。", "BLE 连接状态。"],
+    acceptance: ["失败弹窗包含重试和改用蓝牙更新按钮。", "重试回到连接设备热点，改用蓝牙更新进入固件更新中。"],
+    prototypeLinks: [["重试", "APP-DEV-07"], ["改用蓝牙更新", "APP-DEV-08"]]
   },
   {
     id: "APP-HOME-01",
@@ -752,13 +822,14 @@ const pages = [
     group: "设置",
     title: "设备详情",
     priority: "P0",
-    goal: "管理已绑定设备、连接状态、解绑、恢复出厂和 OTA 占位。",
+    goal: "管理已绑定设备、连接状态、解绑、恢复出厂和固件更新。",
     entry: "文件首页设备卡、我的设备管理。",
-    fields: [["device_name", "设备名", "本地数据库/云端设备"], ["firmware_version", "固件版本", "BLE/云端设备"], ["battery_level", "电量", "BLE 状态包"], ["storage_usage", "存储占用", "BLE 状态包"], ["sync_state", "同步状态", "本地数据库"]],
-    rules: ["设备详情显示连接、电量、存储、同步状态。", "恢复出厂触发方式待确认。", "低电量禁止 OTA 为 P1 占位规则。"],
-    states: ["已连接", "未连接", "同步中", "低电量", "解绑确认", "恢复出厂确认"],
-    deps: ["BLE 状态包、云端设备、固件版本能力，协议待定义。"],
-    acceptance: ["重连、解绑、恢复出厂入口可见。", "危险操作有二次确认。"]
+    fields: [["device_name", "设备名", "本地数据库/云端设备"], ["firmware_version", "固件版本", "BLE/云端设备"], ["firmware_update_state", "固件更新状态", "云端固件服务"], ["battery_level", "电量", "BLE 状态包"], ["storage_usage", "存储占用", "BLE 状态包"], ["sync_state", "同步状态", "本地数据库"]],
+    rules: ["设备详情显示连接、电量、存储、同步状态。", "OTA 行后置操作按钮：无新版本显示检查更新，发现新版本显示更新。", "点击更新或 App 启动主动推送更新时，进入固件更新提示弹窗。", "低电量、正在录音或设备未连接时禁止开始固件更新。", "恢复出厂触发方式待确认。"],
+    states: ["已连接", "未连接", "同步中", "低电量", "有新固件", "已是最新版本", "解绑确认", "恢复出厂确认"],
+    deps: ["BLE 状态包、云端设备、固件版本能力，协议待定义。", "云端固件版本服务。"],
+    acceptance: ["重连、解绑、恢复出厂入口可见。", "OTA 不再显示 P1 占位，必须有检查更新或更新按钮。", "点击更新进入固件更新提示。", "危险操作有二次确认。"],
+    prototypeLinks: [["更新", "APP-DEV-06"]]
   },
   {
     id: "APP-ME-04",
@@ -1066,9 +1137,40 @@ function renderDeviceAlreadyBound() {
       <p>该设备已绑定至 <u>3*******6@qq.com</u>。<br>若要绑定至当前账号，请先登录原账号并解绑设备。</p>
       <p>如需协助，请访问 <button class="link-btn inline">帮助与支持</button></p>
       <button class="primary-btn" data-go="APP-DEV-01">好的</button>
-      <button class="link-btn center">? 如何移除设备?</button>
+      <button class="link-btn center" data-go="APP-DEV-05">? 如何移除设备?</button>
     </section>
   `, { title: " ", back: "APP-DEV-01", bottom: false, compact: true });
+}
+
+function renderDeviceUnbindHelp() {
+  return screen(`
+    <section class="found-head dimmed">
+      <h1>AI Recorder A1</h1>
+      <p><span>SN: 8810B30293069513</span><b>?</b></p>
+    </section>
+    <section class="device-art found dimmed">
+      <div class="device-vertical">
+        <span class="device-top"></span>
+        <span class="device-body"></span>
+        <i>AI</i>
+      </div>
+    </section>
+    <section class="failure-sheet unbind-help-sheet">
+      <h2>解绑设备</h2>
+      <div class="sheet-line"></div>
+      <div class="unbind-copy">
+        <p>若要从其他账号移除设备：</p>
+        <ol>
+          <li>登录原账号</li>
+          <li>前往“设备详情” &gt; “移除设备”</li>
+          <li>完成后即可将设备绑定至新账号</li>
+        </ol>
+        <p>若无法访问原账号，请联系 <button class="link-btn inline">官方邮箱待定</button></p>
+      </div>
+      <button class="primary-btn" data-go="APP-DEV-04">好的</button>
+      <button class="secondary-btn" data-go="APP-ONB-01">退出登录</button>
+    </section>
+  `, { title: " ", back: "APP-DEV-04", bottom: false, compact: true });
 }
 
 function renderHome() {
@@ -2257,12 +2359,116 @@ function renderDeviceDetail() {
   return screen(`
     ${card("AI Recorder A1", `${row("状态", "已连接")}${row("SN", "SN-8F2A-2026")}${row("固件版本", "v0.9.3")}${row("最近同步", "今天 14:22")}`, "soft")}
     ${metrics([["电量", "82%"], ["存储", "68%"], ["同步", "空闲"]])}
-    ${card("设备操作", `${row("自动同步", "开启")}${row("恢复出厂", "触发方式待确认")}${row("OTA", "P1 占位")}`)}
+    ${card("设备操作", `
+      ${row("自动同步", "开启")}
+      ${row("恢复出厂", "触发方式待确认")}
+      <div class="row action-row"><span>OTA</span><button class="mini-action-btn" data-go="APP-DEV-06">更新</button></div>
+      <p class="caption">无新版本时显示为“检查更新”；检测到新固件或 App 主动推送时显示“更新”。</p>
+    `)}
     <div class="button-row">
       <button class="secondary-btn">重连</button>
       <button class="danger-btn">解绑</button>
     </div>
   `, { title: "设备详情", action: "帮助", back: "APP-HOME-01", bottom: false });
+}
+
+function firmwareArt(extra = "") {
+  return `
+    <section class="firmware-device-art ${extra}">
+      <div class="device-vertical firmware-device">
+        <span class="device-top"></span>
+        <span class="device-body"></span>
+        <i>AI</i>
+      </div>
+    </section>
+  `;
+}
+
+function renderFirmwareUpdateSheet() {
+  return screen(`
+    <div class="scrim light"></div>
+    <section class="firmware-home-bg dimmed">
+      <div class="mini-device-mark"><span></span><b></b></div>
+      <h1>全部文件</h1>
+      <div class="firmware-file-row">
+        <strong>2026-06-30 10:50:12</strong>
+        <span>10:50 | 2分钟 | 云同步中...</span>
+      </div>
+      <div class="firmware-file-row">
+        <strong>2026-06-30 10:49:51</strong>
+        <span>10:49 | 4秒</span>
+      </div>
+    </section>
+    <section class="firmware-sheet">
+      <h2>AI Recorder A1 固件更新</h2>
+      <div class="sheet-line"></div>
+      <ol class="firmware-notes">
+        <li>全新上线“自动传输”功能，可在设备靠近手机时自动传输录音。</li>
+        <li>优化 OTA 升级流程，更新过程更快速省心。</li>
+        <li>修复其他已知问题，提升系统整体稳定性。</li>
+      </ol>
+      <label class="skip-update"><span></span>跳过此更新</label>
+      <button class="primary-btn" data-go="APP-DEV-07">立即更新</button>
+      <button class="secondary-btn" data-go="APP-DEV-03">稍后再说</button>
+    </section>
+  `, { title: " ", back: "APP-DEV-03", bottom: false, compact: true });
+}
+
+function renderFirmwareHotspot() {
+  return screen(`
+    <section class="firmware-page dimmed">
+      <h1>正在更新固件</h1>
+      <p>本次更新可能需要几分钟。</p>
+      ${firmwareArt("hotspot-preview")}
+    </section>
+    <section class="firmware-sheet hotspot-sheet">
+      <h2>连接设备热点</h2>
+      <div class="sheet-line"></div>
+      <p>接下来，手机将连接到 AI Recorder A1 的热点以完成更新。</p>
+      <p>当出现系统弹窗时，选择加入即可。</p>
+      <div class="system-wifi-card">
+        <strong>“AI Recorder A1”想要加入无线局域网“XXXX”吗?</strong>
+        <div><span>取消</span><b>加入</b></div>
+      </div>
+      <button class="primary-btn" data-go="APP-DEV-08">继续</button>
+      <button class="secondary-btn" data-go="APP-DEV-03">取消</button>
+      <p class="caption">若硬件不支持 Wi-Fi 更新，则默认使用蓝牙更新并直接进入更新中。</p>
+    </section>
+  `, { title: " ", back: "APP-DEV-06", bottom: false, compact: true });
+}
+
+function renderFirmwareUpdating() {
+  return screen(`
+    <section class="firmware-page">
+      <h1>正在更新固件</h1>
+      <p>请保持设备处于充电状态，且未在录音。<br>更新过程中请勿退出应用。</p>
+      ${firmwareArt()}
+    </section>
+    <section class="firmware-steps">
+      <div class="firmware-step done"><i></i><span>下载固件包</span></div>
+      <div class="firmware-step active"><i></i><span>连接到 AI Recorder A1</span></div>
+      <div class="firmware-step"><i></i><span>传输固件包到 AI Recorder A1</span></div>
+      <div class="firmware-step"><i></i><span>安装固件包</span></div>
+      <button class="primary-btn disabled">更新中</button>
+    </section>
+  `, { title: " ", back: "APP-DEV-03", bottom: false, compact: true });
+}
+
+function renderFirmwareConnectionFailed() {
+  return screen(`
+    <section class="firmware-page dimmed">
+      <h1>正在更新固件</h1>
+      <p>请保持设备处于充电状态，且未在录音。<br>更新过程中请勿退出应用。</p>
+      ${firmwareArt()}
+    </section>
+    <section class="firmware-sheet">
+      <h2>连接失败</h2>
+      <div class="sheet-line"></div>
+      <p>无法连接到 AI Recorder A1 的热点。<br>请靠近设备，或改用蓝牙进行更新。</p>
+      <button class="primary-btn" data-go="APP-DEV-07">重试</button>
+      <button class="secondary-btn" data-go="APP-DEV-08">改用蓝牙更新</button>
+    </section>
+  `, { title: " ", back: "APP-DEV-08", bottom: false, compact: true });
 }
 
 function renderPrivacy() {
@@ -2303,6 +2509,11 @@ const renderers = {
   "APP-DEV-01": renderDeviceScan,
   "APP-DEV-02": renderDeviceBind,
   "APP-DEV-04": renderDeviceAlreadyBound,
+  "APP-DEV-05": renderDeviceUnbindHelp,
+  "APP-DEV-06": renderFirmwareUpdateSheet,
+  "APP-DEV-07": renderFirmwareHotspot,
+  "APP-DEV-08": renderFirmwareUpdating,
+  "APP-DEV-09": renderFirmwareConnectionFailed,
   "APP-HOME-01": renderHome,
   "APP-HOME-03": renderHomeTrashToast,
   "APP-FILE-02": renderSearch,
@@ -2368,7 +2579,7 @@ function renderNav() {
 }
 
 function renderFlow() {
-  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-HOME-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-02", "APP-ME-16", "APP-ME-17", "APP-ME-18", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-10", "APP-ME-11", "APP-ME-12"];
+  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-DEV-05", "APP-HOME-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-02", "APP-ME-16", "APP-ME-17", "APP-ME-18", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-10", "APP-ME-11", "APP-ME-12", "APP-DEV-03", "APP-DEV-06", "APP-DEV-07", "APP-DEV-08", "APP-DEV-09"];
   document.getElementById("flowStrip").innerHTML = flow.map((id, index) => {
     const page = pageById(id);
     return `<button class="${id === currentPageId ? "active" : ""}" data-go="${id}">${index + 1}. ${h(page.title)}</button>`;
