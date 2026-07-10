@@ -1878,6 +1878,19 @@ button {
   border-radius: 10px;
 }
 
+.compact-device-actions {
+  width: 78%;
+  margin-left: auto;
+  margin-right: auto;
+  gap: 8px;
+}
+
+.compact-device-actions button {
+  min-height: 34px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
 .action-row {
   align-items: center;
 }
@@ -3561,6 +3574,277 @@ button {
 .bill-empty p {
   margin: 0;
   font-size: 20px;
+}
+
+.bill-history {
+  padding: 28px 20px 44px;
+}
+
+.bill-history-heading {
+  margin: 0;
+  color: #151515;
+  font-size: 28px;
+  font-weight: 760;
+}
+
+.bill-history-hint {
+  margin: 8px 0 24px;
+  color: #929292;
+  font-size: 13px;
+}
+
+.bill-history-list {
+  border-top: 1px solid #ece9e4;
+}
+
+.bill-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 92px;
+  border-bottom: 1px solid #ece9e4;
+}
+
+.bill-item-copy,
+.bill-item-payment {
+  display: grid;
+  gap: 5px;
+}
+
+.bill-item-copy b,
+.bill-item-payment strong {
+  color: #151515;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.bill-item-copy small,
+.bill-item-payment span {
+  color: #989898;
+  font-size: 12px;
+}
+
+.bill-type {
+  width: fit-content;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #f1f1f1;
+  color: #666;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.bill-item-payment {
+  flex: 0 0 auto;
+  text-align: right;
+}
+
+.bill-item-payment span {
+  color: #26966b;
+}
+
+.privacy-page {
+  min-height: 100%;
+  background: #fff;
+}
+
+.privacy-control-list {
+  padding: 30px 20px 42px;
+}
+
+.privacy-control-list h2 {
+  margin: 0;
+  color: #151515;
+  font-size: 28px;
+  line-height: 1.25;
+}
+
+.privacy-control-list .me-line {
+  margin: 22px 0 0;
+}
+
+.privacy-control-row {
+  width: 100%;
+  min-height: 78px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 0;
+  border-bottom: 1px solid #ece9e4;
+  background: #fff;
+  padding: 14px 0;
+  color: #151515;
+  text-align: left;
+}
+
+.privacy-control-row > span,
+.privacy-authorization-state {
+  display: grid;
+  gap: 5px;
+}
+
+.privacy-control-row b {
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.privacy-control-row small {
+  color: #969696;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.privacy-control-row.action {
+  cursor: pointer;
+}
+
+.privacy-control-row.action > i {
+  color: #aaa;
+  font-size: 28px;
+  font-style: normal;
+  font-weight: 300;
+}
+
+.privacy-authorization-state {
+  grid-auto-flow: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.privacy-authorization-state em {
+  font-size: 12px;
+  font-style: normal;
+}
+
+.privacy-authorization-state em.authorized {
+  color: #29986d;
+}
+
+.privacy-authorization-state em.unauthorized {
+  color: #999;
+}
+
+.privacy-toggle-button {
+  width: 42px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: #d8d8d8;
+  padding: 3px;
+}
+
+.privacy-toggle-button i {
+  width: 20px;
+  height: 20px;
+  display: block;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .16);
+}
+
+.privacy-toggle-button.on {
+  justify-content: flex-end;
+  background: #111;
+  cursor: pointer;
+}
+
+.privacy-assurance,
+.privacy-certifications {
+  margin: 0 20px 18px;
+  border: 1px solid #ece9e4;
+  border-radius: 8px;
+  background: #f6f4f0;
+}
+
+.privacy-assurance {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 18px;
+}
+
+.privacy-assurance-icon {
+  width: 28px;
+  height: 32px;
+  position: relative;
+  flex: 0 0 auto;
+  border: 2px solid #1a1a1a;
+  border-radius: 14px 14px 10px 10px;
+}
+
+.privacy-assurance-icon::after {
+  content: "";
+  width: 8px;
+  height: 4px;
+  position: absolute;
+  left: 8px;
+  top: 10px;
+  border-left: 2px solid #1a1a1a;
+  border-bottom: 2px solid #1a1a1a;
+  transform: rotate(-45deg);
+}
+
+.privacy-assurance h2,
+.privacy-certifications h2 {
+  margin: 0;
+  color: #171717;
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.privacy-assurance p,
+.privacy-certifications > p {
+  margin: 7px 0 0;
+  color: #747474;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.privacy-certifications {
+  padding: 18px;
+  background: #fff;
+}
+
+.privacy-certification-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.privacy-certification-grid span {
+  min-height: 58px;
+  display: grid;
+  place-content: center;
+  gap: 3px;
+  border: 1px dashed #d8d4cd;
+  border-radius: 6px;
+  color: #5d5b57;
+  font-size: 11px;
+  text-align: center;
+}
+
+.privacy-certification-grid small {
+  color: #aaa7a2;
+  font-size: 10px;
+}
+
+.privacy-authorization-sheet p {
+  margin: 0 0 24px;
+  color: #555;
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+.privacy-authorization-sheet .dark,
+.privacy-authorization-sheet .outline {
+  width: 100%;
+  min-height: 52px;
+  margin-top: 10px;
 }
 
 .restore-loader {

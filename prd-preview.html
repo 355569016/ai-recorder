@@ -296,7 +296,7 @@
 <h3>1.3 背景与目标</h3>
 <p>AI录音卡是软硬件一体化产品。硬件负责长时、稳定、低打扰录音；App 负责账号、设备绑定、录音控制、同步管理、文件资产管理、转写、AI 笔记、导出和用量透明。</p>
 <p>目标：</p>
-<table><thead><tr><th>目标</th><th>说明</th><th>优先级</th></tr></thead><tbody><tr><td>设备可用</td><td>完成扫描、绑定、连接、状态查看、解绑和恢复出厂入口</td><td>P0</td></tr><tr><td>录音可信</td><td>用户能明确看到硬件是否在录音、是否暂停、是否结束保存</td><td>P0</td></tr><tr><td>同步可靠</td><td>录音结束后进入同步队列，支持进度、失败原因、重试和 CRC 失败提示</td><td>P0</td></tr><tr><td>文件可管理</td><td>支持文件列表、来源区分、播放、重命名、删除、回收站和导入音频</td><td>P0</td></tr><tr><td>AI 闭环</td><td>未转写文件显示生成入口，支持自动生成/自定义生成、转写结果和 AI 笔记</td><td>P0</td></tr><tr><td>用量透明</td><td>转写前展示预计消耗，转写失败返还额度并展示账本记录</td><td>P0</td></tr><tr><td>隐私可控</td><td>提供 AI 授权、云端删除、账号删除、日志上传授权和录音合规提示</td><td>P0</td></tr></tbody></table>
+<table><thead><tr><th>目标</th><th>说明</th><th>优先级</th></tr></thead><tbody><tr><td>设备可用</td><td>完成扫描、绑定、连接、状态查看、移除设备和恢复出厂入口</td><td>P0</td></tr><tr><td>录音可信</td><td>用户能明确看到硬件是否在录音、是否暂停、是否结束保存</td><td>P0</td></tr><tr><td>同步可靠</td><td>录音结束后进入同步队列，支持进度、失败原因、重试和 CRC 失败提示</td><td>P0</td></tr><tr><td>文件可管理</td><td>支持文件列表、来源区分、播放、重命名、删除、回收站和导入音频</td><td>P0</td></tr><tr><td>AI 闭环</td><td>未转写文件显示生成入口，支持自动生成/自定义生成、转写结果和 AI 笔记</td><td>P0</td></tr><tr><td>用量透明</td><td>转写前展示预计消耗，转写失败返还额度并展示账本记录</td><td>P0</td></tr><tr><td>隐私可控</td><td>提供 AI 授权、云端删除、账号删除、日志上传授权和录音合规提示</td><td>P0</td></tr></tbody></table>
 <p>非目标：</p>
 <table><thead><tr><th>非目标</th><th>说明</th></tr></thead><tbody><tr><td>App 手机自身录音</td><td>当前版本不支持 App 使用手机麦克风录音；仅支持硬件录音和音频文件导入</td></tr><tr><td>团队协作/企业后台</td><td>首版不做团队空间、权限协作和企业后台</td></tr><tr><td>跨文件 Ask / 知识库</td><td>首版不做跨文件问答和长期知识库</td></tr><tr><td>CRM/自动工作流</td><td>首版不接入 CRM、自动任务流和第三方业务系统</td></tr><tr><td>私有化部署</td><td>首版不做私有化部署</td></tr></tbody></table>
 <p>成功指标：</p>
@@ -346,7 +346,7 @@
 <li>设备列表展示设备名、SN、RSSI、绑定状态。</li>
 <li>用户选择设备后进入绑定确认页，确认完整 SN 和绑定账号。</li>
 <li>App 与设备、云端完成绑定关系写入；成功后进入文件首页。</li>
-<li>若设备已被其他账号绑定，禁止继续读取文件并展示售后/解绑指引。</li>
+<li>若设备已被其他账号绑定，禁止继续读取文件并展示售后/移除设备指引。</li>
 </ol>
 <h3>2.2.2 开始硬件录音</h3>
 <ol>
@@ -404,7 +404,7 @@
 <h3>2.4 业务规则索引</h3>
 <table><thead><tr><th>规则ID</th><th>规则名称</th><th>描述</th><th>引用章节</th></tr></thead><tbody><tr><td>R01</td><td>登录门槛</td><td>用户必须登录后才能绑定设备、开始硬件录音、提交转写/AI 生成、查看用量账本</td><td>3.1 / 3.2 / 3.6</td></tr><tr><td>R02</td><td>绑定门槛</td><td>未绑定设备不能开始硬件录音；点击录音主按钮需引导绑定</td><td>3.2 / 3.3</td></tr><tr><td>R03</td><td>设备连接门槛</td><td>开始录音和同步文件前需要设备连接；断连时进入对应异常状态</td><td>3.2 / 3.4</td></tr><tr><td>R04</td><td>非手机录音</td><td>首版不支持 App 手机自身录音，不默认请求麦克风权限</td><td>3.1 / 3.3</td></tr><tr><td>R05</td><td>录音结束后同步</td><td>硬件录音文件只在录音结束并保存后进入同步；录音中不做实时文件同步</td><td>3.4 / 3.5</td></tr><tr><td>R06</td><td>文件来源必显</td><td>文件列表和详情必须区分 <code>硬件录音</code> 与 <code>导入文件</code></td><td>3.5</td></tr><tr><td>R07</td><td>未转写显示生成</td><td>未转写文件显示生成按钮；已转写文件显示转写结果</td><td>3.5 / 3.6</td></tr><tr><td>R08</td><td>自定义生成默认值</td><td>自定义生成默认自动标注说话人开启、音频语言 English、AI 模型自动</td><td>3.6</td></tr><tr><td>R09</td><td>用量确认</td><td>提交转写前展示预计消耗和剩余额度；额度不足禁止提交</td><td>3.6 / 3.8</td></tr><tr><td>R10</td><td>失败返还</td><td>转写失败后返还对应额度，并在用量账本展示返还记录和关联任务</td><td>3.7 / 3.8</td></tr><tr><td>R11</td><td>隐私授权</td><td>AI 数据改进授权需独立开关；默认不把用户音频用于训练</td><td>3.9</td></tr><tr><td>R12</td><td>美国/日本合规提示</td><td>首发市场需提供英文/日文隐私政策、权限说明和录音同意提示，文案需法务确认</td><td>3.9 / 4.3</td></tr></tbody></table>
 <h3>2.5 边界与异常</h3>
-<table><thead><tr><th>场景</th><th>触发条件</th><th>处理方式</th></tr></thead><tbody><tr><td>未登录</td><td>绑定、录音、生成、用量等动作前发现未登录</td><td>进入登录/注册，完成后回到原动作入口</td></tr><tr><td>未绑定</td><td>点击录音主按钮但无设备</td><td>进入未绑定状态页，引导设备扫描</td></tr><tr><td>蓝牙权限拒绝</td><td>扫描或连接前权限不足</td><td>展示权限用途和系统设置入口</td></tr><tr><td>搜不到设备</td><td>扫描超时或附近无广播</td><td>提示靠近、唤醒、检查电量、重新扫描</td></tr><tr><td>设备已被其他账号绑定</td><td>绑定确认或云端校验发现占用</td><td>禁止绑定和读取文件，展示售后/解绑指引</td></tr><tr><td>设备未连接</td><td>开始录音或同步前 BLE 未连接</td><td>引导重连，失败进入帮助/诊断</td></tr><tr><td>低电量</td><td>设备电量低于阈值</td><td>提示风险；是否禁止录音【待确认】</td></tr><tr><td>存储不足</td><td>设备剩余存储低于阈值</td><td>禁止开始录音或提示即将停止；阈值【待确认】</td></tr><tr><td>录音中 BLE 断连</td><td>录音中 App 与设备断开</td><td>提示设备仍在本地录音，重连后同步状态</td></tr><tr><td>同步失败</td><td>BLE 断连、超时、CRC 失败</td><td>保留进度，允许重试/续传；错误码待固件定义</td></tr><tr><td>上传失败</td><td>网络异常或上传服务失败</td><td>保留本地文件，允许重试</td></tr><tr><td>转写失败</td><td>ASR 任务失败</td><td>返还额度，记录账本，文件回到可重试状态</td></tr><tr><td>AI 生成失败</td><td>LLM 任务失败</td><td>保留转写结果，允许重试 AI</td></tr><tr><td>额度不足</td><td>预计分钟大于剩余额度</td><td>禁止提交，进入用量/会员入口</td></tr></tbody></table>
+<table><thead><tr><th>场景</th><th>触发条件</th><th>处理方式</th></tr></thead><tbody><tr><td>未登录</td><td>绑定、录音、生成、用量等动作前发现未登录</td><td>进入登录/注册，完成后回到原动作入口</td></tr><tr><td>未绑定</td><td>点击录音主按钮但无设备</td><td>进入未绑定状态页，引导设备扫描</td></tr><tr><td>蓝牙权限拒绝</td><td>扫描或连接前权限不足</td><td>展示权限用途和系统设置入口</td></tr><tr><td>搜不到设备</td><td>扫描超时或附近无广播</td><td>提示靠近、唤醒、检查电量、重新扫描</td></tr><tr><td>设备已被其他账号绑定</td><td>绑定确认或云端校验发现占用</td><td>禁止绑定和读取文件，展示售后/移除设备指引</td></tr><tr><td>设备未连接</td><td>开始录音或同步前 BLE 未连接</td><td>引导重连，失败进入帮助/诊断</td></tr><tr><td>低电量</td><td>设备电量低于阈值</td><td>提示风险；是否禁止录音【待确认】</td></tr><tr><td>存储不足</td><td>设备剩余存储低于阈值</td><td>禁止开始录音或提示即将停止；阈值【待确认】</td></tr><tr><td>录音中 BLE 断连</td><td>录音中 App 与设备断开</td><td>提示设备仍在本地录音，重连后同步状态</td></tr><tr><td>同步失败</td><td>BLE 断连、超时、CRC 失败</td><td>保留进度，允许重试/续传；错误码待固件定义</td></tr><tr><td>上传失败</td><td>网络异常或上传服务失败</td><td>保留本地文件，允许重试</td></tr><tr><td>转写失败</td><td>ASR 任务失败</td><td>返还额度，记录账本，文件回到可重试状态</td></tr><tr><td>AI 生成失败</td><td>LLM 任务失败</td><td>保留转写结果，允许重试 AI</td></tr><tr><td>额度不足</td><td>预计分钟大于剩余额度</td><td>禁止提交，进入用量/会员入口</td></tr></tbody></table>
 <hr>
 <h2>3. 交互原型</h2>
 <p>交互说明以当前 <code>interactive-prd-ai-recorder</code> 为关联原型。页面级标注内容维护在 <code>content/pages/*.md</code>，页面结构维护在 <code>data/pages.json</code>，异常说明维护在 <code>content/errors/*.md</code>。</p>
@@ -424,15 +424,16 @@
 <h3>3.2 设备扫描与绑定</h3>
 <p>对应页面：<code>APP-DEV-01 设备扫描页</code>、<code>APP-DEV-02 设备绑定确认页</code>、<code>APP-DEV-03 设备详情页</code>。</p>
 <p>标注点说明：</p>
-<table><thead><tr><th>#</th><th>内容</th><th>说明</th></tr></thead><tbody><tr><td>1</td><td>扫描状态</td><td>显示扫描中、已发现、未发现、权限拒绝</td></tr><tr><td>2</td><td>设备列表</td><td>展示设备名、SN、RSSI、绑定状态</td></tr><tr><td>3</td><td>绑定确认</td><td>展示完整 SN、账号绑定说明、确认按钮</td></tr><tr><td>4</td><td>设备状态</td><td>电量、存储、录音、同步、固件版本</td></tr><tr><td>5</td><td>设备操作</td><td>重连、解绑、恢复出厂、OTA 占位</td></tr></tbody></table>
+<table><thead><tr><th>#</th><th>内容</th><th>说明</th></tr></thead><tbody><tr><td>1</td><td>扫描状态</td><td>显示扫描中、已发现、未发现、权限拒绝</td></tr><tr><td>2</td><td>设备列表</td><td>展示设备名、SN、RSSI、绑定状态</td></tr><tr><td>3</td><td>绑定确认</td><td>展示完整 SN、账号绑定说明、确认按钮</td></tr><tr><td>4</td><td>设备状态</td><td>电量、存储、录音、同步、固件版本</td></tr><tr><td>5</td><td>设备操作</td><td>重新连接、移除设备、恢复出厂、OTA 检查更新/更新</td></tr></tbody></table>
 <p>字段定义：</p>
 <table><thead><tr><th>界面字段</th><th>控件</th><th>数据字段</th><th>规则</th></tr></thead><tbody><tr><td>设备名</td><td>文本</td><td><code>device_name</code></td><td>BLE 广播包或云端设备</td></tr><tr><td>SN</td><td>文本</td><td><code>device_sn</code></td><td>完整 SN 在绑定确认页展示</td></tr><tr><td>RSSI</td><td>文本/图标</td><td><code>rssi</code></td><td>来自系统蓝牙能力</td></tr><tr><td>绑定状态</td><td>标签</td><td><code>bind_state</code></td><td>设备占用时禁止绑定</td></tr><tr><td>设备电量</td><td>指标</td><td><code>battery_level</code></td><td>阈值待固件/产品确认</td></tr><tr><td>设备存储</td><td>指标</td><td><code>storage_remaining</code></td><td>阈值待固件/产品确认</td></tr></tbody></table>
 <p>交互行为：</p>
 <ul>
 <li>未登录进入设备绑定 → 先登录（引用 R01）。</li>
 <li>搜不到设备 → 展示靠近设备、唤醒设备、重新扫描。</li>
-<li>设备已被其他账号绑定 → 禁止读取文件，展示售后/解绑指引。</li>
+<li>设备已被其他账号绑定 → 禁止读取文件，展示售后/移除设备指引。</li>
 <li>绑定成功 → 进入文件首页。</li>
+<li>设备详情 OTA 行后置操作按钮：无新版本时显示为“检查更新”；检测到新固件或 App 主动推送时显示“更新”。该说明只作为产品与研发规则，不在用户界面中额外展示解释文案。</li>
 </ul>
 <h3>3.3 文件首页与录音主按钮</h3>
 <p>对应页面：<code>APP-HOME-01 文件首页</code>、底部中间录音主按钮。</p>
@@ -524,13 +525,16 @@
 <p>标注点说明：</p>
 <table><thead><tr><th>#</th><th>内容</th><th>说明</th></tr></thead><tbody><tr><td>1</td><td>我的首页</td><td>用量、会员、设备、设置、帮助入口</td></tr><tr><td>2</td><td>隐私控制</td><td>AI 数据授权、云端文件删除、转写/AI 笔记删除</td></tr><tr><td>3</td><td>账号删除</td><td>二次确认，删除范围和保留期【待确认】</td></tr><tr><td>4</td><td>诊断授权</td><td>日志上传需用户授权并脱敏</td></tr><tr><td>5</td><td>合规提示</td><td>美国/日本录音同意、隐私政策、数据处理说明</td></tr></tbody></table>
 <p>字段定义：</p>
-<table><thead><tr><th>界面字段</th><th>控件</th><th>数据字段</th><th>规则</th></tr></thead><tbody><tr><td>AI 数据授权</td><td>开关</td><td><code>ai_data_opt_in</code></td><td>引用 R11</td></tr><tr><td>云端文件删除</td><td>按钮</td><td><code>delete_cloud_files</code></td><td>删除范围【待确认】</td></tr><tr><td>账号删除</td><td>按钮</td><td><code>delete_account</code></td><td>法务保留期【待确认】</td></tr><tr><td>日志上传</td><td>按钮/开关</td><td><code>diagnostic_upload</code></td><td>默认不上传，需授权</td></tr><tr><td>录音同意提示</td><td>链接/说明</td><td><code>recording_consent_notice</code></td><td>引用 R12</td></tr></tbody></table>
+<table><thead><tr><th>界面字段</th><th>控件</th><th>数据字段</th><th>规则</th></tr></thead><tbody><tr><td>AI 数据授权</td><td>开关</td><td><code>ai_data_opt_in</code></td><td>默认显示已授权；关闭前必须声明确认，确认后显示未授权</td></tr><tr><td>云端文件</td><td>入口</td><td><code>delete_cloud_files</code></td><td>显示可删除与下级箭头，进入删除云端录音页面</td></tr><tr><td>转写 / AI 笔记</td><td>入口</td><td><code>delete_ai_notes</code></td><td>显示可删除与下级箭头，进入文件首页管理</td></tr><tr><td>隐私说明</td><td>信息卡</td><td><code>privacy_statement</code></td><td>说明录音和笔记仅在提供服务所必需的范围内处理</td></tr><tr><td>安全与隐私认证</td><td>展示区</td><td><code>security_certifications</code></td><td>仅在实际认证完成后展示；当前为待补充占位，不得宣称已认证</td></tr><tr><td>日志上传</td><td>按钮/开关</td><td><code>diagnostic_upload</code></td><td>默认不上传，需授权</td></tr><tr><td>录音同意提示</td><td>链接/说明</td><td><code>recording_consent_notice</code></td><td>引用 R12</td></tr><tr><td>录音文件体积</td><td>只读信息</td><td><code>recording_cache_size</code></td><td>仅展示本地缓存大小，不提供点击或下级页面</td></tr><tr><td>账单记录</td><td>列表</td><td><code>billing_records</code></td><td>按支付完成时间倒序展示会员购买、会员升级与转写时长购买</td></tr></tbody></table>
 <p>交互行为：</p>
 <ul>
-<li>用户可关闭 AI 数据改进授权。</li>
-<li>用户可发起云端文件、转写文本、AI 笔记删除。</li>
-<li>用户可发起账号删除，必须二次确认。</li>
+<li>AI 数据授权默认显示已授权；点击开关后需阅读声明，确认关闭后显示未授权。</li>
+<li>云端文件入口进入删除云端录音页面；转写 / AI 笔记入口进入文件首页。</li>
+<li>删除账号仅保留在账号页，隐私与安全页不展示删除云端数据和删除账号物理按钮。</li>
+<li>隐私控制下方展示简洁的正式隐私说明与安全认证区域；认证资料在实际获得后补充。</li>
 <li>上传诊断日志前必须说明范围并取得授权。</li>
+<li>优化 App 储存空间中的录音文件行仅展示本地缓存体积，不展示下级箭头。</li>
+<li>账单详情默认展示空态；支付系统返回记录时展示会员购买、升级和转写时长购买账单，包含服务名称、支付时间、金额和支付状态。</li>
 </ul>
 <h3>3.10 异常状态</h3>
 <p>对应页面：<code>APP-ERR-01</code> 至异常库 <code>content/errors/*.md</code>。</p>
@@ -566,7 +570,7 @@
 <h3>C. 业务规则完整索引</h3>
 <table><thead><tr><th>规则ID</th><th>规则名称</th><th>定义章节</th><th>引用章节</th></tr></thead><tbody><tr><td>R01</td><td>登录门槛</td><td>2.4</td><td>3.1 / 3.2 / 3.6</td></tr><tr><td>R02</td><td>绑定门槛</td><td>2.4</td><td>3.2 / 3.3</td></tr><tr><td>R03</td><td>设备连接门槛</td><td>2.4</td><td>3.2 / 3.4</td></tr><tr><td>R04</td><td>非手机录音</td><td>2.4</td><td>3.1 / 3.3</td></tr><tr><td>R05</td><td>录音结束后同步</td><td>2.4</td><td>3.4 / 3.5</td></tr><tr><td>R06</td><td>文件来源必显</td><td>2.4</td><td>3.5</td></tr><tr><td>R07</td><td>未转写显示生成</td><td>2.4</td><td>3.5 / 3.6</td></tr><tr><td>R08</td><td>自定义生成默认值</td><td>2.4</td><td>3.6</td></tr><tr><td>R09</td><td>用量确认</td><td>2.4</td><td>3.6 / 3.8</td></tr><tr><td>R10</td><td>失败返还</td><td>2.4</td><td>3.7 / 3.8</td></tr><tr><td>R11</td><td>隐私授权</td><td>2.4</td><td>3.9</td></tr><tr><td>R12</td><td>美国/日本合规提示</td><td>2.4</td><td>3.9 / 4.3</td></tr></tbody></table>
 <h3>D. 变更记录</h3>
-<table><thead><tr><th>日期</th><th>版本</th><th>变更内容</th><th>作者</th></tr></thead><tbody><tr><td>2026-07-07</td><td>v3.0</td><td>输出 AI录音卡 App PRD</td><td>ANDY.MA</td></tr></tbody></table>
+<table><thead><tr><th>日期</th><th>版本</th><th>变更内容</th><th>作者</th></tr></thead><tbody><tr><td>2026-07-10</td><td>v3.0</td><td>补充完善固件相关说明及优化 App PRD</td><td>ANDY.MA</td></tr><tr><td>2026-07-07</td><td>v3.0</td><td>输出 AI录音卡 App PRD</td><td>ANDY.MA</td></tr></tbody></table>
   </main>
 </body>
 </html>

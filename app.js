@@ -136,15 +136,15 @@ const pages = [
   {
     id: "APP-DEV-05",
     group: "设备",
-    title: "解绑设备说明",
+    title: "移除设备说明",
     priority: "P0",
-    goal: "说明设备已绑定其他账号时的解绑路径，并提供无法访问原账号时的联系入口。",
+    goal: "说明设备已绑定其他账号时的移除路径，并提供无法访问原账号时的联系入口。",
     entry: "连接失败页点击“如何移除设备?”。",
-    fields: [["unbind_instruction", "解绑说明", "本地文案"], ["original_account", "原账号", "用户操作"], ["support_contact", "官方邮箱", "客服配置"]],
+    fields: [["remove_instruction", "移除说明", "本地文案"], ["original_account", "原账号", "用户操作"], ["support_contact", "官方邮箱", "客服配置"]],
     rules: ["已绑定其他账号的设备必须先从原账号移除后才可绑定至新账号。", "说明步骤必须包含登录原账号、进入设备详情、移除设备、重新绑定。", "无法访问原账号时展示官方邮箱待定占位。"],
     states: ["说明弹窗", "返回失败页", "退出登录"],
-    deps: ["云端设备解绑关系。", "客服邮箱配置待补充。"],
-    acceptance: ["点击如何移除设备后展示解绑设备说明弹层。", "文案中不出现未确认品牌名，设备统一为 AI Recorder A1。", "好的返回连接失败页，退出登录回到登录 / 注册页。"]
+    deps: ["云端设备移除关系。", "客服邮箱配置待补充。"],
+    acceptance: ["点击如何移除设备后展示移除设备说明弹层。", "文案中不出现未确认品牌名，设备统一为 AI Recorder A1。", "好的返回连接失败页，退出登录回到登录 / 注册页。"]
   },
   {
     id: "APP-DEV-06",
@@ -694,10 +694,10 @@ const pages = [
     goal: "管理本地已同步录音缓存，释放 App 存储空间。",
     entry: "私有云同步页点击管理存储空间。",
     fields: [["optimize_storage_enabled", "优化 App 储存空间", "本地设置"], ["recording_cache_size", "录音文件体积", "本地缓存"], ["clear_local_cache", "清理本地缓存", "本地缓存"]],
-    rules: ["开启后不再自动下载云端录音。", "清理仅移除本地已同步录音，云端录音保留。", "点击清理进入二次确认弹窗。"],
+    rules: ["开启后不再自动下载云端录音。", "录音文件仅展示本地缓存体积，不提供点击或下级页面。", "清理仅移除本地已同步录音，云端录音保留。", "点击清理进入二次确认弹窗。"],
     states: ["优化开启", "本地缓存可清理"],
     deps: ["本地缓存：录音文件大小。", "云端文件：已同步状态。"],
-    acceptance: ["页面结构参考管理存储空间截图。", "清理入口进入确认弹窗。"]
+    acceptance: ["页面结构参考管理存储空间截图。", "录音文件行仅展示体积，不显示下级箭头。", "清理入口进入确认弹窗。"]
   },
   {
     id: "APP-ME-07",
@@ -772,10 +772,25 @@ const pages = [
     goal: "展示账单记录空态或账单列表。",
     entry: "我的页点击账单详情。",
     fields: [["billing_records", "账单记录", "支付系统"]],
-    rules: ["无账单时展示空态。", "有账单时可展示账单列表，后续补充明细。"],
+    rules: ["无账单时展示空态。", "有账单时展示按支付时间倒序排列的账单列表。", "账单列表需覆盖会员购买、会员升级和转写时长购买等支付类型。"],
     states: ["暂无账单记录", "有账单记录"],
     deps: ["支付系统。"],
-    acceptance: ["空态参考账单详情截图。"]
+    acceptance: ["空态参考账单详情截图。", "有账单记录时展示服务名称、支付时间、金额和支付状态。"],
+    prototypeLinks: [["账单不为空", "APP-ME-23"]]
+  },
+  {
+    id: "APP-ME-23",
+    group: "我的",
+    title: "账单详情有记录",
+    priority: "P1",
+    goal: "按支付时间倒序展示会员订阅、会员升级和转写时长购买账单。",
+    entry: "账单详情在支付系统返回账单记录时展示。",
+    fields: [["billing_type", "支付类型", "支付系统"], ["billing_title", "服务名称", "支付系统"], ["billing_amount", "支付金额", "支付系统"], ["billing_time", "支付时间", "支付系统"], ["billing_status", "支付状态", "支付系统"]],
+    rules: ["账单按支付完成时间倒序排列。", "每条账单展示服务名称、支付时间、金额和已支付状态。", "当前原型仅展示记录，不提供账单详情下级页。"],
+    states: ["会员购买", "会员升级", "转写时长购买"],
+    deps: ["支付系统：订单、金额、状态和支付时间。"],
+    acceptance: ["账单列表能够清晰区分会员购买、会员升级和转写时长购买。", "账单信息在单屏内可快速扫描。"],
+    prototypeLinks: [["账单为空", "APP-ME-09"]]
   },
   {
     id: "APP-ME-10",
@@ -822,13 +837,13 @@ const pages = [
     group: "设置",
     title: "设备详情",
     priority: "P0",
-    goal: "管理已绑定设备、连接状态、解绑、恢复出厂和固件更新。",
+    goal: "管理已绑定设备、连接状态、移除设备、恢复出厂和固件更新。",
     entry: "文件首页设备卡、我的设备管理。",
     fields: [["device_name", "设备名", "本地数据库/云端设备"], ["firmware_version", "固件版本", "BLE/云端设备"], ["firmware_update_state", "固件更新状态", "云端固件服务"], ["battery_level", "电量", "BLE 状态包"], ["storage_usage", "存储占用", "BLE 状态包"], ["sync_state", "同步状态", "本地数据库"]],
-    rules: ["设备详情显示连接、电量、存储、同步状态。", "OTA 行后置操作按钮：无新版本显示检查更新，发现新版本显示更新。", "点击更新或 App 启动主动推送更新时，进入固件更新提示弹窗。", "低电量、正在录音或设备未连接时禁止开始固件更新。", "恢复出厂触发方式待确认。"],
-    states: ["已连接", "未连接", "同步中", "低电量", "有新固件", "已是最新版本", "解绑确认", "恢复出厂确认"],
+    rules: ["设备详情显示连接、电量、存储、同步状态。", "OTA 行后置操作按钮：无新版本显示检查更新，检测到新固件或 App 主动推送时显示更新；该规则仅在说明文档展示，不在用户界面展示解释文案。", "点击更新或 App 启动主动推送更新时，进入固件更新提示弹窗。", "低电量、正在录音或设备未连接时禁止开始固件更新。", "恢复出厂触发方式待确认。"],
+    states: ["已连接", "未连接", "同步中", "低电量", "有新固件", "已是最新版本", "移除设备确认", "恢复出厂确认"],
     deps: ["BLE 状态包、云端设备、固件版本能力，协议待定义。", "云端固件版本服务。"],
-    acceptance: ["重连、解绑、恢复出厂入口可见。", "OTA 不再显示 P1 占位，必须有检查更新或更新按钮。", "点击更新进入固件更新提示。", "危险操作有二次确认。"],
+    acceptance: ["重新连接、移除设备、恢复出厂入口可见。", "OTA 不再显示 P1 占位，必须有检查更新或更新按钮。", "点击更新进入固件更新提示。", "危险操作有二次确认。"],
     prototypeLinks: [["更新", "APP-DEV-06"]]
   },
   {
@@ -836,13 +851,41 @@ const pages = [
     group: "设置",
     title: "隐私与安全",
     priority: "P0",
-    goal: "管理 AI 授权、云端删除、账号删除、隐私政策和录音合规提示。",
+    goal: "管理 AI 数据授权、云端文件删除和转写/AI 笔记删除入口，并说明隐私保护与认证状态。",
     entry: "我的首页、首次协议、设置页。",
-    fields: [["ai_data_opt_in", "AI 数据授权", "云端账号"], ["delete_cloud_files", "删除云端文件", "云端文件"], ["delete_account", "账号删除", "云端账号"], ["diagnostic_upload", "日志上传授权", "诊断服务"]],
-    rules: ["AI 数据改进授权独立开关，默认不用于训练。", "云端删除和账号删除需二次确认。", "美国/日本隐私政策和录音同意提示需法务确认。"],
-    states: ["授权关闭", "授权开启", "删除确认", "删除中", "删除失败", "法务待确认"],
-    deps: ["云端账号、云端文件、诊断服务、法务文案。"],
-    acceptance: ["用户能找到数据删除和账号删除入口。", "日志上传必须有授权说明。"]
+    fields: [["ai_data_opt_in", "AI 数据授权", "云端账号"], ["delete_cloud_files", "云端文件", "云端文件"], ["delete_ai_notes", "转写 / AI 笔记", "本地数据库/云端文件"], ["privacy_statement", "隐私说明", "本地文案"], ["security_certifications", "安全与隐私认证", "合规资料"]],
+    rules: ["AI 数据授权默认显示已授权；关闭前必须展示声明确认弹窗，确认后显示未授权。", "云端文件入口进入删除云端录音页面。", "转写 / AI 笔记入口回到文件首页管理。", "本页不展示删除云端数据和删除账号物理按钮。", "认证区仅展示已实际获得的认证；取得认证前显示待补充占位，不得宣称已认证。"],
+    states: ["已授权", "关闭授权确认", "未授权"],
+    deps: ["云端账号、云端文件、AI 服务授权状态。"],
+    acceptance: ["隐私控制仅展示 AI 数据授权、云端文件、转写 / AI 笔记三项。", "AI 数据授权关闭前必须二次确认。", "云端文件和转写 / AI 笔记入口链路正确。", "下方展示简洁隐私说明与认证待补充区，不虚构认证状态。"],
+    prototypeLinks: [["关闭授权确认", "APP-ME-24"], ["未授权", "APP-ME-25"]]
+  },
+  {
+    id: "APP-ME-24",
+    group: "设置",
+    title: "关闭 AI 数据授权确认",
+    priority: "P0",
+    goal: "在关闭 AI 数据授权前明确说明影响并获取确认。",
+    entry: "隐私与安全页点击 AI 数据授权开关。",
+    fields: [["ai_data_opt_in", "AI 数据授权", "云端账号"], ["authorization_close_confirm", "关闭确认", "用户操作"]],
+    rules: ["取消时保持已授权并返回隐私与安全页。", "确认关闭后更新为未授权状态。"],
+    states: ["待确认", "已取消", "已关闭"],
+    deps: ["云端账号：AI 数据授权状态更新。"],
+    acceptance: ["关闭授权前展示声明确认弹窗。", "确认后进入未授权状态。"],
+    prototypeLinks: [["确认关闭", "APP-ME-25"]]
+  },
+  {
+    id: "APP-ME-25",
+    group: "设置",
+    title: "AI 数据未授权",
+    priority: "P0",
+    goal: "展示 AI 数据授权已关闭后的隐私控制状态。",
+    entry: "关闭 AI 数据授权确认后。",
+    fields: [["ai_data_opt_in", "AI 数据授权", "云端账号"]],
+    rules: ["授权状态显示未授权。", "关闭授权不影响用户使用既有转写与 AI 笔记功能。"],
+    states: ["未授权"],
+    deps: ["云端账号：AI 数据授权状态。"],
+    acceptance: ["AI 数据授权行清晰显示未授权。"]
   },
   {
     id: "APP-ERR-01",
@@ -1134,7 +1177,7 @@ function renderDeviceAlreadyBound() {
     <section class="failure-sheet">
       <h2>连接失败</h2>
       <div class="sheet-line"></div>
-      <p>该设备已绑定至 <u>3*******6@qq.com</u>。<br>若要绑定至当前账号，请先登录原账号并解绑设备。</p>
+      <p>该设备已绑定至 <u>3*******6@qq.com</u>。<br>若要绑定至当前账号，请先登录原账号并移除设备。</p>
       <p>如需协助，请访问 <button class="link-btn inline">帮助与支持</button></p>
       <button class="primary-btn" data-go="APP-DEV-01">好的</button>
       <button class="link-btn center" data-go="APP-DEV-05">? 如何移除设备?</button>
@@ -1156,7 +1199,7 @@ function renderDeviceUnbindHelp() {
       </div>
     </section>
     <section class="failure-sheet unbind-help-sheet">
-      <h2>解绑设备</h2>
+      <h2>移除设备</h2>
       <div class="sheet-line"></div>
       <div class="unbind-copy">
         <p>若要从其他账号移除设备：</p>
@@ -2226,7 +2269,7 @@ function renderCloudStorage() {
       <section class="cloud-storage-page">
         ${meSettingRow("优化 AI录音卡 App 储存空间", { toggle: true, note: "开启后，AI录音卡 App 将不再自动下载云端录音，你可随时手动下载。" })}
         <div class="me-line"></div>
-        ${meSettingRow("录音文件", { value: "41.23 MB" })}
+        ${meSettingRow("录音文件", { value: "41.23 MB", arrow: false })}
         ${meSettingRow("清理 AI录音卡 App 存储空间", { go: "APP-ME-07", note: "清理 AI录音卡 App 中已同步至云端的录音，释放储存空间，你可随时重新下载。" })}
       </section>
     </main>
@@ -2303,6 +2346,39 @@ function renderBillingDetail() {
   `;
 }
 
+function renderBillingHistory() {
+  const bills = [
+    ["卓越会员", "年度订阅", "2026-07-08 23:34", "¥699.00"],
+    ["升级会员", "标准会员升级至卓越会员", "2026-06-30 10:16", "¥199.00"],
+    ["转写时长", "购买 300 分钟转写时长", "2026-06-18 18:22", "¥79.00"],
+    ["转写时长", "购买 60 分钟转写时长", "2026-05-26 14:08", "¥19.00"]
+  ];
+  return `
+    <main class="me-simple-page">
+      ${meTop("账单详情", { close: "APP-ME-02" })}
+      <section class="bill-history">
+        <p class="bill-history-heading">账单记录</p>
+        <p class="bill-history-hint">所有已完成的会员与转写服务订单</p>
+        <div class="bill-history-list">
+          ${bills.map(([type, title, time, amount]) => `
+            <article class="bill-item">
+              <div class="bill-item-copy">
+                <span class="bill-type">${h(type)}</span>
+                <b>${h(title)}</b>
+                <small>${h(time)}</small>
+              </div>
+              <div class="bill-item-payment">
+                <strong>${h(amount)}</strong>
+                <span>已支付</span>
+              </div>
+            </article>
+          `).join("")}
+        </div>
+      </section>
+    </main>
+  `;
+}
+
 function renderRestorePurchaseLoading() {
   return `
     ${renderUsage()}
@@ -2363,11 +2439,10 @@ function renderDeviceDetail() {
       ${row("自动同步", "开启")}
       ${row("恢复出厂", "触发方式待确认")}
       <div class="row action-row"><span>OTA</span><button class="mini-action-btn" data-go="APP-DEV-06">更新</button></div>
-      <p class="caption">无新版本时显示为“检查更新”；检测到新固件或 App 主动推送时显示“更新”。</p>
     `)}
-    <div class="button-row">
-      <button class="secondary-btn">重连</button>
-      <button class="danger-btn">解绑</button>
+    <div class="button-row compact-device-actions">
+      <button class="secondary-btn">重新连接</button>
+      <button class="danger-btn">移除设备</button>
     </div>
   `, { title: "设备详情", action: "帮助", back: "APP-HOME-01", bottom: false });
 }
@@ -2471,15 +2546,61 @@ function renderFirmwareConnectionFailed() {
   `, { title: " ", back: "APP-DEV-08", bottom: false, compact: true });
 }
 
-function renderPrivacy() {
-  return screen(`
-    ${card("隐私控制", `${row("AI 数据授权", "关闭")}${row("云端文件", "可删除")}${row("转写 / AI 笔记", "可删除")}${row("诊断日志", "上传前授权")}`)}
-    ${card("美国 / 日本合规", `${row("录音同意提示", "待法务确认")}${row("隐私政策", "英文 / 日文")}${row("数据处理说明", "AI 生成前展示")}`, "warn")}
-    <div class="button-row">
-      <button class="secondary-btn">删除云端数据</button>
-      <button class="danger-btn">删除账号</button>
-    </div>
-  `, { title: "隐私与安全", back: "APP-ME-02", active: "me" });
+function renderPrivacy(aiAuthorized = true) {
+  const authorizationState = aiAuthorized ? "已授权" : "未授权";
+  const authorizationControl = aiAuthorized
+    ? `<button class="privacy-toggle-button on" data-go="APP-ME-24" aria-label="关闭 AI 数据授权"><i></i></button>`
+    : `<span class="privacy-toggle-button" aria-label="AI 数据未授权"><i></i></span>`;
+  return `
+    <main class="me-simple-page privacy-page">
+      ${meTop("隐私与安全", { back: "APP-ME-02" })}
+      <section class="privacy-control-list">
+        <h2>隐私控制</h2>
+        <div class="me-line"></div>
+        <div class="privacy-control-row">
+          <span><b>AI 数据授权</b><small>仅用于产品能力改进，可随时关闭</small></span>
+          <div class="privacy-authorization-state"><em class="${aiAuthorized ? "authorized" : "unauthorized"}">${authorizationState}</em>${authorizationControl}</div>
+        </div>
+        <button class="privacy-control-row action" data-go="APP-ME-13">
+          <span><b>云端文件</b><small>可删除</small></span><i>›</i>
+        </button>
+        <button class="privacy-control-row action" data-go="APP-HOME-01">
+          <span><b>转写 / AI 笔记</b><small>可删除</small></span><i>›</i>
+        </button>
+      </section>
+      <section class="privacy-assurance">
+        <span class="privacy-assurance-icon" aria-hidden="true"></span>
+        <div>
+          <h2>隐私说明</h2>
+          <p>我们仅在提供服务所必需的范围内处理你的录音与笔记。AI 数据授权由你自主决定，可随时调整。</p>
+        </div>
+      </section>
+      <section class="privacy-certifications">
+        <h2>安全与隐私认证</h2>
+        <p>实际认证完成后将在此展示相关信息。</p>
+        <div class="privacy-certification-grid" aria-label="认证信息待补充">
+          <span>信息安全<small>待补充</small></span>
+          <span>隐私保护<small>待补充</small></span>
+          <span>数据合规<small>待补充</small></span>
+        </div>
+      </section>
+    </main>
+  `;
+}
+
+function renderPrivacyAuthorizationConfirm() {
+  return `
+    ${renderPrivacy(true)}
+    <div class="scrim" data-go="APP-ME-04"></div>
+    <section class="me-sheet privacy-authorization-sheet">
+      <button class="sheet-close" data-go="APP-ME-04">×</button>
+      <h2>关闭 AI 数据授权</h2>
+      <div class="me-line"></div>
+      <p>关闭后，新的数据将不再用于产品能力改进。关闭不会影响转写、AI 笔记和已有文件的正常使用。</p>
+      <button class="dark" data-go="APP-ME-25">确认关闭</button>
+      <button class="outline" data-go="APP-ME-04">取消</button>
+    </section>
+  `;
 }
 
 function renderError() {
@@ -2558,11 +2679,14 @@ const renderers = {
   "APP-ME-08": () => renderRedeemCode(false),
   "APP-ME-15": () => renderRedeemCode(true),
   "APP-ME-09": renderBillingDetail,
+  "APP-ME-23": renderBillingHistory,
   "APP-ME-10": renderRestorePurchaseLoading,
   "APP-ME-11": renderRestorePurchaseFailed,
   "APP-ME-12": renderUsageRecords,
   "APP-DEV-03": renderDeviceDetail,
-  "APP-ME-04": renderPrivacy,
+  "APP-ME-04": () => renderPrivacy(true),
+  "APP-ME-24": renderPrivacyAuthorizationConfirm,
+  "APP-ME-25": () => renderPrivacy(false),
   "APP-ERR-01": renderError
 };
 
@@ -2579,7 +2703,7 @@ function renderNav() {
 }
 
 function renderFlow() {
-  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-DEV-05", "APP-HOME-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-02", "APP-ME-16", "APP-ME-17", "APP-ME-18", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-10", "APP-ME-11", "APP-ME-12", "APP-DEV-03", "APP-DEV-06", "APP-DEV-07", "APP-DEV-08", "APP-DEV-09"];
+  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-DEV-05", "APP-HOME-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-02", "APP-ME-16", "APP-ME-17", "APP-ME-18", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-23", "APP-ME-10", "APP-ME-11", "APP-ME-12", "APP-DEV-03", "APP-ME-04", "APP-ME-24", "APP-ME-25", "APP-DEV-06", "APP-DEV-07", "APP-DEV-08", "APP-DEV-09"];
   document.getElementById("flowStrip").innerHTML = flow.map((id, index) => {
     const page = pageById(id);
     return `<button class="${id === currentPageId ? "active" : ""}" data-go="${id}">${index + 1}. ${h(page.title)}</button>`;
