@@ -1,4 +1,34 @@
 const waveHeights = [18, 30, 22, 54, 34, 70, 44, 58, 28, 48, 20, 62, 32, 42, 24, 56, 36, 66];
+const recordingBaseMarks = [
+  { time: "00:12:08", type: "mark", text: "重点标记 #1 · 硬件短按" },
+  { time: "00:27:46", type: "photo", text: "照片标记 #2 · 手机拍照" }
+];
+let recordingMarks = [...recordingBaseMarks];
+let recordingCameraPrompt = false;
+let sharePermissionState = {
+  recording: false,
+  transcript: false,
+  marks: false,
+  summary: false
+};
+let moveFolderFolders = [
+  { id: "andy", name: "Andy", count: 0, tone: "" },
+  { id: "work", name: "工作", count: 0, tone: "blue" }
+];
+let selectedMoveFolderId = "";
+let moveFolderCreateOpen = false;
+let moveFolderToast = "";
+let loggedInDevices = [
+  { id: "web1", name: "AI录音卡 Web1", current: true, type: "通过 web 登录", lastActive: "2026-07-16 16:46:33" }
+];
+let pendingLogoutDeviceId = "";
+let deleteAccountReadConfirmed = false;
+let deleteAccountStep = "warning";
+let deleteAccountConfirmMode = "password";
+let deleteAccountPassword = "";
+let deleteAccountCode = "";
+let deleteAccountCodeSent = false;
+let deleteAccountConfirmNotice = "";
 
 const pages = [
   {
@@ -210,10 +240,11 @@ const pages = [
     goal: "3 秒内让用户知道设备是否可用、同步是否进行中，并直接在首页浏览文件列表。",
     entry: "登录/绑定成功后默认进入，底部文件 Tab。",
     fields: [["current_device", "当前设备", "本地数据库/云端设备"], ["connection_state", "连接状态", "BLE 状态包"], ["battery_storage_record", "电量/存储/录音", "BLE 状态包"], ["recording_live_sync", "录音中持续同步", "BLE 分片传输/本地缓存"], ["finish_sync_transfer", "结束录音补传", "同步队列"], ["sync_summary", "同步摘要", "本地数据库/BLE 文件列表"], ["file_list", "文件列表", "本地数据库"], ["file_source", "文件来源", "本地数据库"]],
-    rules: ["打开 App 时如果硬件正在录音，首页默认只显示设备录音中状态，不展示同步状态条。", "录音中持续同步是后端和 App 端的后台传输接收动作：App 持续接收硬件分片，先写入本地临时缓存和同步队列，但该过程不对用户展示。", "用户结束录音后，首页才展示结束录音后的同步传送状态，将录音期间尚未完成的分片继续补传、校验并合并。", "补传完成后，把本次硬件录音保存为新的文件记录，并插入文件列表顶部，状态为未转写。", "未连接或未绑定时，设备区只显示添加设备入口，不占用大面积状态卡。", "已连接时仅简要显示连接状态、电量、存储、录音状态和最近同步时间；未录音时显示为待机。", "首页只在结束录音补传、同步失败或其他需要用户关注的同步任务时显示同步状态条；录音中后台持续同步不显示。", "文件列表是首页下半区，不再作为单独页面；滚动到设备状态和同步摘要不可见后，文件列表标题默认吸顶。", "文件列表标题栏左侧为文件列表文字和倒三角筛选/排序入口，右侧为导入音频按钮。", "点击导入音频打开导入音频弹层，可从文件或相册调起系统选择器。", "底部中间录音按钮是全局主按钮，不是普通 Tab。"],
+    rules: ["打开 App 时如果硬件正在录音，首页默认只显示设备录音中状态，不展示同步状态条。", "录音中持续同步是后端和 App 端的后台传输接收动作：App 持续接收硬件分片，先写入本地临时缓存和同步队列，但该过程不对用户展示。", "用户结束录音后，首页才展示结束录音后的同步传送状态，将录音期间尚未完成的分片继续补传、校验并合并。", "补传完成后，把本次硬件录音保存为新的文件记录，并插入文件列表顶部，状态为未转写。", "首页左上设备状态使用紧凑设备图标入口，不再使用大面积状态卡。", "当前已选择录音卡的名称、连接状态、电量和存储需要直接显示在设备入口外层，不必展开下拉即可查看。", "点击设备图标进入当前设备详情；点击设备旁下拉箭头展开添加设备和已绑定设备列表。", "蓝牙系统层面可支持手机同时连接多个 BLE 外设，但 AI 录音卡是否允许多设备并发录音/同步取决于固件连接数、带宽、同步队列和冲突处理；MVP 建议支持多设备绑定与切换，当前活跃录音/同步设备一次只选一个。", "已绑定设备列表需要展示多个设备的连接状态，支持点击切换；已连接设备显示绿色状态，断开连接设备显示灰色离线状态。", "未连接或未绑定时，通过下拉菜单提供添加设备入口，不占用大面积状态卡。", "首页只在结束录音补传、同步失败或其他需要用户关注的同步任务时显示同步状态条；录音中后台持续同步不显示。", "文件列表是首页下半区，不再作为单独页面；滚动到设备状态和同步摘要不可见后，文件列表标题默认吸顶。", "文件列表标题栏左侧为文件列表文字和倒三角筛选/排序入口，右侧为导入音频按钮。", "点击导入音频打开导入音频弹层，可从文件或相册调起系统选择器。", "底部中间录音按钮是全局主按钮，不是普通 Tab。"],
     states: ["未绑定/未连接", "设备已连接", "录音中持续同步", "结束录音补传中", "同步完成并新增文件", "同步失败", "空文件", "加载更多"],
     deps: ["BLE 状态包：电量、存储、录音状态。", "BLE 分片传输：录音过程中的增量音频、偏移量和校验值。", "本地数据库：文件列表、同步队列、转写状态。", "本地临时缓存：录音未结束前的已同步分片。", "云端文件：上传/删除/状态，接口待后端定义。"],
-    acceptance: ["打开 App 默认处于硬件录音场景时，首页只展示设备录音中状态，不展示同步进度模块。", "点击录音中页结束后，首页必须展示剩余内容补传和校验进度。", "补传完成后，文件列表顶部必须新增本次录音文件，来源为硬件录音，状态为未转写。", "设备状态和同步摘要必须是紧凑区域，不遮挡文件列表首屏。", "导入音频和倒三角入口位于文件列表标题栏。", "导入音频弹层包含从文件里导入和从相册里导入两个系统选择入口。", "下拉/继续滚动可加载更多文件。", "录音主按钮点击前执行登录/绑定/连接检查。"]
+    acceptance: ["打开 App 默认处于硬件录音场景时，首页只展示设备录音中状态，不展示同步进度模块。", "点击录音中页结束后，首页必须展示剩余内容补传和校验进度。", "补传完成后，文件列表顶部必须新增本次录音文件，来源为硬件录音，状态为未转写。", "首页设备状态为紧凑图标入口，点击设备图标进入当前设备详情。", "当前已选择录音卡的名称、连接状态、电量、存储在设备入口外层可直接查看。", "点击设备状态旁下拉箭头展开添加设备和多个已绑定设备。", "已绑定设备示例至少包含两个已连接设备和一个已断开设备，点击设备行可以切换当前设备。", "导入音频和倒三角入口位于文件列表标题栏。", "导入音频弹层包含从文件里导入和从相册里导入两个系统选择入口。", "下拉/继续滚动可加载更多文件。", "录音主按钮点击前执行登录/绑定/连接检查。"],
+    prototypeLinks: [["设备详情", "APP-DEV-03"], ["添加设备", "APP-DEV-01"]]
   },
   {
     id: "APP-HOME-03",
@@ -340,10 +371,10 @@ const pages = [
     goal: "明确证明硬件正在录音，并支持标记、暂停、继续和结束。",
     entry: "硬件开始录音成功后。",
     fields: [["record_duration", "录音时长", "BLE 状态包/本地计时"], ["record_state", "录音状态", "BLE 状态包"], ["live_sync_offset", "已同步偏移量", "BLE 分片传输"], ["pending_sync_size", "待补传大小", "同步队列"], ["battery_level", "电量", "BLE 状态包"], ["storage_remaining", "存储", "BLE 状态包"], ["marker_list", "标记时间轴", "BLE 标记包/本地数据库"], ["marker_assets", "标记附件", "备注/手机拍照"], ["disconnect_timer_mode", "断连计时模式", "本地时钟"]],
-    rules: ["暂停后停留录音中页。", "录音过程中 App 持续从硬件接收音频分片，实时更新首页同步队列，但正式文件需等结束录音和补传完成后生成。", "结束录音后回到文件首页的结束同步状态，继续传送录音期间未同步完成的内容，完成 CRC/时长/标记校验后新增到文件列表。", "用户点击添加标记或拍照标记时，必须记录当前录音时间戳、标记类型、备注或照片附件，并随音频分片一起进入同步队列。", "录音标记必须在文件详情中形成锚点映射，例如在文字记录 05:12 对应文字右侧内嵌当时拍摄的照片或备注。", "蓝牙断连时硬件仍在本地录音，App 波形图置灰，计时器继续以手机本地时钟模拟增长。", "蓝牙断连期间显示轻微呼吸红点和文案：蓝牙已断开，硬件仍安全录音中，靠近后自动恢复同步。", "蓝牙恢复后根据硬件录音状态包校准本地模拟计时、同步偏移量和标记时间戳。"],
+    rules: ["暂停后停留录音中页。", "录音过程中 App 持续从硬件接收音频分片，实时更新首页同步队列，但正式文件需等结束录音和补传完成后生成。", "结束录音后回到文件首页的结束同步状态，继续传送录音期间未同步完成的内容，完成 CRC/时长/标记校验后新增到文件列表。", "录音面板底部常驻输入、拍照、标记三个核心辅助功能按钮。", "点击输入时，在标记时间轴追加备注标记，记录当前录音时间戳和用户输入内容；原型中以示例备注模拟。", "点击标记时，在标记时间轴追加重点标记，记录当前录音时间戳和标记类型。", "点击拍照时，先唤起系统相机；拍照完成后在标记时间轴追加照片标记，记录当前录音时间戳和照片附件。", "用户点击添加标记或拍照标记时，必须记录当前录音时间戳、标记类型、备注或照片附件，并随音频分片一起进入同步队列。", "录音标记必须在文件详情中形成锚点映射，例如在文字记录 05:12 对应文字右侧内嵌当时拍摄的照片或备注。", "蓝牙断连时硬件仍在本地录音，App 波形图置灰，计时器继续以手机本地时钟模拟增长。", "蓝牙断连期间显示轻微呼吸红点和文案：蓝牙已断开，硬件仍安全录音中，靠近后自动恢复同步。", "蓝牙恢复后根据硬件录音状态包校准本地模拟计时、同步偏移量和标记时间戳。"],
     states: ["录音中", "暂停中", "录音中持续同步", "结束录音补传中", "同步完成返回首页", "设备断连但仍录音", "本地模拟计时", "蓝牙恢复同步", "低电量", "存储不足"],
     deps: ["BLE 命令包：暂停、继续、结束、添加标记。", "BLE 状态包：录音状态、电量、存储。", "BLE 分片传输：实时音频片段、偏移量、校验值。", "本地数据库：标记时间戳、备注、照片附件。", "同步队列：结束录音后的待补传片段。", "文件详情：文字记录锚点映射。"],
-    acceptance: ["计时、连接、电量、存储、标记和结束按钮清晰可见。", "点击暂停后按钮变为继续。", "录音中必须表达持续同步正在进行。", "点击结束后必须进入首页同步补传状态，而不是直接静默生成文件。", "补传完成后首页文件列表必须新增本次录音。", "录音中的备注标记和拍照标记必须能在文件详情文字记录中按时间戳定位展示。", "蓝牙断连时界面必须置灰波形、持续模拟计时并给出安全录音提示。"]
+    acceptance: ["计时、连接、电量、存储、标记和结束按钮清晰可见。", "点击暂停后按钮变为继续。", "录音中必须表达持续同步正在进行。", "底部输入、拍照、标记三个按钮常驻可见。", "点击输入、标记后，标记时间轴分别追加备注标记和重点标记。", "点击拍照后必须表达唤起相机，并在标记时间轴追加照片标记。", "点击结束后必须进入首页同步补传状态，而不是直接静默生成文件。", "补传完成后首页文件列表必须新增本次录音。", "录音中的备注标记和拍照标记必须能在文件详情文字记录中按时间戳定位展示。", "蓝牙断连时界面必须置灰波形、持续模拟计时并给出安全录音提示。"]
   },
   {
     id: "APP-FILE-01",
@@ -447,10 +478,10 @@ const pages = [
     goal: "从文件详情选择目标文件夹并移动当前文件。",
     entry: "更多操作点击移至文件夹。",
     fields: [["folder_id", "目标文件夹", "本地数据库"], ["folder_count", "文件夹文件数", "本地数据库"], ["move_enabled", "是否可移动", "用户选择"]],
-    rules: ["移动到以底部弹层展示。", "默认选择全部文件。", "未选择可移动目标时移动按钮置灰。", "可新增我的文件夹。"],
-    states: ["默认", "已选择文件夹", "可移动", "移动中"],
+    rules: ["移动到以底部弹层展示。", "默认展示全部文件但不作为可移动目标。", "未选择具体文件夹时移动按钮置灰。", "点击我的文件夹右侧加号，弹出文件夹名称输入框。", "输入文件夹名称并保存后，新文件夹加入我的文件夹列表。", "点击对应文件夹后，底部按钮可点击并显示为移动到目标文件夹名称。", "点击移动按钮后返回文件详情页，并展示 toast：文件夹已移动至目标文件夹。"],
+    states: ["默认", "新增文件夹", "已选择文件夹", "可移动", "移动完成", "toast 展示"],
     deps: ["本地文件夹。", "本地数据库文件归属。"],
-    acceptance: ["弹层样式参考移动到截图。", "包含全部文件、我的文件夹、Andy、工作和移动到按钮。"]
+    acceptance: ["弹层样式参考移动到截图。", "包含全部文件、我的文件夹、Andy、工作和移动到按钮。", "点击加号显示文件夹名称输入框，保存后新增文件夹。", "点击具体文件夹后，移动按钮变为可点击并显示为移动到该文件夹。", "点击移动按钮后返回文件详情页，并 toast 提示文件夹已移动至目标文件夹。"]
   },
   {
     id: "APP-FILE-17",
@@ -512,10 +543,10 @@ const pages = [
     goal: "选择分享链接中允许查看的文件内容。",
     entry: "分享链接页点击选择包含内容。",
     fields: [["recording_allowed", "录音", "用户选择"], ["transcript_allowed", "转写", "用户选择"], ["marks_allowed", "标记", "用户选择"], ["summary_allowed", "总结", "用户选择"]],
-    rules: ["默认录音、转写、标记、总结均勾选。", "应用后回到已生成分享链接页并更新包含内容。"],
-    states: ["全部内容", "部分内容", "应用"],
+    rules: ["进入查看权限时默认未选择内容，用户至少勾选一项后才可点击更新。", "点击权限项可勾选或取消勾选录音、转写、标记、总结。", "点击更新后保存查看权限设置并返回已生成分享链接页。", "未做任何选择时，更新按钮置灰不可点击。"],
+    states: ["未选择", "部分内容", "全部内容", "已更新"],
     deps: ["云端分享权限。"],
-    acceptance: ["查看权限弹窗包含录音、转写、标记、总结四项和更新按钮。"]
+    acceptance: ["查看权限弹窗包含录音、转写、标记、总结四项和更新按钮。", "未勾选任何权限时更新按钮不可点击。", "勾选至少一项权限后更新按钮可点击，点击后返回已生成分享链接页。"]
   },
   {
     id: "APP-FILE-20",
@@ -656,13 +687,13 @@ const pages = [
     group: "设置",
     title: "命名声音样本",
     priority: "P1",
-    goal: "为本人声音样本设置名称。",
+    goal: "为本人声音样本设置显示名称。",
     entry: "我的声音样本点击创建。",
-    fields: [["speaker_name", "样本名称", "本地设置/用户确认"]],
-    rules: ["确认名称后进入麦克风权限模拟，不使用正文输入框承载该页。"],
-    states: ["确认名称", "继续"],
+    fields: [["speaker_name", "怎么称呼您？", "本地设置/用户输入"]],
+    rules: ["标题文案为给你的声音命名。", "字段标签显示为怎么称呼您？，标签不是输入框。", "输入框默认值为我（用户名称），用户可编辑。", "点击继续后保存输入名称并进入麦克风权限模拟。"],
+    states: ["编辑名称", "继续"],
     deps: ["本地设置。"],
-    acceptance: ["可返回声音样本页，继续按钮进入权限模拟。"],
+    acceptance: ["页面标题文案为给你的声音命名。", "页面包含怎么称呼您？字段标签和独立输入框，默认值为我（用户名称）且可编辑。", "字段标签不得使用输入框样式。", "可返回声音样本页，继续按钮保存名称并进入权限模拟。"],
     prototypeLinks: [["麦克风权限", "APP-ME-31"]]
   },
   {
@@ -687,10 +718,10 @@ const pages = [
     goal: "录制一段用于识别本人的声音样本。",
     entry: "允许麦克风权限后。",
     fields: [["voice_sample_audio", "声音样本", "麦克风"], ["recording_state", "录制状态", "本地状态"]],
-    rules: ["开始录制后显示录制中状态。", "完成录制进入完成页。"],
+    rules: ["开始录制后显示录制中状态。", "朗读文本应接近约 15 秒自然语速，不使用过短单句。", "完成录制进入完成页。"],
     states: ["待录制", "录制中", "已录制"],
     deps: ["麦克风录音、本地声音样本。"],
-    acceptance: ["开始、完成和返回入口均可用。"],
+    acceptance: ["开始、完成和返回入口均可用。", "待录制状态展示一段约 15 秒的朗读文本。"],
     prototypeLinks: [["完成", "APP-ME-33"]]
   },
   {
@@ -833,10 +864,10 @@ const pages = [
     goal: "展示当前账号已登录的设备和异常登录提醒。",
     entry: "账号页点击已登录设备。",
     fields: [["device_name", "设备名称", "账号系统"], ["device_type", "登录类型", "账号系统"], ["last_active_at", "上次活跃时间", "账号系统"], ["logout_device", "退出登录", "账号系统"]],
-    rules: ["当前设备以标签标识。", "单设备右侧提供退出登录按钮。", "底部固定展示安全提醒。"],
-    states: ["当前设备", "可退出登录"],
+    rules: ["当前设备以标签标识。", "每个已登录设备右侧提供退出登录按钮。", "点击退出登录后展示底部确认弹窗，弹窗文案为是否要退出对应设备的登录。", "点击确认后移除对应已登录设备会话，并从列表中删除该设备。", "点击取消或遮罩关闭弹窗，不移除设备。", "底部固定展示安全提醒。"],
+    states: ["当前设备", "可退出登录", "退出确认", "已移除设备", "无已登录设备"],
     deps: ["账号系统：登录会话。"],
-    acceptance: ["已登录设备页样式参考截图。"]
+    acceptance: ["已登录设备页样式参考截图。", "点击设备右侧退出登录展示确认弹窗。", "弹窗包含确认和取消两个操作。", "点击确认后移除对应设备并返回已登录设备页。"]
   },
   {
     id: "APP-ME-20",
@@ -871,11 +902,11 @@ const pages = [
     priority: "P1",
     goal: "在删除账号前说明风险并要求用户阅读确认。",
     entry: "账号页点击删除账号。",
-    fields: [["delete_account_terms", "删除说明", "本地文案"], ["read_confirmed", "阅读确认", "用户操作"], ["next_step", "下一步", "账号系统"]],
-    rules: ["未勾选阅读确认时下一步禁用。", "强调数据、会员资格、账号权限与工作空间影响。", "返回按钮回到账号页。"],
-    states: ["未勾选", "已勾选", "下一步"],
-    deps: ["账号系统。"],
-    acceptance: ["删除账号页样式参考截图，底部确认区固定。"]
+    fields: [["delete_account_terms", "删除说明", "本地文案"], ["read_confirmed", "阅读确认", "用户操作"], ["delete_confirm_method", "密码或验证码", "账号系统"], ["delete_confirm_action", "确认删除", "用户操作/账号系统"]],
+    rules: ["未勾选阅读确认时下一步禁用。", "用户可点击我已阅读并理解上述条款切换选中状态。", "勾选后下一步可点击，并进入密码或验证码确认删除步骤。", "确认页提供密码确认和邮箱验证码确认两种方式，用户可点击切换。", "密码方式需输入当前账号密码后才能点击确认删除。", "验证码方式需先点击发送验证码，系统向当前账号邮箱发送验证码；用户输入验证码后才能点击确认删除。", "点击确认删除后调用账号删除接口，成功后清除本地会话并返回登录/注册页。", "强调数据、会员资格、账号权限与工作空间影响。", "返回按钮回到账号页或上一步。"],
+    states: ["未勾选", "已勾选", "确认删除", "密码确认", "验证码未发送", "验证码已发送", "删除中", "删除完成"],
+    deps: ["账号系统：密码校验、邮箱验证码、删除账号接口。"],
+    acceptance: ["删除账号页样式参考截图，底部确认区固定。", "阅读确认可选中和取消选中。", "未选中阅读确认时下一步不可点击，选中后下一步可点击。", "下一步后进入密码或验证码确认删除步骤。", "密码和验证码可以切换。", "验证码方式点击发送后提示验证码已发送至当前账号邮箱。", "确认删除成功后回到登录/注册页。"]
   },
   {
     id: "APP-ME-05",
@@ -1044,11 +1075,25 @@ const pages = [
     goal: "管理已绑定设备、连接状态、移除设备、恢复出厂和固件更新。",
     entry: "文件首页设备卡、我的设备管理。",
     fields: [["device_name", "设备名", "本地数据库/云端设备"], ["firmware_version", "固件版本", "BLE/云端设备"], ["firmware_update_state", "固件更新状态", "云端固件服务"], ["battery_level", "电量", "BLE 状态包"], ["storage_usage", "存储占用", "BLE 状态包"], ["sync_state", "同步状态", "本地数据库"]],
-    rules: ["设备详情显示连接、电量、存储、同步状态。", "OTA 行后置操作按钮：无新版本显示检查更新，检测到新固件或 App 主动推送时显示更新；该规则仅在说明文档展示，不在用户界面展示解释文案。", "点击更新或 App 启动主动推送更新时，进入固件更新提示弹窗。", "低电量、正在录音或设备未连接时禁止开始固件更新。", "恢复出厂触发方式待确认。"],
+    rules: ["设备详情显示当前选中设备的连接、电量、存储、同步状态。", "当首页已绑定多个设备时，设备详情顶部必须支持切换查看对应设备。", "断开连接设备展示离线状态，但仍允许解除账号绑定，便于设备不在身边时转交给其他人重新绑定。", "离线设备不可执行 OTA 或实时断开连接；还原所有设置、解除并清除数据允许用户选择，但设备端处理需记录为云端待执行策略。", "离线设备解除并清除数据时，账号侧立即解除绑定；设备端本地数据在设备下次绑定或联网握手时，根据云端记录的清除策略执行。", "OTA 行后置操作按钮：无新版本显示检查更新，检测到新固件或 App 主动推送时显示更新；该规则仅在说明文档展示，不在用户界面展示解释文案。", "点击更新或 App 启动主动推送更新时，进入固件更新提示弹窗。", "低电量、正在录音或设备未连接时禁止开始固件更新。", "恢复出厂触发方式待确认。"],
     states: ["已连接", "未连接", "同步中", "低电量", "有新固件", "已是最新版本", "移除设备确认", "恢复出厂确认"],
     deps: ["BLE 状态包、云端设备、固件版本能力，协议待定义。", "云端固件版本服务。"],
-    acceptance: ["重新连接、移除设备、恢复出厂入口可见。", "OTA 不再显示 P1 占位，必须有检查更新或更新按钮。", "点击更新进入固件更新提示。", "危险操作有二次确认。"],
-    prototypeLinks: [["更新", "APP-DEV-06"]]
+    acceptance: ["重新连接、移除设备、恢复出厂入口可见。", "设备详情可在多个已绑定设备之间切换，并显示对应设备数据。", "断开连接设备仍可点击移除设备进入解绑确认页。", "离线设备可选择还原所有设置或解除并清除数据，但页面必须说明设备端处理会在下次绑定或联网时按云端策略执行。", "OTA 不再显示 P1 占位，必须有检查更新或更新按钮。", "点击更新进入固件更新提示。", "点击移除设备进入解绑二次确认弹层。", "危险操作有二次确认。"],
+    prototypeLinks: [["更新", "APP-DEV-06"], ["移除设备", "APP-DEV-10"]]
+  },
+  {
+    id: "APP-DEV-10",
+    group: "设置",
+    title: "断开连接或解绑设备",
+    priority: "P0",
+    goal: "在用户从设备详情点击移除设备后，明确选择断开连接、还原设置或解除并清除数据。",
+    entry: "设备详情页点击“移除设备”。",
+    fields: [["unbind_mode", "解绑处理方式", "用户选择"], ["device_data_policy", "设备端数据处理策略", "BLE/云端设备"]],
+    rules: ["设备在线时提供断开连接、还原所有设置、解除并清除数据三种选择。", "设备离线时仍提供还原所有设置、解除并清除数据；App 先写入云端待执行策略，设备端在下次绑定、联网或 BLE 握手时按策略执行。", "解除并清除数据会立即从当前账号和空间移除绑定关系；之后可重新绑定至其他账号和空间。", "未连接设备解除并清除数据时，页面必须说明本地数据不会被远程即时清除；新账号绑定设备时需要读取云端策略，若存在清除标记，则先清除设备本地数据再完成绑定。", "每个选择必须有说明文字，明确是否保留绑定关系、是否清除录音数据、是否重置设备设置，避免误操作。", "顶部返回设备详情，不改变绑定关系。", "断开连接和还原所有设置后仍停留当前设备关系；解除绑定或解除并清除数据后进入未绑定/重新搜索设备状态。", "具体 BLE 断连、还原设置、解绑清除命令和云端待执行策略需由固件协议与设备云服务定义。"],
+    states: ["断开连接", "还原所有设置", "解除并清除数据"],
+    deps: ["BLE 解绑/清除/重置命令、云端设备解绑接口待定义。"],
+    acceptance: ["点击设备详情的移除设备后展示断开连接或解绑设备页面。", "在线设备页面内三项操作均可点击，且每项都有说明文字。", "离线设备仅断开连接不可用；还原所有设置、解除并清除数据均可选择，并说明设备端处理会在下次绑定或联网时根据云端策略执行。", "断开连接和还原所有设置返回设备详情，解除绑定或解除并清除数据进入设备扫描页。"],
+    prototypeLinks: [["断开连接", "APP-DEV-03"], ["还原所有设置", "APP-DEV-03"], ["解除并清除数据", "APP-DEV-01"]]
   },
   {
     id: "APP-ME-04",
@@ -1117,12 +1162,19 @@ let askPlaudPrompt = "";
 let askPlaudSkill = "获取洞察";
 let askPlaudTipVisible = true;
 let homeSyncStage = "recording";
+let homeDeviceMenuOpen = false;
+let activeHomeDeviceId = "a1";
+const boundHomeDevices = [
+  { id: "a1", name: "AI Recorder A1", status: "已连接", detail: "电量 82% · 存储 12.4G", connected: true, sn: "SN-8F2A-2026", firmware: "v0.9.3", battery: "82%", storage: "68%", storageText: "12.4G", sync: "空闲", lastSync: "今天 14:22" },
+  { id: "a1-pro", name: "AI Recorder A1 Pro", status: "已连接", detail: "电量 67% · 存储 8.1G", connected: true, sn: "SN-PRO-6C21", firmware: "v1.0.1", battery: "67%", storage: "44%", storageText: "8.1G", sync: "待机", lastSync: "今天 13:08" },
+  { id: "card-mini", name: "AI Recorder Mini", status: "已断开", detail: "上次连接 昨天 18:20", connected: false, sn: "SN-MINI-22D0", firmware: "v0.8.7", battery: "--", storage: "--", storageText: "--", sync: "离线", lastSync: "昨天 18:20" }
+];
 const settingsState = {
   transcriptionLanguage: "自动检测",
   improveReadability: true,
   speakerDiarization: true,
   improveAi: false,
-  speakerName: "我的声音",
+  speakerName: "我（用户名称）",
   microphoneAllowed: false,
   voiceSampleCreated: false,
   voiceRecording: false,
@@ -1163,6 +1215,9 @@ function pageById(id) {
 function go(id) {
   previousPageId = currentPageId;
   currentPageId = id === "APP-HOME-02" ? "APP-HOME-01" : id;
+  if (currentPageId !== "APP-HOME-01") {
+    homeDeviceMenuOpen = false;
+  }
   if (currentPageId !== "APP-ME-36") {
     termSheetMode = "";
     termEditorIndex = null;
@@ -1495,20 +1550,39 @@ function renderHome() {
   const savedRecordingCard = homeSyncStage === "saved"
     ? fileCard({ featured: true, name: "Strategy sync review", meta: "刚刚 · 00:43:52 · 录音结束后已同步保存", source: "硬件录音", state: "未转写", tone: "amber", action: "生成", go: "APP-AI-01" })
     : "";
-  const deviceState = homeSyncStage === "recording" ? "录音中" : homeSyncStage === "finishing" ? "补传中" : "待机";
-  const syncTime = homeSyncStage === "recording" ? "正在录音" : homeSyncStage === "saved" ? "刚刚同步" : "正在同步";
+  const activeDevice = boundHomeDevices.find((device) => device.id === activeHomeDeviceId) || boundHomeDevices[0];
   return screen(`
-    <section class="device-strip connected" data-go="APP-DEV-03">
-      <div>
-        <strong>AI Recorder A1</strong>
-        <span>已连接 · 电量 82% · 存储 12.4G</span>
-      </div>
-      <b>${h(deviceState)}</b>
-      <small>${h(syncTime)} · 自动同步开启</small>
-    </section>
-    <section class="device-strip add-device" data-go="APP-DEV-01">
-      <strong>添加设备</strong>
-      <span>未连接时仅显示此入口</span>
+    <section class="home-device-switcher ${homeDeviceMenuOpen ? "open" : ""}" aria-label="设备状态">
+      <button class="home-device-button" data-go="APP-DEV-03" aria-label="进入 AI Recorder A1 设备详情">
+        <span class="home-device-online ${activeDevice.connected ? "connected" : "disconnected"}"></span>
+        <span class="home-device-glyph"><i></i></span>
+      </button>
+      <button class="home-device-toggle" data-action="toggle-home-device-menu" aria-label="展开设备菜单" aria-expanded="${homeDeviceMenuOpen ? "true" : "false"}">
+        <span class="home-device-current">
+          <b>${h(activeDevice.name)}</b>
+          <small>${h(activeDevice.status)} · ${h(activeDevice.detail)}</small>
+        </span>
+        <span></span>
+      </button>
+      ${homeDeviceMenuOpen ? `
+        <div class="home-device-menu">
+          <button data-go="APP-DEV-01">
+            <b>添加设备</b>
+            <small>搜索并绑定新的 AI Recorder</small>
+          </button>
+          <div class="home-device-menu-title">已绑定设备</div>
+          ${boundHomeDevices.map((device) => `
+            <button class="home-bound-device ${device.connected ? "connected" : "disconnected"} ${device.id === activeDevice.id ? "active" : ""}" data-action="select-home-device" data-device-id="${h(device.id)}">
+              <span class="home-device-status-dot"></span>
+              <span>
+                <b>${h(device.name)}</b>
+                <small>${h(device.status)} · ${h(device.detail)}</small>
+              </span>
+              <i>${device.id === activeDevice.id ? "当前" : "切换"}</i>
+            </button>
+          `).join("")}
+        </div>
+      ` : ""}
     </section>
     ${renderHomeSyncModule()}
     <section class="card file-list-panel" id="homeFileList">
@@ -1719,6 +1793,32 @@ function renderScene() {
   `, { title: "选择录音场景", back: "APP-REC-02", bottom: false });
 }
 
+function nextRecordingMarkTime() {
+  const offset = Math.max(0, recordingMarks.length - recordingBaseMarks.length);
+  return `00:${String(38 + offset).padStart(2, "0")}:${String(12 + offset * 7).padStart(2, "0")}`;
+}
+
+function addRecordingMark(type) {
+  const index = recordingMarks.length + 1;
+  const markMeta = {
+    input: { text: `备注标记 #${index} · App 输入` },
+    photo: { text: `照片标记 #${index} · 手机拍照` },
+    mark: { text: `重点标记 #${index} · App 标记` }
+  };
+  const meta = markMeta[type] || markMeta.mark;
+  recordingMarks = [...recordingMarks, { time: nextRecordingMarkTime(), type, text: meta.text }];
+  recordingCameraPrompt = type === "photo";
+}
+
+function renderRecordingMarks() {
+  return recordingMarks.map((mark) => `
+    <div class="timeline-item ${mark.type === "photo" ? "photo-marker" : ""} ${mark.type === "input" ? "input-marker" : ""}">
+      <strong>${h(mark.time)}${mark.type === "photo" ? ' <i class="timeline-photo-icon" aria-label="照片标记"></i>' : ""}</strong><br>
+      <span>${h(mark.text)}</span>
+    </div>
+  `).join("");
+}
+
 function renderRecording() {
   return `
     <section class="recording-stage">
@@ -1739,15 +1839,15 @@ function renderRecording() {
         <div class="recording-wave">${waveHeights.map((height) => `<i style="height:${Math.max(20, height + 18)}px"></i>`).join("")}</div>
         <section class="recording-mark-card">
           <h3>标记时间轴</h3>
+          ${recordingCameraPrompt ? `<p class="recording-camera-toast">已唤起手机相机并添加照片标记</p>` : ""}
           <div class="timeline">
-            <div class="timeline-item"><strong>00:12:08</strong><br><span>重点标记 #1 · 硬件短按</span></div>
-            <div class="timeline-item photo-marker"><strong>00:27:46 <i class="timeline-photo-icon" aria-label="照片标记"></i></strong><br><span>重点标记 #2 · App 添加</span></div>
+            ${renderRecordingMarks()}
           </div>
         </section>
         <div class="recording-actions">
-          <button><span class="record-action-icon input"></span><b>输入</b></button>
-          <button><span class="record-action-icon photo"></span><b>拍照</b></button>
-          <button><span class="record-action-icon mark"></span><b>标记</b></button>
+          <button data-action="add-recording-mark" data-mark-type="input"><span class="record-action-icon input"></span><b>输入</b></button>
+          <button data-action="add-recording-mark" data-mark-type="photo"><span class="record-action-icon photo"></span><b>拍照</b></button>
+          <button data-action="add-recording-mark" data-mark-type="mark"><span class="record-action-icon mark"></span><b>标记</b></button>
         </div>
       </main>
     </section>
@@ -1988,6 +2088,7 @@ function renderFileDetail() {
     </main>
     <div class="note-question-bar" data-action="open-ask-plaud"><span>Beta</span><input placeholder="对此笔记提问" aria-label="对此笔记提问" readonly></div>
     ${renderAskPlaudSheet()}
+    ${moveFolderToast ? `<div class="toast-message">文件夹已移动至${h(moveFolderToast)}</div>` : ""}
   `;
 }
 
@@ -2155,6 +2256,7 @@ function renderMoreMenu() {
 }
 
 function renderMoveFolderSheet() {
+  const selectedFolder = moveFolderFolders.find((folder) => folder.id === selectedMoveFolderId);
   return `
     ${renderFileDetail()}
     <div class="scrim light" data-go="APP-FILE-07"></div>
@@ -2164,11 +2266,22 @@ function renderMoveFolderSheet() {
         <button class="sheet-close" data-go="APP-FILE-07" aria-label="关闭">×</button>
       </div>
       <div class="sheet-line"></div>
-      <button class="folder-row selected"><span class="file-icon folder"></span><b>全部文件 (35)</b><i>✓</i></button>
-      <div class="folder-section-title"><h3>我的文件夹</h3><button>＋</button></div>
-      <button class="folder-row"><span class="file-icon folder"></span><b>Andy (0)</b></button>
-      <button class="folder-row blue"><span class="file-icon folder"></span><b>工作 (0)</b></button>
-      <button class="primary-btn disabled move-disabled">移动到</button>
+      <button class="folder-row root" aria-disabled="true"><span class="file-icon folder"></span><b>全部文件 (35)</b></button>
+      <div class="folder-section-title"><h3>我的文件夹</h3><button data-action="open-create-folder" aria-label="添加新的文件夹">＋</button></div>
+      ${moveFolderCreateOpen ? `
+        <form class="folder-create-form" data-action="save-new-folder">
+          <input id="newFolderName" maxlength="20" placeholder="输入文件夹名称" aria-label="文件夹名称" autofocus>
+          <button type="submit">保存</button>
+        </form>
+      ` : ""}
+      ${moveFolderFolders.map((folder) => `
+        <button class="folder-row ${folder.tone} ${folder.id === selectedMoveFolderId ? "selected" : ""}" data-action="select-move-folder" data-folder-id="${h(folder.id)}">
+          <span class="file-icon folder"></span>
+          <b>${h(folder.name)} (${folder.count})</b>
+          <i>${folder.id === selectedMoveFolderId ? "✓" : ""}</i>
+        </button>
+      `).join("")}
+      <button class="primary-btn ${selectedFolder ? "" : "disabled move-disabled"}" ${selectedFolder ? 'data-action="confirm-move-folder"' : "disabled"}>${selectedFolder ? `移动到${h(selectedFolder.name)}文件夹` : "移动到"}</button>
     </section>
   `;
 }
@@ -2311,6 +2424,13 @@ function renderShareLinkGenerated() {
 }
 
 function renderSharePermissionSheet() {
+  const permissionItems = [
+    ["recording", "录音", "audio"],
+    ["transcript", "转写", "doc"],
+    ["marks", "标记", "doc"],
+    ["summary", "总结", "doc"]
+  ];
+  const hasSelection = Object.values(sharePermissionState).some(Boolean);
   return `
     ${renderShareLinkGenerated()}
     <div class="scrim light" data-go="APP-FILE-20"></div>
@@ -2320,12 +2440,15 @@ function renderSharePermissionSheet() {
         <button class="sheet-close" data-go="APP-FILE-20" aria-label="关闭">×</button>
       </div>
       <div class="permission-list">
-        <label><span class="share-icon audio"></span>录音<b>✓</b></label>
-        <label><span class="share-icon doc"></span>转写<b>✓</b></label>
-        <label><span class="share-icon doc"></span>标记<b>✓</b></label>
-        <label><span class="share-icon doc"></span>总结<b>✓</b></label>
+        ${permissionItems.map(([key, label, icon]) => `
+          <button class="${sharePermissionState[key] ? "selected" : ""}" data-action="toggle-share-permission" data-permission="${key}" aria-pressed="${sharePermissionState[key] ? "true" : "false"}">
+            <span class="share-icon ${icon}"></span>
+            <span>${label}</span>
+            <b>${sharePermissionState[key] ? "✓" : ""}</b>
+          </button>
+        `).join("")}
       </div>
-      <button class="primary-btn disabled">更新</button>
+      <button class="primary-btn ${hasSelection ? "" : "disabled"}" ${hasSelection ? 'data-action="save-share-permission"' : "disabled"}>更新</button>
     </section>
   `;
 }
@@ -2700,19 +2823,16 @@ function renderVoiceSamples() {
 }
 
 function renderSpeakerName() {
-  const nameOptions = ["我的声音", "我", "本人声音"];
   return `
     <main class="me-simple-page speaker-page voice-sample-page">
       ${meTop("命名声音样本", { back: "APP-ME-29" })}
       <section class="settings-hero">
-        <h1>这个声音是谁?</h1>
+        <h1>给你的声音命名</h1>
         <p>名称会显示在自动标注的转写结果中。</p>
       </section>
       <section class="prefs-section">
-        ${prefsRow("样本名称", { value: settingsState.speakerName, arrow: false })}
-        <div class="settings-choice-grid" aria-label="声音样本名称候选">
-          ${nameOptions.map((name) => `<button class="${settingsState.speakerName === name ? "selected" : ""}" data-action="choose-speaker-name" data-value="${h(name)}">${h(name)}</button>`).join("")}
-        </div>
+        <label class="speaker-name-label" for="speakerNameInput">怎么称呼您？</label>
+        <input id="speakerNameInput" type="text" value="${h(settingsState.speakerName || "我（用户名称）")}" maxlength="20" aria-label="怎么称呼您？">
         <button class="primary-btn" data-action="continue-speaker-name">继续</button>
       </section>
     </main>
@@ -2734,12 +2854,13 @@ function renderMicrophonePermission() {
 }
 
 function renderVoiceSampleRecording() {
+  const readText = "今天我会用自然清晰的声音朗读这段内容。请系统记住我的声音特征，用于之后在多人录音中识别我本人。无论是在会议、课堂还是访谈场景里，我都希望转写结果可以准确标注我的发言。";
   return `
     <main class="me-simple-page voice-sample-page speaker-page">
       ${meTop("录制声音样本", { back: "APP-ME-29" })}
       <section class="settings-hero">
         <h1>${settingsState.voiceRecording ? "正在录制…" : "请朗读下面这段文字"}</h1>
-        <p>“今天我会清晰地介绍项目进展，并记录接下来的行动计划。”</p>
+        <p>“${readText}”</p>
       </section>
       <section class="prefs-section">
         <div class="voice-sample-wave" aria-label="声音样本波形">${waveHeights.slice(0, 12).map((height) => `<i style="height:${height}%"></i>`).join("")}</div>
@@ -2996,21 +3117,34 @@ function renderLoginMethods() {
 }
 
 function renderLoggedInDevices() {
+  const pendingDevice = loggedInDevices.find((device) => device.id === pendingLogoutDeviceId);
   return `
     <main class="me-simple-page logged-devices-page">
       ${meTop("已登录设备", { back: "APP-ME-17" })}
       <section>
-        <div class="logged-device-card">
-          <div>
-            <h2>AI录音卡 Web1 <span>当前设备</span></h2>
-            <p>通过 web 登录<br>上次活跃时间：2026-07-09 00:59:14</p>
+        ${loggedInDevices.length ? loggedInDevices.map((device) => `
+          <div class="logged-device-card">
+            <div>
+              <h2>${h(device.name)}${device.current ? " <span>当前设备</span>" : ""}</h2>
+              <p>${h(device.type)}<br>上次活跃时间：${h(device.lastActive)}</p>
+            </div>
+            <button data-action="open-logged-device-logout" data-device-id="${h(device.id)}">退出登录</button>
           </div>
-          <button>退出登录</button>
-        </div>
-        <div class="me-line"></div>
+          <div class="me-line"></div>
+        `).join("") : `<div class="logged-device-empty">暂无已登录设备</div>`}
       </section>
       <p class="logged-device-warning"><b>注意：</b> 如发现异常登录，请立即登出并重置密码以保护账号安全。</p>
     </main>
+    ${pendingDevice ? `
+      <div class="scrim" data-action="cancel-logged-device-logout"></div>
+      <section class="logged-device-logout-sheet">
+        <h2>退出登录</h2>
+        <div class="sheet-line"></div>
+        <p>你是否要退出 “${h(pendingDevice.name)}” 的登录?</p>
+        <button class="dark" data-action="confirm-logged-device-logout">确认</button>
+        <button class="outline" data-action="cancel-logged-device-logout">取消</button>
+      </section>
+    ` : ""}
   `;
 }
 
@@ -3047,6 +3181,40 @@ function renderLogoutConfirm() {
 }
 
 function renderDeleteAccount() {
+  if (deleteAccountStep === "confirm") {
+    const canDelete = deleteAccountConfirmMode === "password"
+      ? deleteAccountPassword.trim().length > 0
+      : deleteAccountCodeSent && deleteAccountCode.trim().length > 0;
+    return `
+      <main class="me-simple-page delete-account-page delete-account-confirm-page">
+        ${meTop("删除账号", { back: "APP-ME-22" })}
+        <section>
+          <h1>最终确认删除</h1>
+          <p>为了保护账号安全，请选择一种方式完成身份确认。确认后，账号和相关数据将进入删除流程，无法恢复。</p>
+          <div class="delete-confirm-tabs" role="tablist" aria-label="删除账号确认方式">
+            <button type="button" role="tab" aria-selected="${deleteAccountConfirmMode === "password" ? "true" : "false"}" class="${deleteAccountConfirmMode === "password" ? "selected" : ""}" data-action="switch-delete-confirm-mode" data-delete-mode="password">密码</button>
+            <button type="button" role="tab" aria-selected="${deleteAccountConfirmMode === "code" ? "true" : "false"}" class="${deleteAccountConfirmMode === "code" ? "selected" : ""}" data-action="switch-delete-confirm-mode" data-delete-mode="code">验证码</button>
+          </div>
+          ${deleteAccountConfirmMode === "password" ? `
+            <label class="delete-confirm-label" for="deletePassword">输入账号密码</label>
+            <input id="deletePassword" type="password" value="${h(deleteAccountPassword)}" placeholder="请输入当前账号密码" autocomplete="current-password">
+          ` : `
+            <label class="delete-confirm-label" for="deleteCode">邮箱验证码</label>
+            <div class="delete-code-row">
+              <input id="deleteCode" inputmode="numeric" maxlength="6" value="${h(deleteAccountCode)}" placeholder="请输入 6 位验证码">
+              <button type="button" class="${deleteAccountCodeSent ? "sent" : ""}" data-action="send-delete-account-code">${deleteAccountCodeSent ? "已发送" : "发送验证码"}</button>
+            </div>
+            <p class="delete-confirm-hint">${deleteAccountCodeSent ? "验证码已发送至当前账号邮箱 mhy_1126@qq.com，请输入后确认删除。" : "点击发送验证码后，系统会向当前账号邮箱 mhy_1126@qq.com 发送验证码。"}</p>
+          `}
+          ${deleteAccountConfirmNotice ? `<p class="delete-confirm-notice">${h(deleteAccountConfirmNotice)}</p>` : ""}
+        </section>
+        <div class="delete-account-footer final">
+          <button class="danger-fill" data-action="confirm-delete-account" ${canDelete ? "" : "disabled"}>确认删除</button>
+          <button class="outline-btn" data-action="back-delete-account-warning">返回上一步</button>
+        </div>
+      </main>
+    `;
+  }
   return `
     <main class="me-simple-page delete-account-page">
       ${meTop("删除账号", { back: "APP-ME-17" })}
@@ -3067,8 +3235,11 @@ function renderDeleteAccount() {
         </ol>
       </section>
       <div class="delete-account-footer">
-        <label><i></i><span>我已阅读并理解上述条款。</span></label>
-        <button class="disabled-btn">下一步</button>
+        <button class="delete-read-check ${deleteAccountReadConfirmed ? "checked" : ""}" data-action="toggle-delete-account-read" aria-pressed="${deleteAccountReadConfirmed ? "true" : "false"}">
+          <i>${deleteAccountReadConfirmed ? "✓" : ""}</i>
+          <span>我已阅读并理解上述条款。</span>
+        </button>
+        <button class="${deleteAccountReadConfirmed ? "primary-btn" : "disabled-btn"}" ${deleteAccountReadConfirmed ? 'data-action="next-delete-account"' : "disabled"}>下一步</button>
       </div>
     </main>
   `;
@@ -3263,19 +3434,79 @@ function renderUsageRecords() {
 }
 
 function renderDeviceDetail() {
+  const activeDevice = boundHomeDevices.find((device) => device.id === activeHomeDeviceId) || boundHomeDevices[0];
   return screen(`
-    ${card("AI Recorder A1", `${row("状态", "已连接")}${row("SN", "SN-8F2A-2026")}${row("固件版本", "v0.9.3")}${row("最近同步", "今天 14:22")}`, "soft")}
-    ${metrics([["电量", "82%"], ["存储", "68%"], ["同步", "空闲"]])}
+    <section class="device-detail-switcher" aria-label="切换已绑定设备">
+      <div class="device-detail-switcher-title">已绑定设备</div>
+      ${boundHomeDevices.map((device) => `
+        <button class="home-bound-device ${device.connected ? "connected" : "disconnected"} ${device.id === activeDevice.id ? "active" : ""}" data-action="select-home-device" data-device-id="${h(device.id)}">
+          <span class="home-device-status-dot"></span>
+          <span>
+            <b>${h(device.name)}</b>
+            <small>${h(device.status)} · ${h(device.detail)}</small>
+          </span>
+          <i>${device.id === activeDevice.id ? "当前" : "切换"}</i>
+        </button>
+      `).join("")}
+    </section>
+    ${card(activeDevice.name, `${row("状态", activeDevice.status)}${row("SN", activeDevice.sn)}${row("固件版本", activeDevice.firmware)}${row("最近同步", activeDevice.lastSync)}`, activeDevice.connected ? "soft" : "warn")}
+    ${metrics([["电量", activeDevice.battery], ["存储", activeDevice.storage], ["同步", activeDevice.sync]])}
     ${card("设备操作", `
-      ${row("自动同步", "开启")}
+      ${row("自动同步", activeDevice.connected ? "开启" : "离线不可用")}
       ${row("恢复出厂", "触发方式待确认")}
-      <div class="row action-row"><span>OTA</span><button class="mini-action-btn" data-go="APP-DEV-06">更新</button></div>
+      <div class="row action-row"><span>OTA</span><button class="mini-action-btn ${activeDevice.connected ? "" : "disabled"}" ${activeDevice.connected ? 'data-go="APP-DEV-06"' : "disabled"}>${activeDevice.connected ? "更新" : "离线"}</button></div>
     `)}
+    ${activeDevice.connected ? "" : `<p class="device-offline-hint">该设备当前未连接。仍可选择还原设置或解除并清除数据；账号侧会立即记录处理策略，设备端在下次绑定或联网时按云端策略执行。</p>`}
     <div class="button-row compact-device-actions">
-      <button class="secondary-btn">重新连接</button>
-      <button class="danger-btn">移除设备</button>
+      <button class="secondary-btn">${activeDevice.connected ? "重新连接" : "连接设备"}</button>
+      <button class="danger-btn" data-go="APP-DEV-10">移除设备</button>
     </div>
   `, { title: "设备详情", action: "帮助", back: "APP-HOME-01", bottom: false });
+}
+
+function renderDeviceRemoveConfirmSheet() {
+  const activeDevice = boundHomeDevices.find((device) => device.id === activeHomeDeviceId) || boundHomeDevices[0];
+  const onlineActions = `
+        <button class="device-remove-action" data-go="APP-DEV-03">
+          <b>断开连接</b>
+          <span>仅断开当前连接，${h(activeDevice.name)} 仍绑定在当前账号下，稍后可重新连接。</span>
+        </button>
+        <button class="device-remove-action" data-go="APP-DEV-03">
+          <b>还原所有设置</b>
+          <span>将 ${h(activeDevice.name)} 的设备参数恢复为出厂默认设置，不清除已保存的录音数据。</span>
+        </button>
+        <button class="device-remove-action danger" data-go="APP-DEV-01">
+          <b>解除并清除数据</b>
+          <span>清除设备所有数据并从当前账号移除，之后可重新绑定至其他账号或空间。</span>
+        </button>
+  `;
+  const offlineActions = `
+        <button class="device-remove-action disabled" disabled aria-disabled="true">
+          <b>断开连接</b>
+          <span>${h(activeDevice.name)} 当前已离线，无需断开连接。</span>
+        </button>
+        <button class="device-remove-action" data-go="APP-DEV-03">
+          <b>还原所有设置</b>
+          <span>当前无法即时写入设备。App 会记录还原策略，设备下次绑定或联网握手时恢复为出厂默认设置，不清除录音数据。</span>
+        </button>
+        <button class="device-remove-action danger" data-go="APP-DEV-01">
+          <b>解除并清除数据</b>
+          <span>立即从当前账号和空间移除绑定，之后可重新绑定至其他账号或空间。设备离线时先记录清除策略，新账号绑定时按云端策略清除设备本地数据后再完成绑定。</span>
+        </button>
+  `;
+  return `
+    <main class="me-simple-page device-remove-page">
+      ${meTop("断开连接或解绑设备", { back: "APP-DEV-03" })}
+      <section class="device-remove-context">
+        <b>${h(activeDevice.name)}</b>
+        <span>${h(activeDevice.status)} · ${h(activeDevice.detail)}</span>
+        ${activeDevice.connected ? "" : "<small>未连接设备的还原和清除不会远程即时生效，需在设备再次绑定或联网时由云端策略触发。</small>"}
+      </section>
+      <section class="device-remove-list" aria-label="设备移除方式">
+        ${activeDevice.connected ? onlineActions : offlineActions}
+      </section>
+    </main>
+  `;
 }
 
 function firmwareArt(extra = "") {
@@ -3466,6 +3697,7 @@ const renderers = {
   "APP-DEV-07": renderFirmwareHotspot,
   "APP-DEV-08": renderFirmwareUpdating,
   "APP-DEV-09": renderFirmwareConnectionFailed,
+  "APP-DEV-10": renderDeviceRemoveConfirmSheet,
   "APP-HOME-01": renderHome,
   "APP-HOME-03": renderHomeTrashToast,
   "APP-FILE-02": renderSearch,
@@ -3549,7 +3781,7 @@ function renderNav() {
 }
 
 function renderFlow() {
-  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-DEV-05", "APP-HOME-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-02", "APP-ME-16", "APP-ME-26", "APP-ME-27", "APP-ME-28", "APP-ME-29", "APP-ME-30", "APP-ME-31", "APP-ME-32", "APP-ME-33", "APP-ME-34", "APP-ME-35", "APP-ME-36", "APP-ME-37", "APP-ME-38", "APP-ME-40", "APP-ME-39", "APP-ME-17", "APP-ME-18", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-23", "APP-ME-10", "APP-ME-11", "APP-ME-12", "APP-DEV-03", "APP-ME-04", "APP-ME-24", "APP-ME-25", "APP-DEV-06", "APP-DEV-07", "APP-DEV-08", "APP-DEV-09"];
+  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-DEV-05", "APP-HOME-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-02", "APP-ME-16", "APP-ME-26", "APP-ME-27", "APP-ME-28", "APP-ME-29", "APP-ME-30", "APP-ME-31", "APP-ME-32", "APP-ME-33", "APP-ME-34", "APP-ME-35", "APP-ME-36", "APP-ME-37", "APP-ME-38", "APP-ME-40", "APP-ME-39", "APP-ME-17", "APP-ME-18", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-23", "APP-ME-10", "APP-ME-11", "APP-ME-12", "APP-DEV-03", "APP-DEV-10", "APP-ME-04", "APP-ME-24", "APP-ME-25", "APP-DEV-06", "APP-DEV-07", "APP-DEV-08", "APP-DEV-09"];
   document.getElementById("flowStrip").innerHTML = flow.map((id, index) => {
     const page = pageById(id);
     return `<button class="${id === currentPageId ? "active" : ""}" data-go="${id}">${index + 1}. ${h(page.title)}</button>`;
@@ -3617,11 +3849,13 @@ function handleSettingsAction(action, target) {
     return true;
   }
   if (action === "choose-speaker-name") {
-    settingsState.speakerName = target.dataset.value || "我的声音";
+    settingsState.speakerName = target.dataset.value || "我（用户名称）";
     render();
     return true;
   }
   if (action === "continue-speaker-name") {
+    const value = document.getElementById("speakerNameInput")?.value.trim();
+    settingsState.speakerName = value || "我（用户名称）";
     go("APP-ME-31");
     return true;
   }
@@ -3845,6 +4079,11 @@ document.addEventListener("click", (event) => {
     go("APP-HOME-01");
     return;
   }
+  if (action && action.dataset.action === "add-recording-mark") {
+    addRecordingMark(action.dataset.markType || "mark");
+    render();
+    return;
+  }
   if (action && action.dataset.action === "home-complete-sync") {
     homeSyncStage = "saved";
     render();
@@ -3853,6 +4092,106 @@ document.addEventListener("click", (event) => {
   if (action && action.dataset.action === "home-reset-sync-demo") {
     homeSyncStage = "recording";
     render();
+    return;
+  }
+  if (action && action.dataset.action === "toggle-home-device-menu") {
+    homeDeviceMenuOpen = !homeDeviceMenuOpen;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "select-home-device") {
+    activeHomeDeviceId = action.dataset.deviceId || activeHomeDeviceId;
+    homeDeviceMenuOpen = false;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "toggle-share-permission") {
+    const key = action.dataset.permission;
+    if (key && Object.prototype.hasOwnProperty.call(sharePermissionState, key)) {
+      sharePermissionState = { ...sharePermissionState, [key]: !sharePermissionState[key] };
+      render();
+    }
+    return;
+  }
+  if (action && action.dataset.action === "save-share-permission") {
+    if (Object.values(sharePermissionState).some(Boolean)) go("APP-FILE-20");
+    return;
+  }
+  if (action && action.dataset.action === "open-create-folder") {
+    moveFolderCreateOpen = true;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "select-move-folder") {
+    selectedMoveFolderId = action.dataset.folderId || "";
+    moveFolderCreateOpen = false;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "confirm-move-folder") {
+    const selectedFolder = moveFolderFolders.find((folder) => folder.id === selectedMoveFolderId);
+    if (selectedFolder) {
+      moveFolderToast = selectedFolder.name;
+      go("APP-FILE-01");
+    }
+    return;
+  }
+  if (action && action.dataset.action === "open-logged-device-logout") {
+    pendingLogoutDeviceId = action.dataset.deviceId || "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "cancel-logged-device-logout") {
+    pendingLogoutDeviceId = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "confirm-logged-device-logout") {
+    if (pendingLogoutDeviceId) {
+      loggedInDevices = loggedInDevices.filter((device) => device.id !== pendingLogoutDeviceId);
+      pendingLogoutDeviceId = "";
+      render();
+    }
+    return;
+  }
+  if (action && action.dataset.action === "toggle-delete-account-read") {
+    deleteAccountReadConfirmed = !deleteAccountReadConfirmed;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "next-delete-account") {
+    if (deleteAccountReadConfirmed) {
+      deleteAccountStep = "confirm";
+      render();
+    }
+    return;
+  }
+  if (action && action.dataset.action === "back-delete-account-warning") {
+    deleteAccountStep = "warning";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "switch-delete-confirm-mode") {
+    deleteAccountConfirmMode = action.dataset.deleteMode || "password";
+    deleteAccountConfirmNotice = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "send-delete-account-code") {
+    deleteAccountConfirmMode = "code";
+    deleteAccountCodeSent = true;
+    deleteAccountConfirmNotice = "验证码已发送至当前账号邮箱 mhy_1126@qq.com。";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "confirm-delete-account") {
+    deleteAccountStep = "warning";
+    deleteAccountReadConfirmed = false;
+    deleteAccountPassword = "";
+    deleteAccountCode = "";
+    deleteAccountCodeSent = false;
+    deleteAccountConfirmNotice = "";
+    go("APP-ONB-01");
     return;
   }
   if (action && handleSettingsAction(action.dataset.action, action)) return;
@@ -3870,7 +4209,40 @@ document.addEventListener("click", (event) => {
   if (link) go(link.dataset.go);
 });
 
+document.addEventListener("input", (event) => {
+  if (event.target.id === "deletePassword") {
+    deleteAccountPassword = event.target.value;
+  }
+  if (event.target.id === "deleteCode") {
+    deleteAccountCode = event.target.value;
+  }
+  if (event.target.id === "deletePassword" || event.target.id === "deleteCode") {
+    const canDelete = deleteAccountConfirmMode === "password"
+      ? deleteAccountPassword.trim().length > 0
+      : deleteAccountCodeSent && deleteAccountCode.trim().length > 0;
+    const button = document.querySelector("[data-action='confirm-delete-account']");
+    if (button) button.disabled = !canDelete;
+  }
+});
+
 document.addEventListener("submit", (event) => {
+  const folderForm = event.target.closest("[data-action='save-new-folder']");
+  if (folderForm) {
+    event.preventDefault();
+    const name = folderForm.querySelector("#newFolderName")?.value.trim();
+    if (!name) return;
+    const folder = {
+      id: `custom-${Date.now()}`,
+      name,
+      count: 0,
+      tone: moveFolderFolders.length % 2 ? "blue" : ""
+    };
+    moveFolderFolders = [...moveFolderFolders, folder];
+    selectedMoveFolderId = folder.id;
+    moveFolderCreateOpen = false;
+    render();
+    return;
+  }
   const form = event.target.closest("[data-action='ask-submit']");
   if (!form) return;
   event.preventDefault();
