@@ -18,6 +18,14 @@ let moveFolderFolders = [
 let selectedMoveFolderId = "";
 let moveFolderCreateOpen = false;
 let moveFolderToast = "";
+let filterFolders = [
+  { id: "andy", name: "Andy", count: 0, tone: "" },
+  { id: "work", name: "工作", count: 3, tone: "blue" }
+];
+let filterFolderSheetMode = "";
+let activeFilterFolderId = "";
+let pendingDeleteFilterFolderId = "";
+let filterFolderError = "";
 let loggedInDevices = [
   { id: "web1", name: "AI录音卡 Web1", current: true, type: "通过 web 登录", lastActive: "2026-07-16 16:46:33" }
 ];
@@ -279,11 +287,11 @@ const pages = [
     priority: "P0",
     goal: "在文件列表中按创建时间、文件夹、来源和设备筛选排序。",
     entry: "文件列表标题栏倒三角按钮。",
-    fields: [["sort_field", "排序字段", "本地筛选"], ["folder_id", "文件夹", "本地数据库"], ["source_type", "来源", "本地数据库"], ["device_type", "设备来源", "本地数据库"]],
-    rules: ["筛选是用户可见操作，作为 App 内弹层展示。", "默认按创建时间排序。", "全部文件、未分类、回收站为固定入口。", "来源区分硬件设备和导入音频。"],
-    states: ["默认", "已选择文件夹", "已选择来源", "清空筛选"],
+    fields: [["sort_field", "排序字段", "本地筛选"], ["folder_id", "文件夹", "本地数据库"], ["folder_name", "文件夹名称", "用户输入"], ["folder_file_count", "文件夹文件数", "本地数据库"], ["source_type", "来源", "本地数据库"], ["device_type", "设备来源", "本地数据库"]],
+    rules: ["筛选是用户可见操作，作为 App 内弹层展示。", "默认按创建时间排序。", "全部文件、未分类、回收站为固定入口。", "来源区分硬件设备和导入音频。", "文件夹标题右侧加号用于新增文件夹，点击后展示文件夹命名输入框，保存后新文件夹加入文件夹列表。", "每个自定义文件夹右侧三个点打开操作菜单，支持重命名和删除文件夹。", "删除空文件夹可直接删除；删除非空文件夹时必须二次确认，并提示将同步删除文件夹内的内容。"],
+    states: ["默认", "新增文件夹", "重命名文件夹", "删除空文件夹", "删除非空文件夹确认", "已选择文件夹", "已选择来源", "清空筛选"],
     deps: ["本地数据库：文件夹、来源、删除状态、设备来源。"],
-    acceptance: ["文件首页点击筛选按钮打开筛选和排序弹层。", "弹层为底部筛选和排序面板，包含创建时间、文件夹和来源筛选。"]
+    acceptance: ["文件首页点击筛选按钮打开筛选和排序弹层。", "弹层为底部筛选和排序面板，包含创建时间、文件夹和来源筛选。", "点击文件夹加号可输入名称并新增文件夹。", "点击文件夹三个点可重命名或删除文件夹。", "非空文件夹删除前必须出现确认弹窗，并明确同步删除文件夹内容。"]
   },
   {
     id: "APP-FILE-13",
@@ -1218,6 +1226,12 @@ function go(id) {
   if (currentPageId !== "APP-HOME-01") {
     homeDeviceMenuOpen = false;
   }
+  if (currentPageId !== "APP-FILE-03") {
+    filterFolderSheetMode = "";
+    activeFilterFolderId = "";
+    pendingDeleteFilterFolderId = "";
+    filterFolderError = "";
+  }
   if (currentPageId !== "APP-ME-36") {
     termSheetMode = "";
     termEditorIndex = null;
@@ -1607,6 +1621,57 @@ function renderHomeTrashToast() {
   `;
 }
 
+function renderFilterFolderEditorSheet() {
+  const isRename = filterFolderSheetMode === "rename";
+  const folder = filterFolders.find((item) => item.id === activeFilterFolderId);
+  const value = isRename ? (folder?.name || "") : "";
+  return `
+    <div class="scrim subtle" data-action="close-filter-folder-sheet"></div>
+    <section class="filter-folder-editor" aria-label="${isRename ? "重命名文件夹" : "添加文件夹"}">
+      <header>
+        <button data-action="close-filter-folder-sheet">取消</button>
+        <strong>${isRename ? "重命名文件夹" : "添加文件夹"}</strong>
+        <button type="submit" form="filterFolderForm">保存</button>
+      </header>
+      <form id="filterFolderForm" data-action="save-filter-folder">
+        <label>
+          <span>文件夹名称</span>
+          <input id="filterFolderName" maxlength="20" placeholder="输入文件夹名称" value="${h(value)}" autocomplete="off" autofocus>
+        </label>
+        ${filterFolderError ? `<p>${h(filterFolderError)}</p>` : `<small>用于整理文件列表中的录音和导入音频。</small>`}
+      </form>
+    </section>
+  `;
+}
+
+function renderFilterFolderActionSheet() {
+  const folder = filterFolders.find((item) => item.id === activeFilterFolderId);
+  if (!folder) return "";
+  return `
+    <div class="scrim subtle" data-action="close-filter-folder-sheet"></div>
+    <section class="filter-folder-actions" aria-label="文件夹操作">
+      <h2>${h(folder.name)}</h2>
+      <button data-action="rename-filter-folder" data-folder-id="${h(folder.id)}">重命名文件夹</button>
+      <button class="danger" data-action="delete-filter-folder" data-folder-id="${h(folder.id)}">删除文件夹</button>
+      <button data-action="close-filter-folder-sheet">取消</button>
+    </section>
+  `;
+}
+
+function renderFilterFolderDeleteConfirm() {
+  const folder = filterFolders.find((item) => item.id === pendingDeleteFilterFolderId);
+  if (!folder) return "";
+  return `
+    <div class="scrim subtle"></div>
+    <section class="filter-folder-confirm" aria-label="删除文件夹确认">
+      <h2>删除文件夹</h2>
+      <p>“${h(folder.name)}”中还有 ${folder.count} 个文件。删除后将同步删除文件夹内的内容，此操作不可直接撤销。</p>
+      <button class="danger-fill" data-action="confirm-delete-filter-folder">删除文件夹和内容</button>
+      <button class="outline" data-action="cancel-delete-filter-folder">取消</button>
+    </section>
+  `;
+}
+
 function renderFilterSheet() {
   const fromSearch = previousPageId === "APP-FILE-02";
   const closeTarget = fromSearch ? "APP-FILE-02" : "APP-HOME-01";
@@ -1626,9 +1691,16 @@ function renderFilterSheet() {
         <button class="filter-option"><span class="file-icon trash"></span><b>回收站 <em>(1)</em></b></button>
       </div>
       <div class="sheet-line"></div>
-      <div class="filter-section-title"><h3>文件夹</h3><button>＋</button></div>
-      <button class="filter-option slim"><span class="file-icon folder"></span><b>Andy <em>(0)</em></b><i>...</i></button>
-      <button class="filter-option slim blue"><span class="file-icon folder"></span><b>工作 <em>(0)</em></b><i>...</i></button>
+      <div class="filter-section-title"><h3>文件夹</h3><button data-action="open-filter-folder-create" aria-label="添加文件夹">＋</button></div>
+      ${filterFolders.map((folder) => `
+        <div class="filter-folder-row ${folder.tone}">
+          <button class="filter-option slim" data-action="select-filter-folder" data-folder-id="${h(folder.id)}">
+            <span class="file-icon folder"></span>
+            <b>${h(folder.name)} <em>(${folder.count})</em></b>
+          </button>
+          <button class="filter-folder-more" data-action="open-filter-folder-actions" data-folder-id="${h(folder.id)}" aria-label="${h(folder.name)} 文件夹更多操作">...</button>
+        </div>
+      `).join("")}
       <h3 class="filter-title-alone">来自</h3>
       <div class="source-list">
         <button>Note · 对话模式 <em>(3)</em></button>
@@ -1636,6 +1708,9 @@ function renderFilterSheet() {
         <button>导入 <em>(2)</em></button>
       </div>
     </section>
+    ${filterFolderSheetMode === "create" || filterFolderSheetMode === "rename" ? renderFilterFolderEditorSheet() : ""}
+    ${filterFolderSheetMode === "actions" ? renderFilterFolderActionSheet() : ""}
+    ${pendingDeleteFilterFolderId ? renderFilterFolderDeleteConfirm() : ""}
   `;
 }
 
@@ -4105,6 +4180,72 @@ document.addEventListener("click", (event) => {
     render();
     return;
   }
+  if (action && action.dataset.action === "open-filter-folder-create") {
+    filterFolderSheetMode = "create";
+    activeFilterFolderId = "";
+    pendingDeleteFilterFolderId = "";
+    filterFolderError = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "open-filter-folder-actions") {
+    activeFilterFolderId = action.dataset.folderId || "";
+    filterFolderSheetMode = "actions";
+    pendingDeleteFilterFolderId = "";
+    filterFolderError = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "rename-filter-folder") {
+    activeFilterFolderId = action.dataset.folderId || activeFilterFolderId;
+    filterFolderSheetMode = "rename";
+    filterFolderError = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "delete-filter-folder") {
+    const folderId = action.dataset.folderId || activeFilterFolderId;
+    const folder = filterFolders.find((item) => item.id === folderId);
+    if (!folder) return;
+    filterFolderSheetMode = "";
+    activeFilterFolderId = "";
+    if (folder.count > 0) {
+      pendingDeleteFilterFolderId = folder.id;
+    } else {
+      filterFolders = filterFolders.filter((item) => item.id !== folder.id);
+    }
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "confirm-delete-filter-folder") {
+    if (pendingDeleteFilterFolderId) {
+      filterFolders = filterFolders.filter((item) => item.id !== pendingDeleteFilterFolderId);
+      pendingDeleteFilterFolderId = "";
+      filterFolderSheetMode = "";
+      activeFilterFolderId = "";
+      render();
+    }
+    return;
+  }
+  if (action && action.dataset.action === "cancel-delete-filter-folder") {
+    pendingDeleteFilterFolderId = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "close-filter-folder-sheet") {
+    filterFolderSheetMode = "";
+    activeFilterFolderId = "";
+    pendingDeleteFilterFolderId = "";
+    filterFolderError = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "select-filter-folder") {
+    filterFolderSheetMode = "";
+    activeFilterFolderId = "";
+    render();
+    return;
+  }
   if (action && action.dataset.action === "toggle-share-permission") {
     const key = action.dataset.permission;
     if (key && Object.prototype.hasOwnProperty.call(sharePermissionState, key)) {
@@ -4226,6 +4367,36 @@ document.addEventListener("input", (event) => {
 });
 
 document.addEventListener("submit", (event) => {
+  const filterFolderForm = event.target.closest("[data-action='save-filter-folder']");
+  if (filterFolderForm) {
+    event.preventDefault();
+    const name = filterFolderForm.querySelector("#filterFolderName")?.value.trim();
+    if (!name) {
+      filterFolderError = "请输入文件夹名称";
+      render();
+      return;
+    }
+    const duplicate = filterFolders.some((folder) => folder.name === name && folder.id !== activeFilterFolderId);
+    if (duplicate) {
+      filterFolderError = "已存在同名文件夹";
+      render();
+      return;
+    }
+    if (filterFolderSheetMode === "rename" && activeFilterFolderId) {
+      filterFolders = filterFolders.map((folder) => folder.id === activeFilterFolderId ? { ...folder, name } : folder);
+    } else {
+      filterFolders = [
+        ...filterFolders,
+        { id: `filter-folder-${Date.now()}`, name, count: 0, tone: filterFolders.length % 2 ? "blue" : "" }
+      ];
+    }
+    filterFolderSheetMode = "";
+    activeFilterFolderId = "";
+    pendingDeleteFilterFolderId = "";
+    filterFolderError = "";
+    render();
+    return;
+  }
   const folderForm = event.target.closest("[data-action='save-new-folder']");
   if (folderForm) {
     event.preventDefault();
