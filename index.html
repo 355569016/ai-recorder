@@ -273,11 +273,11 @@ const pages = [
     priority: "P0",
     goal: "3 秒内让用户知道设备是否可用、同步是否进行中，并直接在首页浏览文件列表。",
     entry: "登录/绑定成功后默认进入，底部文件 Tab。",
-    fields: [["current_device", "当前设备", "本地数据库/云端设备"], ["connection_state", "连接状态", "BLE 状态包"], ["battery_storage_record", "电量/存储/录音", "BLE 状态包"], ["sync_summary", "同步摘要", "本地数据库/BLE 文件列表"], ["file_list", "文件列表", "本地数据库"], ["file_source", "文件来源", "本地数据库"]],
-    rules: ["未连接或未绑定时，设备区只显示添加设备入口，不占用大面积状态卡。", "已连接时仅简要显示连接状态、电量、存储、录音状态和最近同步时间；未录音时显示为待机。", "首页只在存在同步中音频时显示同步状态条；同步完成且没有同步中任务时不显示该状态条。", "文件列表是首页下半区，不再作为单独页面；滚动到设备状态和同步摘要不可见后，文件列表标题默认吸顶。", "文件列表标题栏左侧为文件列表文字和倒三角筛选/排序入口，右侧为导入音频按钮。", "点击导入音频打开导入音频弹层，可从文件或相册调起系统选择器。", "底部中间录音按钮是全局主按钮，不是普通 Tab。"],
-    states: ["未绑定/未连接", "设备已连接", "待同步", "同步中", "同步失败", "空文件", "加载更多"],
-    deps: ["BLE 状态包：电量、存储、录音状态。", "本地数据库：文件列表、同步队列、转写状态。", "云端文件：上传/删除/状态，接口待后端定义。"],
-    acceptance: ["设备状态和同步摘要必须是紧凑区域，不遮挡文件列表首屏。", "导入音频和倒三角入口位于文件列表标题栏。", "导入音频弹层包含从文件里导入和从相册里导入两个系统选择入口。", "下拉/继续滚动可加载更多文件。", "录音主按钮点击前执行登录/绑定/连接检查。"]
+    fields: [["current_device", "当前设备", "本地数据库/云端设备"], ["connection_state", "连接状态", "BLE 状态包"], ["battery_storage_record", "电量/存储/录音", "BLE 状态包"], ["recording_live_sync", "录音中持续同步", "BLE 分片传输/本地缓存"], ["finish_sync_transfer", "结束录音补传", "同步队列"], ["sync_summary", "同步摘要", "本地数据库/BLE 文件列表"], ["file_list", "文件列表", "本地数据库"], ["file_source", "文件来源", "本地数据库"]],
+    rules: ["打开 App 时如果硬件正在录音，首页默认只显示设备录音中状态，不展示同步状态条。", "录音中持续同步是后端和 App 端的后台传输接收动作：App 持续接收硬件分片，先写入本地临时缓存和同步队列，但该过程不对用户展示。", "用户结束录音后，首页才展示结束录音后的同步传送状态，将录音期间尚未完成的分片继续补传、校验并合并。", "补传完成后，把本次硬件录音保存为新的文件记录，并插入文件列表顶部，状态为未转写。", "未连接或未绑定时，设备区只显示添加设备入口，不占用大面积状态卡。", "已连接时仅简要显示连接状态、电量、存储、录音状态和最近同步时间；未录音时显示为待机。", "首页只在结束录音补传、同步失败或其他需要用户关注的同步任务时显示同步状态条；录音中后台持续同步不显示。", "文件列表是首页下半区，不再作为单独页面；滚动到设备状态和同步摘要不可见后，文件列表标题默认吸顶。", "文件列表标题栏左侧为文件列表文字和倒三角筛选/排序入口，右侧为导入音频按钮。", "点击导入音频打开导入音频弹层，可从文件或相册调起系统选择器。", "底部中间录音按钮是全局主按钮，不是普通 Tab。"],
+    states: ["未绑定/未连接", "设备已连接", "录音中持续同步", "结束录音补传中", "同步完成并新增文件", "同步失败", "空文件", "加载更多"],
+    deps: ["BLE 状态包：电量、存储、录音状态。", "BLE 分片传输：录音过程中的增量音频、偏移量和校验值。", "本地数据库：文件列表、同步队列、转写状态。", "本地临时缓存：录音未结束前的已同步分片。", "云端文件：上传/删除/状态，接口待后端定义。"],
+    acceptance: ["打开 App 默认处于硬件录音场景时，首页只展示设备录音中状态，不展示同步进度模块。", "点击录音中页结束后，首页必须展示剩余内容补传和校验进度。", "补传完成后，文件列表顶部必须新增本次录音文件，来源为硬件录音，状态为未转写。", "设备状态和同步摘要必须是紧凑区域，不遮挡文件列表首屏。", "导入音频和倒三角入口位于文件列表标题栏。", "导入音频弹层包含从文件里导入和从相册里导入两个系统选择入口。", "下拉/继续滚动可加载更多文件。", "录音主按钮点击前执行登录/绑定/连接检查。"]
   },
   {
     id: "APP-HOME-03",
@@ -403,11 +403,11 @@ const pages = [
     priority: "P0",
     goal: "明确证明硬件正在录音，并支持标记、暂停、继续和结束。",
     entry: "硬件开始录音成功后。",
-    fields: [["record_duration", "录音时长", "BLE 状态包/本地计时"], ["record_state", "录音状态", "BLE 状态包"], ["battery_level", "电量", "BLE 状态包"], ["storage_remaining", "存储", "BLE 状态包"], ["marker_list", "标记时间轴", "BLE 标记包/本地数据库"], ["marker_assets", "标记附件", "备注/手机拍照"], ["disconnect_timer_mode", "断连计时模式", "本地时钟"]],
-    rules: ["暂停后停留录音中页。", "结束录音后直接回到文件首页；如果存在同步中音频，在首页同步状态条展示进度。", "用户点击添加标记或拍照标记时，必须记录当前录音时间戳、标记类型、备注或照片附件。", "录音标记必须在文件详情中形成锚点映射，例如在文字记录 05:12 对应文字右侧内嵌当时拍摄的照片或备注。", "蓝牙断连时硬件仍在本地录音，App 波形图置灰，计时器继续以手机本地时钟模拟增长。", "蓝牙断连期间显示轻微呼吸红点和文案：蓝牙已断开，硬件仍安全录音中，靠近后自动恢复同步。", "蓝牙恢复后根据硬件录音状态包校准本地模拟计时和标记时间戳。"],
-    states: ["录音中", "暂停中", "设备断连但仍录音", "本地模拟计时", "蓝牙恢复同步", "低电量", "存储不足"],
-    deps: ["BLE 命令包：暂停、继续、结束、添加标记。", "BLE 状态包：录音状态、电量、存储。", "本地数据库：标记时间戳、备注、照片附件。", "文件详情：文字记录锚点映射。"],
-    acceptance: ["计时、连接、电量、存储、标记和结束按钮清晰可见。", "点击暂停后按钮变为继续。", "点击结束直接回到文件首页。", "录音中的备注标记和拍照标记必须能在文件详情文字记录中按时间戳定位展示。", "蓝牙断连时界面必须置灰波形、持续模拟计时并给出安全录音提示。"]
+    fields: [["record_duration", "录音时长", "BLE 状态包/本地计时"], ["record_state", "录音状态", "BLE 状态包"], ["live_sync_offset", "已同步偏移量", "BLE 分片传输"], ["pending_sync_size", "待补传大小", "同步队列"], ["battery_level", "电量", "BLE 状态包"], ["storage_remaining", "存储", "BLE 状态包"], ["marker_list", "标记时间轴", "BLE 标记包/本地数据库"], ["marker_assets", "标记附件", "备注/手机拍照"], ["disconnect_timer_mode", "断连计时模式", "本地时钟"]],
+    rules: ["暂停后停留录音中页。", "录音过程中 App 持续从硬件接收音频分片，实时更新首页同步队列，但正式文件需等结束录音和补传完成后生成。", "结束录音后回到文件首页的结束同步状态，继续传送录音期间未同步完成的内容，完成 CRC/时长/标记校验后新增到文件列表。", "用户点击添加标记或拍照标记时，必须记录当前录音时间戳、标记类型、备注或照片附件，并随音频分片一起进入同步队列。", "录音标记必须在文件详情中形成锚点映射，例如在文字记录 05:12 对应文字右侧内嵌当时拍摄的照片或备注。", "蓝牙断连时硬件仍在本地录音，App 波形图置灰，计时器继续以手机本地时钟模拟增长。", "蓝牙断连期间显示轻微呼吸红点和文案：蓝牙已断开，硬件仍安全录音中，靠近后自动恢复同步。", "蓝牙恢复后根据硬件录音状态包校准本地模拟计时、同步偏移量和标记时间戳。"],
+    states: ["录音中", "暂停中", "录音中持续同步", "结束录音补传中", "同步完成返回首页", "设备断连但仍录音", "本地模拟计时", "蓝牙恢复同步", "低电量", "存储不足"],
+    deps: ["BLE 命令包：暂停、继续、结束、添加标记。", "BLE 状态包：录音状态、电量、存储。", "BLE 分片传输：实时音频片段、偏移量、校验值。", "本地数据库：标记时间戳、备注、照片附件。", "同步队列：结束录音后的待补传片段。", "文件详情：文字记录锚点映射。"],
+    acceptance: ["计时、连接、电量、存储、标记和结束按钮清晰可见。", "点击暂停后按钮变为继续。", "录音中必须表达持续同步正在进行。", "点击结束后必须进入首页同步补传状态，而不是直接静默生成文件。", "补传完成后首页文件列表必须新增本次录音。", "录音中的备注标记和拍照标记必须能在文件详情文字记录中按时间戳定位展示。", "蓝牙断连时界面必须置灰波形、持续模拟计时并给出安全录音提示。"]
   },
   {
     id: "APP-FILE-01",
@@ -653,11 +653,215 @@ const pages = [
     priority: "P1",
     goal: "展示账号概览、使用统计、偏好设置与账号入口。",
     entry: "我的页点击账号设置。",
-    fields: [["profile_avatar", "头像", "账号系统"], ["usage_stats", "使用统计", "本地数据库/用量服务"], ["activity_heatmap", "使用热力图", "本地数据库"], ["preference_settings", "偏好设置", "本地设置"], ["account", "账号", "账号系统"]],
-    rules: ["顶部展示头像、账号名、使用天数、录音总数和总使用时长。", "底部列表包含偏好设置和账号入口。", "点击账号进入账号管理页。"],
-    states: ["默认账号", "头像编辑入口", "账号入口"],
+    fields: [["profile_avatar", "头像", "账号系统"], ["usage_stats", "使用统计", "本地数据库/用量服务"], ["recording_activity_heatmap", "录音卡实际录音使用热力图", "本地录音数据库"], ["preference_settings", "偏好设置", "本地设置"], ["account", "账号", "账号系统"]],
+      rules: ["顶部展示头像、账号名、使用天数、录音总数和总使用时长。", "热力图只统计录音卡实际录音使用，不使用 App 打开次数；按连续周横向排列、每周固定 7 天，默认展示最近 53 周。", "小屏允许横向滚动查看更早日期；进入页面时自动定位到最右侧。热力图仅展示方格，不展示标题、日期范围、图例或当前日期选中态。", "热力图下方展示 10px-11px 灰色月份刻度，月份刻度与周列对齐，并随热力图一起横向滚动。", "每个热力图格提供日期和录音时长的 title 与 aria-label。", "底部列表包含偏好设置和账号入口。", "点击账号进入账号管理页。"],
+      states: ["默认账号", "最近53周录音使用", "横向滚动", "头像编辑入口", "偏好设置入口", "账号入口"],
     deps: ["账号系统：用户头像与账号名。", "本地数据库：录音统计。"],
-    acceptance: ["设置页样式参考截图，账号入口可进入账号页。"]
+      acceptance: ["设置页样式参考截图，偏好设置和账号入口均可进入。", "热力图纵向固定 7 天、末列完整填满，且无当前日期选中态。", "热力图下方月份刻度可见，字号为 10px-11px 灰色，并在横向滚动时与热力图同步移动。", "热力图内容明确为录音卡实际录音使用。"],
+    prototypeLinks: [["偏好设置", "APP-ME-26"], ["账号", "APP-ME-17"]]
+  },
+  {
+    id: "APP-ME-26",
+    group: "设置",
+    title: "偏好设置",
+    priority: "P1",
+    goal: "集中管理转写、说话人、术语、通知、安全与 AI 改进偏好。",
+    entry: "设置页点击偏好设置。",
+    fields: [["transcription_language", "转写语言", "本地设置"], ["improve_readability", "自动提升转写可读性", "本地设置"], ["speaker_diarization", "自动标注说话人", "本地设置/声音样本"], ["custom_terms", "自定义术语", "本地设置"], ["notifications", "消息与通知", "系统通知权限/本地设置"], ["app_lock", "应用锁", "系统生物识别权限/本地设置"], ["ai_improvement", "帮助改进 AI", "用户授权"]],
+    rules: ["每个下级页面均可返回偏好设置。", "自动提升转写可读性和帮助改进 AI 使用即时状态渲染。", "没有行业或常用术语时，启用自定义术语前展示说明。"],
+    states: ["默认", "开关更新", "缺少行业与术语提示"],
+    deps: ["本地设置、系统通知权限、系统生物识别权限、AI 服务授权。"],
+    acceptance: ["七组偏好均有可操作入口或开关。"],
+    prototypeLinks: [["转写语言", "APP-ME-27"], ["自动标注说话人", "APP-ME-28"], ["自定义术语", "APP-ME-34"], ["消息与通知", "APP-ME-37"], ["应用锁", "APP-ME-38"]]
+  },
+  {
+    id: "APP-ME-27",
+    group: "设置",
+    title: "转写语言",
+    priority: "P1",
+    goal: "选择录音转写的默认语言。",
+    entry: "偏好设置点击转写语言。",
+    fields: [["transcription_language", "默认转写语言", "用户选择"]],
+    rules: ["选择后立即保存并返回偏好设置。", "支持自动检测和常用语言。"],
+    states: ["当前语言", "已选择"],
+    deps: ["转写服务语言列表。"],
+    acceptance: ["当前选项有明确勾选状态。"]
+  },
+  {
+    id: "APP-ME-28",
+    group: "设置",
+    title: "自动标注说话人",
+    priority: "P1",
+    goal: "管理说话人自动标注与我的声音样本。",
+    entry: "偏好设置点击自动标注说话人。",
+    fields: [["speaker_diarization", "自动标注说话人", "本地设置"], ["voice_samples", "我的声音样本", "本地声音样本"]],
+    rules: ["开启后在转写结果中区分说话人。", "我的声音样本进入命名、权限、录制和完成链路。"],
+    states: ["开启", "关闭", "声音样本入口"],
+    deps: ["说话人分离服务、麦克风权限。"],
+    acceptance: ["开关可操作，我的声音样本入口可进入。"],
+    prototypeLinks: [["我的声音样本", "APP-ME-29"]]
+  },
+  {
+    id: "APP-ME-29",
+    group: "设置",
+    title: "我的声音样本",
+    priority: "P1",
+    goal: "查看或创建用于识别本人的声音样本。",
+    entry: "自动标注说话人页点击我的声音样本。",
+    fields: [["speaker_name", "样本名称", "本地设置"], ["voice_sample_state", "声音样本状态", "本地声音样本"]],
+    rules: ["未创建时进入命名页。", "已创建时可重新录制。"],
+    states: ["未创建", "已创建"],
+    deps: ["本地声音样本。"],
+    acceptance: ["创建和重新录制均有入口。"],
+    prototypeLinks: [["命名", "APP-ME-30"]]
+  },
+  {
+    id: "APP-ME-30",
+    group: "设置",
+    title: "命名声音样本",
+    priority: "P1",
+    goal: "为本人声音样本设置名称。",
+    entry: "我的声音样本点击创建。",
+    fields: [["speaker_name", "样本名称", "本地设置/用户确认"]],
+    rules: ["确认名称后进入麦克风权限模拟，不使用正文输入框承载该页。"],
+    states: ["确认名称", "继续"],
+    deps: ["本地设置。"],
+    acceptance: ["可返回声音样本页，继续按钮进入权限模拟。"],
+    prototypeLinks: [["麦克风权限", "APP-ME-31"]]
+  },
+  {
+    id: "APP-ME-31",
+    group: "设置",
+    title: "麦克风权限",
+    priority: "P1",
+    goal: "模拟录制声音样本前的系统麦克风授权。",
+    entry: "命名声音样本后。",
+    fields: [["microphone_permission", "麦克风权限", "系统权限"]],
+    rules: ["允许后进入录制样本，暂不允许则返回我的声音样本。"],
+    states: ["待授权", "允许", "暂不允许"],
+    deps: ["系统麦克风权限。"],
+    acceptance: ["权限弹窗有允许、拒绝和关闭入口。"],
+    prototypeLinks: [["允许并录制", "APP-ME-32"]]
+  },
+  {
+    id: "APP-ME-32",
+    group: "设置",
+    title: "录制声音样本",
+    priority: "P1",
+    goal: "录制一段用于识别本人的声音样本。",
+    entry: "允许麦克风权限后。",
+    fields: [["voice_sample_audio", "声音样本", "麦克风"], ["recording_state", "录制状态", "本地状态"]],
+    rules: ["开始录制后显示录制中状态。", "完成录制进入完成页。"],
+    states: ["待录制", "录制中", "已录制"],
+    deps: ["麦克风录音、本地声音样本。"],
+    acceptance: ["开始、完成和返回入口均可用。"],
+    prototypeLinks: [["完成", "APP-ME-33"]]
+  },
+  {
+    id: "APP-ME-33",
+    group: "设置",
+    title: "声音样本完成",
+    priority: "P1",
+    goal: "确认声音样本已创建并返回样本列表。",
+    entry: "完成录制声音样本后。",
+    fields: [["voice_sample_state", "声音样本完成状态", "本地声音样本"]],
+    rules: ["完成后样本列表显示已创建状态。"],
+    states: ["完成"],
+    deps: ["本地声音样本。"],
+    acceptance: ["可返回我的声音样本。"]
+  },
+  {
+    id: "APP-ME-34",
+    group: "设置",
+    title: "自定义术语",
+    priority: "P1",
+    goal: "按行业维护常用术语，提升转写准确性与可读性。",
+    entry: "偏好设置点击自定义术语。",
+    fields: [["custom_terms_enabled", "启用自定义术语", "本地设置"], ["industry", "行业", "用户选择"], ["terms", "常用术语列表", "用户维护"]],
+    rules: ["支持行业选择、术语添加、编辑和删除。", "开启自定义术语前必须先选择行业或添加自定义术语。", "未完成配置时点击开启，展示底部弹窗提示并保持关闭。"],
+    states: ["关闭", "开启", "未配置拦截", "无行业与术语", "有行业", "有术语"],
+    deps: ["本地设置、转写术语词典。"],
+    acceptance: ["自定义术语总览页只展示行业与常用术语入口，不重复展开术语列表。"],
+    prototypeLinks: [["行业选择", "APP-ME-35"], ["常用术语", "APP-ME-36"]]
+  },
+  {
+    id: "APP-ME-35",
+    group: "设置",
+    title: "选择行业",
+    priority: "P1",
+    goal: "选择用于优化转写的行业词库。",
+    entry: "自定义术语点击行业。",
+    fields: [["industry", "行业", "用户选择"]],
+    rules: ["可选择不设置行业。", "选择后保存并返回自定义术语。"],
+    states: ["已选择", "无行业"],
+    deps: ["行业词库配置。"],
+    acceptance: ["当前行业有勾选状态。"]
+  },
+  {
+    id: "APP-ME-36",
+    group: "设置",
+    title: "常用术语",
+    priority: "P1",
+    goal: "查看、添加、编辑和删除常用术语。",
+    entry: "自定义术语点击常用术语。",
+    fields: [["terms", "常用术语列表", "用户维护"], ["term_editor_sheet", "术语编辑面板", "页面弹层"]],
+    rules: ["空列表展示空态和右上角添加入口。", "已有术语按首字符分组展示。", "添加和编辑在底部面板中完成，不把 APP-ME-36 本身做成输入页。"],
+    states: ["空列表", "术语列表", "添加面板", "编辑面板", "删除术语"],
+    deps: ["本地设置。"],
+    acceptance: ["常用术语列表、添加、编辑和删除均可操作。"]
+  },
+  {
+    id: "APP-ME-37",
+    group: "设置",
+    title: "消息与通知",
+    priority: "P1",
+    goal: "独立控制不同类型的应用通知。",
+    entry: "偏好设置点击消息与通知。",
+    fields: [["notifications_allowed", "允许通知", "通知设置"], ["progress_account_alerts", "进度与账号提醒", "通知设置"], ["device_alerts", "设备状态提醒", "通知设置"], ["product_updates", "产品更新与优惠", "通知设置"]],
+    rules: ["允许通知作为总开关。", "各通知类型可独立开关，总开关关闭时类型项不可操作。"],
+    states: ["允许通知", "关闭通知", "每类开启", "每类关闭"],
+    deps: ["系统通知权限、本地设置。"],
+    acceptance: ["每个通知类型均有独立开关。"]
+  },
+  {
+    id: "APP-ME-38",
+    group: "设置",
+    title: "应用锁",
+    priority: "P1",
+    goal: "使用 Face ID 保护应用，并设置自动锁定时长。",
+    entry: "偏好设置点击应用锁。",
+    fields: [["app_lock_enabled", "应用锁", "本地设置"], ["face_id_permission", "Face ID 权限", "系统权限"], ["auto_lock_duration", "自动锁定时长", "本地设置"]],
+    rules: ["首次开启先进入 Face ID 权限模拟。", "开启后在当前页直接选择自动锁定时长。"],
+    states: ["关闭", "请求 Face ID", "开启", "选择自动锁定时长"],
+    deps: ["系统生物识别权限、本地设置。"],
+    acceptance: ["Face ID 权限与自动锁定时长均可操作。"],
+    prototypeLinks: [["Face ID 权限", "APP-ME-40"]]
+  },
+  {
+    id: "APP-ME-39",
+    group: "设置",
+    title: "自动锁定时长",
+    priority: "P1",
+    goal: "设置应用进入后台后的自动锁定时间。",
+    entry: "应用锁开启后点击自动锁定。",
+    fields: [["auto_lock_duration", "自动锁定时长", "用户选择"]],
+    rules: ["选择后立即保存并返回应用锁。"],
+    states: ["立即", "1分钟后", "5分钟后", "15分钟后"],
+    deps: ["本地设置。"],
+    acceptance: ["当前时长有明确勾选状态。"]
+  },
+  {
+    id: "APP-ME-40",
+    group: "设置",
+    title: "Face ID 权限",
+    priority: "P1",
+    goal: "模拟首次开启应用锁时的 Face ID 系统授权。",
+    entry: "应用锁关闭时点击开启。",
+    fields: [["face_id_permission", "Face ID 权限", "系统权限"]],
+    rules: ["允许后开启应用锁并返回应用锁页。", "暂不允许保持关闭。"],
+    states: ["待授权", "允许", "暂不允许"],
+    deps: ["系统 Face ID 权限。"],
+    acceptance: ["权限弹窗有允许、拒绝和关闭入口。"]
   },
   {
     id: "APP-ME-17",
@@ -972,6 +1176,39 @@ let previousPageId = null;
 let fileDetailTab = "transcript";
 let recordPaused = false;
 let generationMode = "custom";
+let askPlaudMode = "closed";
+let askPlaudPrompt = "";
+let askPlaudSkill = "获取洞察";
+let askPlaudTipVisible = true;
+let homeSyncStage = "recording";
+const settingsState = {
+  transcriptionLanguage: "自动检测",
+  improveReadability: true,
+  speakerDiarization: true,
+  improveAi: false,
+  speakerName: "我的声音",
+  microphoneAllowed: false,
+  voiceSampleCreated: false,
+  voiceRecording: false,
+  customTermsEnabled: false,
+  industry: "",
+  notificationsAllowed: true,
+  notifications: {
+    transcription: true,
+    sync: true,
+    device: true,
+    product: false
+  },
+  appLockEnabled: false,
+  faceIdAllowed: false,
+  autoLockDuration: "立即"
+};
+let customTerms = [];
+let termEditorIndex = null;
+let settingsNotice = "";
+let pendingTermsEnableNotice = false;
+let termSheetMode = "";
+let termSheetError = "";
 
 function h(text) {
   return String(text ?? "").replace(/[&<>"']/g, (char) => ({
@@ -990,6 +1227,11 @@ function pageById(id) {
 function go(id) {
   previousPageId = currentPageId;
   currentPageId = id === "APP-HOME-02" ? "APP-HOME-01" : id;
+  if (currentPageId !== "APP-ME-36") {
+    termSheetMode = "";
+    termEditorIndex = null;
+    termSheetError = "";
+  }
   render();
 }
 
@@ -1033,7 +1275,7 @@ function wave() {
 
 function fileCard(file) {
   return `
-    <div class="file-card">
+    <div class="file-card ${file.featured ? "featured" : ""}">
       <div>
         <p class="file-name">${h(file.name)}</p>
         <div class="file-meta">${h(file.meta)}</div>
@@ -1041,6 +1283,39 @@ function fileCard(file) {
       </div>
       <button class="${file.actionTone === "secondary" ? "secondary-btn" : "primary-btn"}" style="width:72px;min-height:38px" data-go="${file.go}">${h(file.action)}</button>
     </div>
+  `;
+}
+
+function renderHomeSyncModule() {
+  const syncViews = {
+    finishing: {
+      tone: "finishing",
+      title: "结束录音，同步传送中",
+      file: "补传剩余内容 · 29.4 MB / 32 MB",
+      percent: 92,
+      hint: "正在传送录音期间未同步完成的片段，并执行 CRC、时长和标记校验。",
+      action: "home-complete-sync",
+      button: "模拟同步完成"
+    },
+    saved: {
+      tone: "saved",
+      title: "同步完成，已保存",
+      file: "新增文件 · Strategy sync review",
+      percent: 100,
+      hint: "本次硬件录音已合并为正式文件，并插入文件列表顶部。",
+      action: "home-reset-sync-demo",
+      button: "重置演示"
+    }
+  };
+  const view = syncViews[homeSyncStage];
+  if (!view) return "";
+  return `
+    <section class="sync-mini ${view.tone}">
+      <div class="sync-line"><strong>${h(view.title)}</strong><span>${h(view.file)}</span><b>${view.percent}%</b></div>
+      <div class="progress compact"><b style="width:${view.percent}%"></b></div>
+      <p class="caption">${h(view.hint)}</p>
+      <button class="sync-step-btn" data-action="${view.action}">${h(view.button)}</button>
+    </section>
   `;
 }
 
@@ -1281,29 +1556,31 @@ function renderDeviceUnbindHelp() {
 }
 
 function renderHome() {
+  const savedRecordingCard = homeSyncStage === "saved"
+    ? fileCard({ featured: true, name: "Strategy sync review", meta: "刚刚 · 00:43:52 · 录音结束后已同步保存", source: "硬件录音", state: "未转写", tone: "amber", action: "生成", go: "APP-AI-01" })
+    : "";
+  const deviceState = homeSyncStage === "recording" ? "录音中" : homeSyncStage === "finishing" ? "补传中" : "待机";
+  const syncTime = homeSyncStage === "recording" ? "正在录音" : homeSyncStage === "saved" ? "刚刚同步" : "正在同步";
   return screen(`
     <section class="device-strip connected" data-go="APP-DEV-03">
       <div>
         <strong>AI Recorder A1</strong>
         <span>已连接 · 电量 82% · 存储 12.4G</span>
       </div>
-      <b>待机</b>
-      <small>最近同步 14:22</small>
+      <b>${h(deviceState)}</b>
+      <small>${h(syncTime)} · 自动同步开启</small>
     </section>
     <section class="device-strip add-device" data-go="APP-DEV-01">
       <strong>添加设备</strong>
       <span>未连接时仅显示此入口</span>
     </section>
-    <section class="sync-mini">
-      <div class="sync-line"><strong>同步中</strong><span>Board meeting · 1 个文件 / 32 MB</span><b>64%</b></div>
-      <div class="progress compact"><b style="width:64%"></b></div>
-      <p class="caption">正在传输，等待 CRC 校验。</p>
-    </section>
+    ${renderHomeSyncModule()}
     <section class="card file-list-panel" id="homeFileList">
       <div class="card-title sticky-list-title">
         <button class="list-title-filter" data-go="APP-FILE-03" aria-label="文件列表筛选和排序"><strong>文件列表</strong><span></span></button>
         <button class="import-btn" data-go="APP-FILE-13">+导入音频</button>
       </div>
+      ${savedRecordingCard}
       ${fileCard({ name: "Board meeting", meta: "今天 14:20 · 01:12:17 · 3 个标记", source: "硬件录音", state: "未转写", tone: "amber", action: "生成", go: "APP-AI-01" })}
       ${fileCard({ name: "Interview import", meta: "昨天 19:10 · 00:34:02", source: "导入文件", state: "AI 已生成", tone: "green", action: "详情", go: "APP-FILE-01", actionTone: "secondary" })}
       ${fileCard({ name: "Lecture audio", meta: "07-05 · 00:58:20 · 已保留断点", source: "硬件录音", state: "同步失败", tone: "red", action: "重试", go: "APP-HOME-01", actionTone: "secondary" })}
@@ -1516,7 +1793,7 @@ function renderRecording() {
         <div class="recording-top">
           <button data-action="toggle-pause">${recordPaused ? "继续" : "暂停"}</button>
           <strong><i></i>${recordPaused ? "00:00:38" : "00:00:37"}</strong>
-          <button data-go="APP-HOME-01">结束</button>
+          <button data-action="finish-recording-sync">结束</button>
         </div>
         <div class="recording-metrics">
           <div><span>连接</span><b>正常</b></div>
@@ -1537,6 +1814,128 @@ function renderRecording() {
           <button><span class="record-action-icon mark"></span><b>标记</b></button>
         </div>
       </main>
+    </section>
+  `;
+}
+
+const askPlaudSuggestions = [
+  "What are the primary drivers of demand and supply volatility in manufacturing?",
+  "What unspoken concerns might underlie Maya's apprehension about core hours?",
+  "What is the underlying reason for Marcus deferring flexible working discussion?"
+];
+
+const askPlaudFollowups = [
+  "在制造业中，数字孪生如何具体帮助企业应对劳动力短缺的问题？",
+  "除了数字孪生，还有哪些关键因素能帮助制造企业在波动中保持竞争力？",
+  "在推行灵活工作制时，团队通常会面临哪些具体的沟通挑战？"
+];
+
+function renderAskPlaudInput() {
+  const thinking = askPlaudMode === "thinking";
+  return `
+    <form class="ask-input-bar" data-action="ask-submit">
+      <span>Beta</span>
+      <input id="askPlaudInput" placeholder="对此笔记提问" value="${h(askPlaudPrompt)}" aria-label="对此笔记提问">
+      <button type="submit" class="${thinking ? "stop" : ""}" aria-label="${thinking ? "停止生成" : "发送问题"}">${thinking ? "■" : "↑"}</button>
+    </form>
+  `;
+}
+
+function renderAskPlaudSkills() {
+  return `
+    <div class="ask-skill-row" aria-label="AI 技能">
+      ${["获取洞察", "团队简报", "确认行动项"].map((label, index) => `
+        <button class="${askPlaudSkill === label ? "selected" : ""}" data-action="ask-use-skill" data-skill="${h(label)}">
+          <i class="skill-${index + 1}"></i>${h(label)}
+        </button>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderAskPlaudAnswer() {
+  return `
+    <section class="ask-answer">
+      <p class="ask-answer-intro">以下是回答内容</p>
+      <article>
+        <h3>🎯 战略的真正考验在于其与现实碰撞后的生存能力</h3>
+        <blockquote>"Create a plan that can deliver on that strategy and then can be moved to execution and achieves, sorry, survives contact with reality as you try and execute that in the factory.<sup>1</sup>"</blockquote>
+      </article>
+      <article>
+        <h3>🎯 数字孪生的核心价值在于模拟优化与过程强化的双重结合</h3>
+        <blockquote>"A genuine digital twin that can then be used to both model your processes when you're trying to achieve optimum plans and schedules. Then also to enforce those processes during manufacture to achieve the outcomes you want to achieve.<sup>2</sup>"</blockquote>
+      </article>
+      <article>
+        <h3>🎯 深度研判是进行建设性讨论的前提</h3>
+        <blockquote>"I think we all need time to read through Paul's proposal in more detail before discussing it any further.<sup>3</sup>"</blockquote>
+      </article>
+      <div class="ask-answer-actions">
+        <button aria-label="复制">□</button>
+        <button aria-label="赞">👍</button>
+        <button aria-label="踩">👎</button>
+        <button aria-label="更多">…</button>
+        <button aria-label="加入笔记">▣＋</button>
+      </div>
+      <section class="ask-followups">
+        <h3>继续提问</h3>
+        ${askPlaudFollowups.map((question) => `<button data-action="ask-suggestion" data-question="${h(question)}">${h(question)}</button>`).join("")}
+      </section>
+    </section>
+  `;
+}
+
+function renderAskPlaudThinking() {
+  return `
+    <section class="ask-thinking">
+      <button class="ask-current-skill" data-action="ask-complete-thinking"><i></i>${h(askPlaudSkill)}</button>
+      <div class="ask-thinking-copy" data-action="ask-complete-thinking">
+        <p>深度思考中 <span>⌃</span></p>
+        <b>提取关键见解</b>
+        <p>我目前正在仔细研读这份文字记录，重点在于提炼出 3 到 5 条与制造业演示相关的关键见解。我的工作流程包括仔细阅读并理解讨论的核心内容。</p>
+        <b>提炼核心要点</b>
+        <p>我目前正专注于提炼制造业演示文稿的精髓，旨在寻找值得引用且能转换视角的深刻见解。</p>
+      </div>
+    </section>
+  `;
+}
+
+function renderAskPlaudIntro() {
+  return `
+    <section class="ask-suggestions">
+      ${askPlaudSuggestions.map((question) => `<button data-action="ask-suggestion" data-question="${h(question)}">${h(question)}</button>`).join("")}
+    </section>
+    ${askPlaudTipVisible ? `
+      <aside class="ask-skill-tip">
+        <button data-action="ask-hide-tip" aria-label="关闭技能说明">×</button>
+        <h3>认识全新“技能”</h3>
+        <p>一键调用 AI，高效处理重复工作。</p>
+        <p>你可以直接使用现成技能，也可以为常用流程创建专属技能。</p>
+      </aside>
+    ` : ""}
+  `;
+}
+
+function renderAskPlaudSheet() {
+  if (askPlaudMode === "closed") return "";
+  const body = askPlaudMode === "thinking"
+    ? renderAskPlaudThinking()
+    : askPlaudMode === "answer" ? renderAskPlaudAnswer() : renderAskPlaudIntro();
+  return `
+    <section class="ask-plaud-panel" aria-label="Ask A1">
+      <div class="ask-panel-card">
+        <header class="ask-topbar">
+          <button class="ask-trash" data-action="ask-reset" aria-label="清空对话">⌫</button>
+          <h2>Ask A1</h2>
+          <button class="ask-close" data-action="close-ask-plaud" aria-label="关闭">×</button>
+        </header>
+        <div class="ask-scroll">
+          ${body}
+        </div>
+        <div class="ask-bottom">
+          ${renderAskPlaudSkills()}
+          ${renderAskPlaudInput()}
+        </div>
+      </div>
     </section>
   `;
 }
@@ -1651,7 +2050,8 @@ function renderFileDetail() {
         </div>
       </section>
     </main>
-    <div class="note-question-bar"><span>Beta</span><input placeholder="对此笔记提问" aria-label="对此笔记提问"></div>
+    <div class="note-question-bar" data-action="open-ask-plaud"><span>Beta</span><input placeholder="对此笔记提问" aria-label="对此笔记提问" readonly></div>
+    ${renderAskPlaudSheet()}
   `;
 }
 
@@ -2077,12 +2477,15 @@ function meRow(label, opts = {}) {
 }
 
 function meTop(title, opts = {}) {
+  const right = opts.action
+    ? `<button class="top-action" data-action="${opts.action}">${h(opts.actionLabel || "添加")}</button>`
+    : opts.close ? `<button data-go="${opts.close}">×</button>` : "<span></span>";
   return `
     <div class="statusbar me-simple-status"><span>9:41</span><span>5G</span><span>82%</span></div>
     <header class="me-simple-top">
       <button data-go="${opts.back || "APP-ME-02"}">‹</button>
       <strong>${h(title)}</strong>
-      ${opts.close ? `<button data-go="${opts.close}">×</button>` : "<span></span>"}
+      ${right}
     </header>
   `;
 }
@@ -2122,8 +2525,64 @@ function accountRow(label, opts = {}) {
   `;
 }
 
+function localDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function recordingMinutesForDate(date, index) {
+  const seed = (date.getFullYear() * 17 + (date.getMonth() + 1) * 31 + date.getDate() * 13 + index) % 29;
+  if (seed < 16) return 0;
+  if (seed < 21) return 8 + (seed * 3) % 18;
+  if (seed < 26) return 31 + (seed * 7) % 54;
+  return 96 + (seed * 11) % 88;
+}
+
 function heatmapDots() {
-  return Array.from({ length: 112 }, (_, index) => `<i class="${index > 102 && index % 3 !== 0 ? "active" : ""}"></i>`).join("");
+  const daysPerWeek = 7;
+  const weekCount = 53;
+  const totalDays = daysPerWeek * weekCount;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const start = new Date(today);
+  start.setDate(today.getDate() - totalDays + 1);
+  const cells = [];
+
+  for (let index = 0; index < totalDays; index += 1) {
+    const date = new Date(start);
+    date.setDate(start.getDate() + index);
+    const dateKey = localDateKey(date);
+    const minutes = recordingMinutesForDate(date, index);
+    const level = minutes === 0 ? 0 : Math.min(4, Math.ceil(minutes / 45));
+    const label = `${dateKey} · 录音卡实际录音 ${minutes} 分钟`;
+    cells.push(`<i class="level-${level}" role="gridcell" aria-rowindex="${index % daysPerWeek + 1}" aria-colindex="${Math.floor(index / daysPerWeek) + 1}" aria-label="${label}" title="${label}" data-date="${dateKey}" data-recording-minutes="${minutes}"></i>`);
+  }
+
+  const monthSpans = [];
+  let lastMonth = -1;
+  const monthNames = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
+  for (let w = 0; w < weekCount; w += 1) {
+    const day = new Date(start);
+    day.setDate(start.getDate() + w * daysPerWeek);
+    const m = day.getMonth();
+    if (m !== lastMonth) {
+      monthSpans.push(`<span style="grid-column: ${w + 1} / span 4;">${monthNames[m]}</span>`);
+      lastMonth = m;
+    }
+  }
+
+  return `
+    <section class="settings-week-heatmap" aria-label="录音卡实际录音使用热力图">
+      <div class="settings-week-heatmap-scroll" data-visible-days="180" tabindex="0" aria-label="录音使用热力图，可横向滚动查看更早日期">
+        <div class="settings-week-heatmap-container" style="--settings-week-count:${weekCount}">
+          <div class="settings-week-heatmap-grid" role="grid" aria-rowcount="7" aria-colcount="${weekCount}">${cells.join("")}</div>
+          <div class="settings-week-heatmap-months" aria-hidden="true">${monthSpans.join("")}</div>
+        </div>
+      </div>
+    </section>
+  `;
 }
 
 function renderUsage() {
@@ -2173,7 +2632,7 @@ function renderAccountSettingsHome() {
   return `
     <main class="me-simple-page account-settings-home">
       ${meTop("设置")}
-      <section class="account-profile">
+      <section class="account-profile settings-hero">
         <div class="account-avatar">
           <span>3</span>
           <button aria-label="更换头像"></button>
@@ -2184,13 +2643,385 @@ function renderAccountSettingsHome() {
           <div><span>录音总数</span><b>34</b></div>
           <div><span>总使用时长</span><b>3.6<small>小时</small></b></div>
         </div>
-        <div class="account-heatmap">${heatmapDots()}</div>
+        ${heatmapDots()}
       </section>
       <section class="account-settings-list">
-        ${accountRow("偏好设置", { icon: "sliders" })}
+        ${accountRow("偏好设置", { icon: "sliders", go: "APP-ME-26" })}
         ${accountRow("账号", { icon: "user", go: "APP-ME-17" })}
       </section>
     </main>
+  `;
+}
+
+function prefsRow(label, opts = {}) {
+  const attrs = [
+    opts.go ? `data-go="${opts.go}"` : "",
+    opts.action ? `data-action="${opts.action}"` : "",
+    opts.valueKey !== undefined ? `data-value="${h(opts.valueKey)}"` : "",
+    opts.notification ? `data-notification="${opts.notification}"` : "",
+    opts.disabled ? "disabled" : ""
+  ].filter(Boolean).join(" ");
+  const tail = opts.toggle !== undefined
+    ? togglePill(opts.toggle, opts.disabled)
+    : opts.check ? "<b>✓</b>" : (opts.arrow === false ? "<span></span>" : "<i>›</i>");
+  return `
+    <button class="prefs-row ${opts.danger ? "danger" : ""} ${opts.disabled ? "disabled" : ""}" ${attrs}>
+      <span><b>${h(label)}</b>${opts.note ? `<small>${h(opts.note)}</small>` : ""}</span>
+      ${opts.value ? `<em>${h(opts.value)}</em>` : ""}
+      ${tail}
+    </button>
+  `;
+}
+
+function renderPreferencesBase() {
+  return `
+    <main class="me-simple-page prefs-page">
+      ${meTop("偏好设置", { back: "APP-ME-16" })}
+      <section class="settings-hero">
+        <h1>让每次录音更贴合你的习惯</h1>
+        <p>转写偏好只影响后续录音，不会修改已有文件。</p>
+      </section>
+      <section class="prefs-section">
+        <h2>转写</h2>
+        ${prefsRow("转写语言", { value: settingsState.transcriptionLanguage, go: "APP-ME-27" })}
+        ${prefsRow("自动提升转写可读性", { note: "智能补全标点、分段并优化口语表达", toggle: settingsState.improveReadability, action: "toggle-readability" })}
+        ${prefsRow("自动标注说话人", { value: settingsState.speakerDiarization ? "已开启" : "已关闭", go: "APP-ME-28" })}
+        ${prefsRow("自定义术语", { value: customTerms.length ? `${customTerms.length} 个` : "未设置", go: "APP-ME-34" })}
+      </section>
+      <section class="prefs-section">
+        <h2>应用</h2>
+        ${prefsRow("消息与通知", { go: "APP-ME-37" })}
+        ${prefsRow("应用锁", { value: settingsState.appLockEnabled ? settingsState.autoLockDuration : "已关闭", go: "APP-ME-38" })}
+      </section>
+      <section class="prefs-section">
+        <h2>AI 与隐私</h2>
+        ${prefsRow("帮助改进 AI", { note: "经你同意后使用去标识化片段改进识别效果", toggle: settingsState.improveAi, action: "toggle-improve-ai" })}
+      </section>
+    </main>
+  `;
+}
+
+function renderPreferences() {
+  const base = renderPreferencesBase();
+  if (!settingsNotice) return base;
+  return `
+    ${base}
+    <div class="scrim" data-action="dismiss-settings-notice"></div>
+    <section class="permission-sheet">
+      <button class="sheet-close" data-action="dismiss-settings-notice" aria-label="关闭">×</button>
+      <h2>使用通用转写优化?</h2>
+      <p>你还没有选择行业或添加常用术语。仍可开启自动提升转写可读性，系统将先使用通用词库。</p>
+      <button class="dark" data-action="confirm-readability">仍要开启</button>
+      <button class="outline" data-action="dismiss-settings-notice">稍后设置术语</button>
+    </section>
+  `;
+}
+
+function renderTranscriptionLanguage() {
+  const languages = ["自动检测", "简体中文", "English", "日本語", "繁體中文"];
+  return `
+    <main class="me-simple-page full-list-page prefs-page">
+      ${meTop("转写语言", { back: "APP-ME-26" })}
+      <section class="prefs-section">
+        <p>设为后续录音的默认转写语言。</p>
+        ${languages.map((language) => prefsRow(language, { check: settingsState.transcriptionLanguage === language, action: "select-language", valueKey: language })).join("")}
+      </section>
+    </main>
+  `;
+}
+
+function renderSpeakerSettings() {
+  return `
+    <main class="me-simple-page prefs-page speaker-page">
+      ${meTop("自动标注说话人", { back: "APP-ME-26" })}
+      <section class="settings-hero">
+        <h1>让转写自动区分不同说话人</h1>
+        <p>声音样本仅用于在你的录音中识别本人。</p>
+      </section>
+      <section class="prefs-section">
+        ${prefsRow("自动标注说话人", { toggle: settingsState.speakerDiarization, action: "toggle-speaker-diarization" })}
+        ${prefsRow("我的声音样本", { value: settingsState.voiceSampleCreated ? settingsState.speakerName : "未创建", go: "APP-ME-29" })}
+      </section>
+    </main>
+  `;
+}
+
+function renderVoiceSamples() {
+  return `
+    <main class="me-simple-page voice-sample-page speaker-page">
+      ${meTop("我的声音样本", { back: "APP-ME-28" })}
+      <section class="settings-hero">
+        <h1>${settingsState.voiceSampleCreated ? h(settingsState.speakerName) : "创建我的声音样本"}</h1>
+        <p>${settingsState.voiceSampleCreated ? "样本已可用于自动识别本人。" : "录制约 15 秒清晰语音，帮助系统在多人录音中识别你。"}</p>
+      </section>
+      <section class="prefs-section">
+        ${settingsState.voiceSampleCreated
+          ? `${prefsRow("样本名称", { value: settingsState.speakerName, go: "APP-ME-30" })}${prefsRow("重新录制", { go: "APP-ME-31" })}`
+          : `<button class="primary-btn" data-go="APP-ME-30">创建声音样本</button>`}
+      </section>
+    </main>
+  `;
+}
+
+function renderSpeakerName() {
+  const nameOptions = ["我的声音", "我", "本人声音"];
+  return `
+    <main class="me-simple-page speaker-page voice-sample-page">
+      ${meTop("命名声音样本", { back: "APP-ME-29" })}
+      <section class="settings-hero">
+        <h1>这个声音是谁?</h1>
+        <p>名称会显示在自动标注的转写结果中。</p>
+      </section>
+      <section class="prefs-section">
+        ${prefsRow("样本名称", { value: settingsState.speakerName, arrow: false })}
+        <div class="settings-choice-grid" aria-label="声音样本名称候选">
+          ${nameOptions.map((name) => `<button class="${settingsState.speakerName === name ? "selected" : ""}" data-action="choose-speaker-name" data-value="${h(name)}">${h(name)}</button>`).join("")}
+        </div>
+        <button class="primary-btn" data-action="continue-speaker-name">继续</button>
+      </section>
+    </main>
+  `;
+}
+
+function renderMicrophonePermission() {
+  return `
+    ${renderVoiceSamples()}
+    <div class="scrim" data-go="APP-ME-29"></div>
+    <section class="permission-sheet">
+      <button class="sheet-close" data-go="APP-ME-29" aria-label="关闭">×</button>
+      <h2>允许使用麦克风</h2>
+      <p>录制声音样本需要访问麦克风。样本只用于识别你的声音，你可随时重新录制。</p>
+      <button class="dark" data-action="allow-microphone">允许并继续</button>
+      <button class="outline" data-go="APP-ME-29">暂不允许</button>
+    </section>
+  `;
+}
+
+function renderVoiceSampleRecording() {
+  return `
+    <main class="me-simple-page voice-sample-page speaker-page">
+      ${meTop("录制声音样本", { back: "APP-ME-29" })}
+      <section class="settings-hero">
+        <h1>${settingsState.voiceRecording ? "正在录制…" : "请朗读下面这段文字"}</h1>
+        <p>“今天我会清晰地介绍项目进展，并记录接下来的行动计划。”</p>
+      </section>
+      <section class="prefs-section">
+        <div class="voice-sample-wave" aria-label="声音样本波形">${waveHeights.slice(0, 12).map((height) => `<i style="height:${height}%"></i>`).join("")}</div>
+        <p>${settingsState.voiceRecording ? "00:08 / 00:15 · 请保持自然语速" : "建议在安静环境中录制 15 秒"}</p>
+        <button class="primary-btn" data-action="toggle-voice-recording">${settingsState.voiceRecording ? "完成录制" : "开始录制"}</button>
+      </section>
+    </main>
+  `;
+}
+
+function renderVoiceSampleComplete() {
+  return `
+    <main class="me-simple-page voice-sample-page speaker-page">
+      ${meTop("声音样本完成", { back: "APP-ME-32" })}
+      <section class="settings-hero">
+        <h1>声音样本已创建</h1>
+        <p>之后的转写会优先把识别到的本人声音标注为“${h(settingsState.speakerName)}”。</p>
+      </section>
+      <section class="prefs-section">
+        <button class="primary-btn" data-go="APP-ME-29">完成</button>
+      </section>
+    </main>
+  `;
+}
+
+function renderTermsBase() {
+  return `
+    <main class="me-simple-page term-page prefs-page">
+      ${meTop("自定义术语", { back: "APP-ME-26" })}
+      <section class="settings-hero terms-overview-hero">
+        <div class="terms-hero-icon" aria-hidden="true">T</div>
+        <h1>自定义术语</h1>
+        <span>Beta</span>
+        <p>AI 将优先识别你所在行业的专有术语，并结合自定义术语，提升转写准确率。</p>
+      </section>
+      <section class="prefs-section">
+        ${prefsRow("启用自定义术语", {
+          toggle: settingsState.customTermsEnabled,
+          action: "toggle-custom-terms"
+        })}
+      </section>
+      <section class="prefs-section">
+        <h2>行业与术语</h2>
+        ${prefsRow("行业", { value: settingsState.industry || "未选择", go: "APP-ME-35" })}
+        ${prefsRow("常用术语", { value: `${customTerms.length}`, go: "APP-ME-36" })}
+      </section>
+    </main>
+  `;
+}
+
+function renderTerms() {
+  const base = renderTermsBase();
+  if (pendingTermsEnableNotice) {
+    return `
+      ${base}
+      <div class="scrim" data-action="dismiss-terms-enable-notice"></div>
+      <section class="permission-sheet term-enable-sheet">
+        <h2>启用自定义术语</h2>
+        <p>请先选择行业或添加自定义术语后，再启用该功能。</p>
+        <button class="dark" data-action="dismiss-terms-enable-notice">知道了</button>
+      </section>
+    `;
+  }
+  return base;
+}
+
+function renderIndustryList() {
+  const industries = ["信息技术与工程", "能源与环境", "金融与法律", "教育与研究", "公共服务", "医疗与健康", "创意与传媒", "建筑与房地产", "人力资源与行政", "零售与消费", "旅游与物流"];
+  return `
+    <main class="me-simple-page full-list-page term-page">
+      ${meTop("行业", { back: "APP-ME-34" })}
+      <section class="prefs-section">
+        ${industries.map((industry) => {
+          return prefsRow(industry, { check: settingsState.industry === industry, action: "select-industry", valueKey: industry });
+        }).join("")}
+      </section>
+    </main>
+  `;
+}
+
+function termGroupLabel(term) {
+  const first = String(term || "").trim().charAt(0);
+  return /^[A-Za-z]$/.test(first) ? first.toUpperCase() : "#";
+}
+
+function renderTermRows() {
+  const groups = customTerms.reduce((acc, term, index) => {
+    const key = termGroupLabel(term);
+    if (!acc[key]) acc[key] = [];
+    acc[key].push([term, index]);
+    return acc;
+  }, {});
+  return Object.keys(groups).sort().map((key) => `
+    <section class="terms-alpha-group">
+      <h2>${h(key)}</h2>
+      ${groups[key].map(([term, index]) => `
+        <button class="terms-list-row" data-action="open-edit-term" data-term-index="${index}">
+          <span>${h(term)}</span>
+          <i>›</i>
+        </button>
+      `).join("")}
+    </section>
+  `).join("");
+}
+
+function renderTermEditorSheet() {
+  if (!termSheetMode) return "";
+  const editing = termSheetMode === "edit" && termEditorIndex !== null;
+  const value = editing ? customTerms[termEditorIndex] || "" : "";
+  return `
+    <div class="scrim light" data-action="close-term-sheet"></div>
+    <section class="term-editor-sheet">
+      <header>
+        <button data-action="close-term-sheet">取消</button>
+        <button data-action="save-term-sheet">保存</button>
+      </header>
+      <label class="term-editor-field">
+        <span>术语</span>
+        <input id="termSheetInput" value="${h(value)}" maxlength="40" placeholder="AI 录音卡" aria-label="术语" autofocus>
+        <button type="button" data-action="clear-term-draft" aria-label="清空术语">×</button>
+      </label>
+      <p class="${termSheetError ? "term-sheet-error" : ""}">${termSheetError || "添加常用术语，例如：名字、公司、行业术语等"}</p>
+      ${editing ? `<button class="term-delete-button" data-action="delete-term-sheet">删除术语</button>` : ""}
+    </section>
+  `;
+}
+
+function renderCommonTerms() {
+  const base = `
+    <main class="me-simple-page term-page common-terms-page">
+      ${meTop("常用术语", { back: "APP-ME-34", action: "open-term-sheet", actionLabel: "添加" })}
+      ${customTerms.length ? `
+        <section class="terms-alpha-list">
+          ${renderTermRows()}
+        </section>
+      ` : `
+        <section class="terms-empty-state">
+          <div class="terms-empty-icon" aria-hidden="true"></div>
+          <p>添加自定义术语以提高转写质量</p>
+        </section>
+      `}
+    </main>
+  `;
+  return `${base}${renderTermEditorSheet()}`;
+}
+
+function renderNotifications() {
+  const items = [
+    ["进度与账号提醒", "在录音上传、转写和总结完成，或账号需要操作时，收到提醒", "transcription"],
+    ["设备状态提醒", "接收设备相关提醒，例如电量过低、电量充满或固件更新等", "device"],
+    ["产品更新与优惠", "获取新功能、产品更新和优惠活动等信息", "product"]
+  ];
+  return `
+    <main class="me-simple-page full-list-page prefs-page">
+      ${meTop("消息与通知", { back: "APP-ME-26" })}
+      <section class="prefs-section">
+        ${prefsRow("允许通知", { toggle: settingsState.notificationsAllowed, action: "toggle-notifications-allowed" })}
+      </section>
+      <section class="prefs-section">
+        <h2>通知类型</h2>
+        ${items.map(([label, note, key]) => prefsRow(label, {
+          note,
+          toggle: settingsState.notifications[key],
+          action: "toggle-notification",
+          notification: key,
+          disabled: !settingsState.notificationsAllowed
+        })).join("")}
+      </section>
+    </main>
+  `;
+}
+
+function renderAppLock() {
+  const durations = ["立即", "1分钟后", "5分钟后", "15分钟后"];
+  return `
+    <main class="me-simple-page app-lock-page prefs-page">
+      ${meTop("应用锁", { back: "APP-ME-26" })}
+      <section class="prefs-section">
+        ${prefsRow("应用锁", { toggle: settingsState.appLockEnabled, action: "toggle-app-lock" })}
+      </section>
+      ${settingsState.appLockEnabled ? `
+        <section class="prefs-section">
+          <h2>自动锁定</h2>
+          ${durations.map((duration) => prefsRow(duration, {
+            check: settingsState.autoLockDuration === duration,
+            action: "select-auto-lock-inline",
+            valueKey: duration,
+            arrow: false
+          })).join("")}
+        </section>
+      ` : ""}
+    </main>
+  `;
+}
+
+function renderAutoLockDuration() {
+  const durations = ["立即", "1分钟后", "5分钟后", "15分钟后"];
+  return `
+    <main class="me-simple-page full-list-page app-lock-page">
+      ${meTop("自动锁定时长", { back: "APP-ME-38" })}
+      <section class="prefs-section">
+        ${durations.map((duration) => prefsRow(duration, { check: settingsState.autoLockDuration === duration, action: "select-auto-lock", valueKey: duration })).join("")}
+      </section>
+    </main>
+  `;
+}
+
+function renderFaceIdPermission() {
+  return `
+    ${renderAppLock()}
+    <div class="scrim" data-go="APP-ME-38"></div>
+    <section class="permission-sheet">
+      <button class="sheet-close" data-go="APP-ME-38" aria-label="关闭">×</button>
+      <h2>允许“AI录音卡”使用 Face ID?</h2>
+      <p>Face ID 仅用于解锁本机应用，生物识别数据由系统管理，应用不会读取或保存。</p>
+      <button class="dark" data-action="allow-face-id">允许</button>
+      <button class="outline" data-go="APP-ME-38">暂不允许</button>
+    </section>
   `;
 }
 
@@ -2729,6 +3560,21 @@ const renderers = {
   "APP-AI-01": renderGenerate,
   "APP-ME-02": renderUsage,
   "APP-ME-16": renderAccountSettingsHome,
+  "APP-ME-26": renderPreferences,
+  "APP-ME-27": renderTranscriptionLanguage,
+  "APP-ME-28": renderSpeakerSettings,
+  "APP-ME-29": renderVoiceSamples,
+  "APP-ME-30": renderSpeakerName,
+  "APP-ME-31": renderMicrophonePermission,
+  "APP-ME-32": renderVoiceSampleRecording,
+  "APP-ME-33": renderVoiceSampleComplete,
+  "APP-ME-34": renderTerms,
+  "APP-ME-35": renderIndustryList,
+  "APP-ME-36": renderCommonTerms,
+  "APP-ME-37": renderNotifications,
+  "APP-ME-38": renderAppLock,
+  "APP-ME-39": renderAutoLockDuration,
+  "APP-ME-40": renderFaceIdPermission,
   "APP-ME-17": renderAccountPage,
   "APP-ME-18": renderLoginMethods,
   "APP-ME-19": renderLoggedInDevices,
@@ -2767,7 +3613,7 @@ function renderNav() {
 }
 
 function renderFlow() {
-  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-DEV-05", "APP-HOME-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-02", "APP-ME-16", "APP-ME-17", "APP-ME-18", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-23", "APP-ME-10", "APP-ME-11", "APP-ME-12", "APP-DEV-03", "APP-ME-04", "APP-ME-24", "APP-ME-25", "APP-DEV-06", "APP-DEV-07", "APP-DEV-08", "APP-DEV-09"];
+  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-DEV-05", "APP-HOME-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-02", "APP-ME-16", "APP-ME-26", "APP-ME-27", "APP-ME-28", "APP-ME-29", "APP-ME-30", "APP-ME-31", "APP-ME-32", "APP-ME-33", "APP-ME-34", "APP-ME-35", "APP-ME-36", "APP-ME-37", "APP-ME-38", "APP-ME-40", "APP-ME-39", "APP-ME-17", "APP-ME-18", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-23", "APP-ME-10", "APP-ME-11", "APP-ME-12", "APP-DEV-03", "APP-ME-04", "APP-ME-24", "APP-ME-25", "APP-DEV-06", "APP-DEV-07", "APP-DEV-08", "APP-DEV-09"];
   document.getElementById("flowStrip").innerHTML = flow.map((id, index) => {
     const page = pageById(id);
     return `<button class="${id === currentPageId ? "active" : ""}" data-go="${id}">${index + 1}. ${h(page.title)}</button>`;
@@ -2802,12 +3648,196 @@ function renderSpec(page) {
   `;
 }
 
+function handleSettingsAction(action, target) {
+  if (action === "toggle-readability") {
+    settingsState.improveReadability = !settingsState.improveReadability;
+    render();
+    return true;
+  }
+  if (action === "dismiss-settings-notice") {
+    settingsNotice = "";
+    render();
+    return true;
+  }
+  if (action === "confirm-readability") {
+    settingsState.improveReadability = true;
+    settingsNotice = "";
+    render();
+    return true;
+  }
+  if (action === "toggle-improve-ai") {
+    settingsState.improveAi = !settingsState.improveAi;
+    render();
+    return true;
+  }
+  if (action === "select-language") {
+    settingsState.transcriptionLanguage = target.dataset.value;
+    go("APP-ME-26");
+    return true;
+  }
+  if (action === "toggle-speaker-diarization") {
+    settingsState.speakerDiarization = !settingsState.speakerDiarization;
+    render();
+    return true;
+  }
+  if (action === "choose-speaker-name") {
+    settingsState.speakerName = target.dataset.value || "我的声音";
+    render();
+    return true;
+  }
+  if (action === "continue-speaker-name") {
+    go("APP-ME-31");
+    return true;
+  }
+  if (action === "allow-microphone") {
+    settingsState.microphoneAllowed = true;
+    settingsState.voiceRecording = false;
+    go("APP-ME-32");
+    return true;
+  }
+  if (action === "toggle-voice-recording") {
+    if (!settingsState.voiceRecording) {
+      settingsState.voiceRecording = true;
+      render();
+    } else {
+      settingsState.voiceRecording = false;
+      settingsState.voiceSampleCreated = true;
+      go("APP-ME-33");
+    }
+    return true;
+  }
+  if (action === "toggle-custom-terms") {
+    if (settingsState.customTermsEnabled) {
+      settingsState.customTermsEnabled = false;
+    } else if (!settingsState.industry && customTerms.length === 0) {
+      pendingTermsEnableNotice = true;
+    } else {
+      settingsState.customTermsEnabled = true;
+    }
+    render();
+    return true;
+  }
+  if (action === "dismiss-terms-enable-notice") {
+    pendingTermsEnableNotice = false;
+    render();
+    return true;
+  }
+  if (action === "open-term-sheet") {
+    termEditorIndex = null;
+    termSheetMode = "add";
+    termSheetError = "";
+    render();
+    return true;
+  }
+  if (action === "open-edit-term") {
+    termEditorIndex = Number(target.dataset.termIndex);
+    termSheetMode = "edit";
+    termSheetError = "";
+    render();
+    return true;
+  }
+  if (action === "close-term-sheet") {
+    termSheetMode = "";
+    termEditorIndex = null;
+    termSheetError = "";
+    render();
+    return true;
+  }
+  if (action === "clear-term-draft") {
+    const input = document.getElementById("termSheetInput");
+    if (input) {
+      input.value = "";
+      input.focus();
+    }
+    termSheetError = "";
+    return true;
+  }
+  if (action === "delete-term-sheet") {
+    if (termEditorIndex !== null) customTerms.splice(termEditorIndex, 1);
+    termEditorIndex = null;
+    termSheetMode = "";
+    termSheetError = "";
+    if (!settingsState.industry && customTerms.length === 0) settingsState.customTermsEnabled = false;
+    render();
+    return true;
+  }
+  if (action === "select-industry") {
+    settingsState.industry = target.dataset.value || "";
+    if (!settingsState.industry && customTerms.length === 0) settingsState.customTermsEnabled = false;
+    pendingTermsEnableNotice = false;
+    go("APP-ME-34");
+    return true;
+  }
+  if (action === "save-term-sheet") {
+    const value = document.getElementById("termSheetInput")?.value.trim() || "";
+    if (!value) {
+      termSheetError = "请输入术语";
+      render();
+      return true;
+    }
+    if (termSheetMode === "edit" && termEditorIndex !== null) {
+      customTerms[termEditorIndex] = value;
+    } else {
+      if (!customTerms.includes(value)) customTerms.push(value);
+    }
+    termEditorIndex = null;
+    termSheetMode = "";
+    termSheetError = "";
+    pendingTermsEnableNotice = false;
+    render();
+    return true;
+  }
+  if (action === "toggle-notification") {
+    const key = target.dataset.notification;
+    if (key in settingsState.notifications) settingsState.notifications[key] = !settingsState.notifications[key];
+    render();
+    return true;
+  }
+  if (action === "toggle-notifications-allowed") {
+    settingsState.notificationsAllowed = !settingsState.notificationsAllowed;
+    render();
+    return true;
+  }
+  if (action === "toggle-app-lock") {
+    if (settingsState.appLockEnabled) {
+      settingsState.appLockEnabled = false;
+      render();
+    } else {
+      go("APP-ME-40");
+    }
+    return true;
+  }
+  if (action === "select-auto-lock-inline") {
+    settingsState.autoLockDuration = target.dataset.value;
+    render();
+    return true;
+  }
+  if (action === "allow-face-id") {
+    settingsState.faceIdAllowed = true;
+    settingsState.appLockEnabled = true;
+    go("APP-ME-38");
+    return true;
+  }
+  if (action === "select-auto-lock") {
+    settingsState.autoLockDuration = target.dataset.value;
+    go("APP-ME-38");
+    return true;
+  }
+  return false;
+}
+
 function render() {
   const page = pageById(currentPageId);
   document.body.classList.toggle("document-mode", page.id === "APP-PRD-00");
   document.getElementById("screenTitle").textContent = `${page.id} ${page.title}`;
   document.getElementById("screenGoal").textContent = page.goal;
   document.getElementById("phone").innerHTML = (renderers[page.id] || renderHome)();
+  const heatmapScroller = document.querySelector(".settings-week-heatmap-scroll");
+  if (heatmapScroller) {
+    requestAnimationFrame(() => {
+      heatmapScroller.scrollLeft = heatmapScroller.scrollWidth;
+    });
+  }
   renderNav();
   renderFlow();
   renderPrototypeLinks(page);
@@ -2815,6 +3845,12 @@ function render() {
 }
 
 document.addEventListener("click", (event) => {
+  const askInput = event.target.closest(".note-question-bar");
+  if (askInput) {
+    askPlaudMode = "intro";
+    render();
+    return;
+  }
   const tab = event.target.closest("[data-tab]");
   if (tab) {
     fileDetailTab = tab.dataset.tab;
@@ -2828,6 +3864,62 @@ document.addEventListener("click", (event) => {
     return;
   }
   const action = event.target.closest("[data-action]");
+  if (action && action.dataset.action === "open-ask-plaud") {
+    askPlaudMode = "intro";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "close-ask-plaud") {
+    askPlaudMode = "closed";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "ask-reset") {
+    askPlaudMode = "intro";
+    askPlaudPrompt = "";
+    askPlaudSkill = "获取洞察";
+    askPlaudTipVisible = true;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "ask-hide-tip") {
+    askPlaudTipVisible = false;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "ask-use-skill") {
+    askPlaudSkill = action.dataset.skill || "获取洞察";
+    askPlaudMode = "thinking";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "ask-suggestion") {
+    askPlaudPrompt = action.dataset.question || "";
+    askPlaudMode = "thinking";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "ask-complete-thinking") {
+    askPlaudMode = "answer";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "finish-recording-sync") {
+    homeSyncStage = "finishing";
+    go("APP-HOME-01");
+    return;
+  }
+  if (action && action.dataset.action === "home-complete-sync") {
+    homeSyncStage = "saved";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "home-reset-sync-demo") {
+    homeSyncStage = "recording";
+    render();
+    return;
+  }
+  if (action && handleSettingsAction(action.dataset.action, action)) return;
   if (action && action.dataset.action === "toggle-pause") {
     recordPaused = !recordPaused;
     render();
@@ -2840,6 +3932,19 @@ document.addEventListener("click", (event) => {
   }
   const link = event.target.closest("[data-go]");
   if (link) go(link.dataset.go);
+});
+
+document.addEventListener("submit", (event) => {
+  const form = event.target.closest("[data-action='ask-submit']");
+  if (!form) return;
+  event.preventDefault();
+  if (askPlaudMode === "thinking") {
+    askPlaudMode = "answer";
+  } else {
+    askPlaudPrompt = form.querySelector("#askPlaudInput")?.value.trim() || askPlaudPrompt || askPlaudSuggestions[0];
+    askPlaudMode = "thinking";
+  }
+  render();
 });
 
 try {

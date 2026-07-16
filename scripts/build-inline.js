@@ -6,30 +6,37 @@ const indexPath = path.join(root, "index.html");
 const appPath = path.join(root, "app.js");
 const index = fs.readFileSync(indexPath, "utf8");
 const app = fs.readFileSync(appPath, "utf8");
-let built = false;
 
-let inline = index.replace(
-  /\s*<script src="\.\/app\.js"><\/script>\s*<\/body>/,
+function stripExistingAppScripts(html) {
+  const marker = "const waveHeights = [";
+  let output = html.replace(/\s*<script\s+src="\.\/app\.js(?:\?[^"]*)?"><\/script>/g, "");
+
+  while (true) {
+    const markerAt = output.indexOf(marker);
+    if (markerAt < 0) break;
+
+    const scriptStart = output.lastIndexOf("<script", markerAt);
+    const scriptCloseStart = output.indexOf("</script>", markerAt);
+    if (scriptStart < 0 || scriptCloseStart <= scriptStart) {
+      throw new Error("Cannot remove existing inline app script block");
+    }
+
+    const scriptCloseEnd = scriptCloseStart + "</script>".length;
+    output = `${output.slice(0, scriptStart)}${output.slice(scriptCloseEnd)}`;
+  }
+
+  return output;
+}
+
+const stripped = stripExistingAppScripts(index);
+if (!/<\/body>/.test(stripped)) {
+  throw new Error("Cannot find </body> in index.html");
+}
+
+const inline = stripped.replace(
+  /\s*<\/body>/,
   `\n  <script>\n${app}\n  </script>\n</body>`
 );
-built = inline !== index;
-
-if (!built) {
-  const marker = "const waveHeights = [";
-  const markerAt = index.indexOf(marker);
-  const scriptStart = markerAt >= 0 ? index.lastIndexOf("<script", markerAt) : -1;
-  const scriptCloseStart = markerAt >= 0 ? index.indexOf("</script>", markerAt) : -1;
-
-  if (scriptStart >= 0 && scriptCloseStart > scriptStart) {
-    const scriptCloseEnd = scriptCloseStart + "</script>".length;
-    inline = `${index.slice(0, scriptStart)}<script>\n${app}\n  </script>${index.slice(scriptCloseEnd)}`;
-    built = true;
-  }
-}
-
-if (!built) {
-  throw new Error("Cannot find app.js script block in index.html");
-}
 
 fs.writeFileSync(indexPath, inline, "utf8");
 console.log("Built inline index.html");
