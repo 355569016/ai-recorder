@@ -1135,12 +1135,26 @@ button {
   background: #f2f2f2;
 }
 
-.sn-tip-dialog {
+.sn-tip-layer {
   position: absolute;
-  left: 22px;
-  right: 22px;
-  bottom: 92px;
-  z-index: 6;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  align-items: end;
+  padding: 0 22px 92px;
+}
+
+.sn-tip-scrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(0, 0, 0, .22);
+  cursor: pointer;
+}
+
+.sn-tip-dialog {
+  position: relative;
+  z-index: 1;
   padding: 24px 22px 22px;
   border-radius: 12px;
   background: #fff;
@@ -1274,9 +1288,6 @@ button {
 }
 
 .found-head p {
-  display: inline-flex;
-  gap: 8px;
-  align-items: center;
   margin: 14px 0 0;
   color: #888;
   font-size: 17px;

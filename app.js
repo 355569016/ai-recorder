@@ -1496,12 +1496,14 @@ function snHelpButton() {
 function renderDeviceSnTip() {
   if (!deviceSnTipOpen) return "";
   return `
-    <div class="scrim subtle" data-action="close-sn-tip"></div>
-    <section class="sn-tip-dialog" role="dialog" aria-modal="true" aria-label="SN 位置说明">
-      <h2>SN 在哪里？</h2>
-      <p>检查录音卡装置随附的包装盒，SN 印在包装盒背面的标签上。</p>
-      <button class="primary-btn" data-action="close-sn-tip">知道了</button>
-    </section>
+    <div class="sn-tip-layer">
+      <button class="sn-tip-scrim" data-action="close-sn-tip" aria-label="关闭 SN 位置说明"></button>
+      <section class="sn-tip-dialog" role="dialog" aria-modal="true" aria-label="SN 位置说明">
+        <h2>SN 在哪里？</h2>
+        <p>检查录音卡装置随附的包装盒，SN 印在包装盒背面的标签上。</p>
+        <button class="primary-btn" data-action="close-sn-tip">知道了</button>
+      </section>
+    </div>
   `;
 }
 
