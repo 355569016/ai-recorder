@@ -216,10 +216,10 @@ const pages = [
     goal: "展示搜索到的设备和 SN，等待用户确认连接。",
     entry: "正在搜索设备页发现可连接设备。",
     fields: [["device_id", "设备 ID", "BLE/云端设备"], ["device_sn", "完整 SN", "BLE/云端设备"], ["user_id", "当前账号", "云端账号"], ["bind_result", "绑定结果", "设备/云端"]],
-    rules: ["绑定前必须登录。", "设备页展示设备名、完整 SN、帮助提示和设备图。", "用户确认后执行连接和绑定写入。", "不是用户设备时可返回重新搜索。"],
-    states: ["等待连接", "连接中", "绑定成功", "绑定失败"],
+    rules: ["绑定前必须登录。", "设备页展示设备名、完整 SN、帮助提示和设备图。", "点击 SN 后面的提示图标，弹窗说明：检查录音卡装置随附的包装盒，SN 印在包装盒背面的标签上。", "用户确认后执行连接和绑定写入。", "不是用户设备时可返回重新搜索。"],
+    states: ["等待连接", "SN 位置提示", "连接中", "绑定成功", "绑定失败"],
     deps: ["BLE 命令包：写入绑定关系，协议待固件定义。", "云端设备：绑定/解绑接口待后端定义。"],
-    acceptance: ["搜索到设备页展示连接按钮。", "点击连接成功进入文件首页。", "不是用户设备可返回搜索。"]
+    acceptance: ["搜索到设备页展示连接按钮。", "点击 SN 后提示图标可打开 SN 位置说明弹窗。", "点击连接成功进入文件首页。", "不是用户设备可返回搜索。"]
   },
   {
     id: "APP-DEV-04",
@@ -1233,6 +1233,7 @@ let askPlaudMode = "closed";
 let askPlaudPrompt = "";
 let askPlaudSkill = "获取洞察";
 let askPlaudTipVisible = true;
+let deviceSnTipOpen = false;
 let homeSyncStage = "recording";
 let homeDeviceMenuOpen = false;
 let activeHomeDeviceId = "a1";
@@ -1289,6 +1290,9 @@ function go(id) {
   currentPageId = id === "APP-HOME-02" ? "APP-HOME-01" : id;
   if (currentPageId !== "APP-HOME-01") {
     homeDeviceMenuOpen = false;
+  }
+  if (!["APP-DEV-02", "APP-DEV-04", "APP-DEV-05"].includes(currentPageId)) {
+    deviceSnTipOpen = false;
   }
   if (currentPageId !== "APP-FILE-03") {
     filterFolderSheetMode = "";
@@ -1549,11 +1553,27 @@ function renderDeviceScan() {
   `, { title: " ", back: "APP-ONB-04", bottom: false, compact: true });
 }
 
+function snHelpButton() {
+  return `<button class="sn-help-btn" data-action="open-sn-tip" aria-label="查看 SN 所在位置">?</button>`;
+}
+
+function renderDeviceSnTip() {
+  if (!deviceSnTipOpen) return "";
+  return `
+    <div class="scrim subtle" data-action="close-sn-tip"></div>
+    <section class="sn-tip-dialog" role="dialog" aria-modal="true" aria-label="SN 位置说明">
+      <h2>SN 在哪里？</h2>
+      <p>检查录音卡装置随附的包装盒，SN 印在包装盒背面的标签上。</p>
+      <button class="primary-btn" data-action="close-sn-tip">知道了</button>
+    </section>
+  `;
+}
+
 function renderDeviceBind() {
   return screen(`
     <section class="found-head">
       <h1>AI Recorder A1</h1>
-      <p><span>SN: 8810B30293069513</span><b>?</b></p>
+      <p><span>SN: 8810B30293069513</span>${snHelpButton()}</p>
     </section>
     <section class="device-art found">
       <div class="device-vertical">
@@ -1566,6 +1586,7 @@ function renderDeviceBind() {
       <button class="primary-btn" data-go="APP-HOME-01">连接 A1</button>
       <button class="link-btn center" data-go="APP-DEV-01">不是你的设备?</button>
     </div>
+    ${renderDeviceSnTip()}
   `, { title: " ", back: "APP-DEV-01", bottom: false, compact: true });
 }
 
@@ -1573,7 +1594,7 @@ function renderDeviceAlreadyBound() {
   return screen(`
     <section class="found-head dimmed">
       <h1>AI Recorder A1</h1>
-      <p><span>SN: 8810B30293069513</span><b>?</b></p>
+      <p><span>SN: 8810B30293069513</span>${snHelpButton()}</p>
     </section>
     <section class="device-art found dimmed">
       <div class="device-vertical">
@@ -1590,6 +1611,7 @@ function renderDeviceAlreadyBound() {
       <button class="primary-btn" data-go="APP-DEV-01">好的</button>
       <button class="link-btn center" data-go="APP-DEV-05">? 如何移除设备?</button>
     </section>
+    ${renderDeviceSnTip()}
   `, { title: " ", back: "APP-DEV-01", bottom: false, compact: true });
 }
 
@@ -1597,7 +1619,7 @@ function renderDeviceUnbindHelp() {
   return screen(`
     <section class="found-head dimmed">
       <h1>AI Recorder A1</h1>
-      <p><span>SN: 8810B30293069513</span><b>?</b></p>
+      <p><span>SN: 8810B30293069513</span>${snHelpButton()}</p>
     </section>
     <section class="device-art found dimmed">
       <div class="device-vertical">
@@ -1621,6 +1643,7 @@ function renderDeviceUnbindHelp() {
       <button class="primary-btn" data-go="APP-DEV-04">好的</button>
       <button class="secondary-btn" data-go="APP-ONB-01">退出登录</button>
     </section>
+    ${renderDeviceSnTip()}
   `, { title: " ", back: "APP-DEV-04", bottom: false, compact: true });
 }
 
@@ -4210,6 +4233,16 @@ document.addEventListener("click", (event) => {
   }
   if (action && action.dataset.action === "ask-complete-thinking") {
     askPlaudMode = "answer";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "open-sn-tip") {
+    deviceSnTipOpen = true;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "close-sn-tip") {
+    deviceSnTipOpen = false;
     render();
     return;
   }
