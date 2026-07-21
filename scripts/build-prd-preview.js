@@ -1,9 +1,12 @@
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 
 const root = path.resolve(__dirname, "..");
 const sourcePath = path.resolve(root, "..", "AI录音卡App需求文档_v3.0.md");
 const outputPath = path.join(root, "prd-preview.html");
+const vendorDir = path.join(root, "vendor");
+const vendorMermaidPath = path.join(vendorDir, "mermaid.min.js");
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (char) => ({
@@ -16,108 +19,59 @@ function escapeHtml(value) {
 }
 
 function inlineMarkdown(text) {
-  let value = escapeHtml(text);
+  const tokens = [];
+  let value = String(text ?? "").replace(/<span\s+style="color:\s*(#[0-9a-fA-F]{3,8})"\s*>|<\/span>/g, (match, color) => {
+    const token = color ? `<span class="source-highlight" style="--source-color:${color}">` : "</span>";
+    tokens.push(token);
+    return `@@HTML_TOKEN_${tokens.length - 1}@@`;
+  });
+
+  value = escapeHtml(value);
   value = value.replace(/`([^`]+)`/g, "<code>$1</code>");
   value = value.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  value = value.replace(/【待确认】/g, '<span class="review-tag">待确认</span>');
+  value = value.replace(/@@HTML_TOKEN_(\d+)@@/g, (_, index) => tokens[Number(index)] || "");
   return value;
 }
 
-function diagramCard(label, tone = "") {
-  return `<div class="diagram-card ${tone}">${String(label).split("\n").map((part) => `<span>${escapeHtml(part)}</span>`).join("")}</div>`;
+function findMermaidDist() {
+  const candidates = [vendorMermaidPath];
+  if (process.env.MERMAID_DIST_PATH) candidates.push(process.env.MERMAID_DIST_PATH);
+
+  try {
+    candidates.push(require.resolve("mermaid/dist/mermaid.min.js"));
+  } catch {
+    // Continue with local package-cache discovery.
+  }
+
+  const npxRoot = path.join(os.homedir(), ".npm", "_npx");
+  if (fs.existsSync(npxRoot)) {
+    fs.readdirSync(npxRoot, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .forEach((entry) => candidates.push(path.join(npxRoot, entry.name, "node_modules", "mermaid", "dist", "mermaid.min.js")));
+  }
+
+  return candidates.find((candidate) => candidate && fs.existsSync(candidate));
 }
 
-function renderOverviewDiagram() {
-  const groups = [
-    ["首启与账号", ["登录/注册", "协议隐私", "权限说明", "AI 授权"], "blue"],
-    ["设备与硬件录音", ["设备扫描", "绑定确认", "连接状态", "录音控制"], "green"],
-    ["文件同步与管理", ["录音后同步", "CRC 校验", "导入音频", "文件列表"], "amber"],
-    ["转写与 AI 笔记", ["生成确认", "转写状态", "AI 摘要", "导出分享"], "purple"],
-    ["用量与会员", ["剩余分钟", "扣减账本", "失败返还"], "gray"],
-    ["隐私与异常", ["录音同意", "云端删除", "设备异常", "额度不足"], "red"]
-  ];
-  return `<figure class="diagram overview-diagram">
-    <figcaption>业务全景图</figcaption>
-    <div class="overview-root">${diagramCard("AI录音卡 App", "root")}</div>
-    <div class="overview-grid">
-      ${groups.map(([title, items, tone]) => `<section class="diagram-group ${tone}">
-        <h4>${escapeHtml(title)}</h4>
-        <div>${items.map((item) => diagramCard(item)).join("")}</div>
-      </section>`).join("")}
+function ensureMermaidVendor() {
+  const mermaidDist = findMermaidDist();
+  if (!mermaidDist) {
+    throw new Error("Mermaid runtime not found. Install the mermaid package or set MERMAID_DIST_PATH before building the PRD preview.");
+  }
+  fs.mkdirSync(vendorDir, { recursive: true });
+  if (!fs.existsSync(vendorMermaidPath) || fs.statSync(vendorMermaidPath).size !== fs.statSync(mermaidDist).size) {
+    fs.copyFileSync(mermaidDist, vendorMermaidPath);
+  }
+}
+
+function renderMermaidDiagram(code, diagramIndex) {
+  const whiteLabelNodeIds = [...code.matchAll(/^\s*style\s+([A-Za-z0-9_]+)\s+[^\n]*color:\s*#fff\b/gim)].map((match) => match[1]);
+  return `<figure class="diagram mermaid-diagram" aria-label="需求流程图 ${diagramIndex}">
+    <div class="diagram-scroll">
+      <pre class="mermaid" id="mermaid-diagram-${diagramIndex}" data-white-labels="${escapeHtml(whiteLabelNodeIds.join(","))}">${escapeHtml(code)}</pre>
     </div>
   </figure>`;
-}
-
-function renderBusinessFlowDiagram() {
-  const steps = [
-    ["首次使用", "登录 / 注册\n协议与权限确认"],
-    ["绑定设备", "扫描设备\n确认绑定关系"],
-    ["硬件录音", "开始录音\n标记和结束"],
-    ["同步文件", "上传文件\nCRC 校验"],
-    ["生成内容", "转写\nAI 摘要"],
-    ["使用结果", "查看笔记\n导出分享"]
-  ];
-  return `<figure class="diagram flow-diagram">
-    <figcaption>端到端业务流程图</figcaption>
-    <div class="flow-row">
-      ${steps.map(([title, body], index) => `<div class="flow-step">
-        <b>${index + 1}</b>
-        ${diagramCard(`${title}\n${body}`)}
-      </div>${index < steps.length - 1 ? '<span class="diagram-arrow">→</span>' : ""}`).join("")}
-    </div>
-  </figure>`;
-}
-
-function renderCoreFlowDiagram() {
-  const columns = [
-    ["入口检查", ["打开 App", "登录状态检查", "设备绑定检查"]],
-    ["录音与同步", ["开始硬件录音", "结束后回到首页", "存在同步任务时展示进度"]],
-    ["文件处理", ["进入文件列表", "生成方式与用量确认", "转写 / AI 生成"]],
-    ["结果使用", ["文件详情", "分享 / 导出", "用量账本"]]
-  ];
-  return `<figure class="diagram core-diagram">
-    <figcaption>核心业务流程</figcaption>
-    <div class="core-grid">
-      ${columns.map(([title, items]) => `<section>
-        <h4>${escapeHtml(title)}</h4>
-        ${items.map((item, index) => `${diagramCard(item)}${index < items.length - 1 ? '<span class="down-arrow">↓</span>' : ""}`).join("")}
-      </section>`).join("")}
-    </div>
-  </figure>`;
-}
-
-function renderStateDiagram() {
-  const states = ["待登录", "待绑定", "设备可用", "录音中", "同步中", "待生成", "生成中", "可查看 / 可分享"];
-  return `<figure class="diagram state-diagram">
-    <figcaption>关键状态流转</figcaption>
-    <div class="state-chain">
-      ${states.map((state, index) => `${diagramCard(state)}${index < states.length - 1 ? '<span class="diagram-arrow">→</span>' : ""}`).join("")}
-    </div>
-  </figure>`;
-}
-
-function renderGenericMermaidDiagram(code) {
-  const labels = [];
-  code.split(/\r?\n/).forEach((line) => {
-    const match = line.match(/[A-Za-z0-9_]+(?:\[[^\]]+\]|\([^)]+\)|\{[^}]+\})/g);
-    if (!match) return;
-    match.forEach((token) => {
-      const label = token.replace(/^[A-Za-z0-9_]+[\[\(\{]/, "").replace(/[\]\)\}]$/, "").replace(/^"|"$/g, "").replace(/<br\s*\/?>/g, "\n");
-      if (label && !labels.includes(label)) labels.push(label);
-    });
-  });
-  const shown = labels.length ? labels : code.split(/\r?\n/).filter((line) => line.trim() && !line.trim().startsWith("%%")).slice(0, 8);
-  return `<figure class="diagram generic-diagram">
-    <figcaption>流程图</figcaption>
-    <div class="generic-grid">${shown.slice(0, 12).map((label) => diagramCard(label)).join("")}</div>
-  </figure>`;
-}
-
-function renderMermaidDiagram(code) {
-  if (code.includes("stateDiagram")) return renderStateDiagram();
-  if (code.includes('ROOT["AI录音卡 App"]')) return renderOverviewDiagram();
-  if (code.includes("首次使用") || code.includes("结束录音")) return renderBusinessFlowDiagram();
-  if (code.includes("打开 App") || code.includes("未登录?") || code.includes("开始录音")) return renderCoreFlowDiagram();
-  return renderGenericMermaidDiagram(code);
 }
 
 function parseTable(lines, start) {
@@ -127,16 +81,15 @@ function parseTable(lines, start) {
     tableLines.push(lines[index]);
     index += 1;
   }
-  if (tableLines.length < 2 || !/^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(tableLines[1])) {
-    return null;
-  }
+  if (tableLines.length < 2 || !/^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(tableLines[1])) return null;
+
   const rows = tableLines
     .filter((_, rowIndex) => rowIndex !== 1)
     .map((line) => line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((cell) => cell.trim()));
   const head = rows[0] || [];
   const body = rows.slice(1);
-  const html = `<table><thead><tr>${head.map((cell) => `<th>${inlineMarkdown(cell)}</th>`).join("")}</tr></thead><tbody>${body.map((row) => `<tr>${row.map((cell) => `<td>${inlineMarkdown(cell)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
-  return { html, next: index };
+  const table = `<table><thead><tr>${head.map((cell) => `<th>${inlineMarkdown(cell)}</th>`).join("")}</tr></thead><tbody>${body.map((row) => `<tr>${row.map((cell) => `<td>${inlineMarkdown(cell)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+  return { html: `<div class="table-wrap">${table}</div>`, next: index };
 }
 
 function flushParagraph(out, paragraph) {
@@ -151,13 +104,13 @@ function markdownToHtml(markdown) {
   const paragraph = [];
   let listOpen = false;
   let listType = null;
+  let diagramIndex = 0;
 
   function closeList() {
-    if (listOpen) {
-      out.push(`</${listType}>`);
-      listOpen = false;
-      listType = null;
-    }
+    if (!listOpen) return;
+    out.push(`</${listType}>`);
+    listOpen = false;
+    listType = null;
   }
 
   for (let index = 0; index < lines.length; index += 1) {
@@ -175,11 +128,12 @@ function markdownToHtml(markdown) {
         index += 1;
       }
       if (lang === "mermaid") {
-        out.push(renderMermaidDiagram(code.join("\n")));
-        continue;
+        diagramIndex += 1;
+        out.push(renderMermaidDiagram(code.join("\n"), diagramIndex));
+      } else {
+        const className = lang ? ` class="language-${escapeHtml(lang)}"` : "";
+        out.push(`<pre${className}><code>${escapeHtml(code.join("\n"))}</code></pre>`);
       }
-      const className = lang ? ` class="language-${escapeHtml(lang)}${lang === "mermaid" ? " mermaid" : ""}"` : "";
-      out.push(`<pre${className}><code>${escapeHtml(code.join("\n"))}</code></pre>`);
       continue;
     }
 
@@ -205,7 +159,9 @@ function markdownToHtml(markdown) {
       flushParagraph(out, paragraph);
       closeList();
       const level = heading[1].length;
-      out.push(`<h${level}>${inlineMarkdown(heading[2])}</h${level}>`);
+      const plain = heading[2].replace(/<[^>]+>/g, "");
+      const anchor = plain.toLowerCase().replace(/[^a-z0-9\u3400-\u9fff]+/g, "-").replace(/^-|-$/g, "");
+      out.push(`<h${level} id="${escapeHtml(anchor)}">${inlineMarkdown(heading[2])}</h${level}>`);
       continue;
     }
 
@@ -247,11 +203,12 @@ function markdownToHtml(markdown) {
 
   flushParagraph(out, paragraph);
   closeList();
-  return out.join("\n");
+  return { html: out.join("\n"), diagramCount: diagramIndex };
 }
 
+ensureMermaidVendor();
 const markdown = fs.readFileSync(sourcePath, "utf8");
-const body = markdownToHtml(markdown);
+const rendered = markdownToHtml(markdown);
 const html = `<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -260,13 +217,15 @@ const html = `<!doctype html>
   <title>AI录音卡 App 需求文档 v3.0</title>
   <style>
     :root {
-      --ink: #303030;
-      --muted: #737373;
-      --line: #e6e6e6;
-      --soft: #f7f7f7;
+      --ink: #303033;
+      --muted: #67676d;
+      --line: #e5e7eb;
+      --soft: #f7f8fa;
+      --accent: #0b74de;
       --code: #f3f4f6;
     }
     * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
     body {
       margin: 0;
       background: #fff;
@@ -274,64 +233,64 @@ const html = `<!doctype html>
       font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif;
     }
     main {
-      width: min(1060px, calc(100vw - 96px));
+      width: min(1280px, calc(100vw - 96px));
       margin: 0 auto;
-      padding: 54px 0 96px;
+      padding: 54px 0 110px;
     }
     h1 {
       margin: 0 0 18px;
-      padding-bottom: 8px;
+      padding-bottom: 14px;
       border-bottom: 1px solid var(--line);
-      font-size: 36px;
+      font-size: 38px;
       line-height: 1.15;
-      letter-spacing: 0;
     }
     h2 {
-      margin: 54px 0 20px;
-      padding-top: 24px;
+      margin: 58px 0 20px;
+      padding-top: 26px;
       border-top: 2px solid var(--line);
-      font-size: 29px;
+      font-size: 30px;
       line-height: 1.2;
-      letter-spacing: 0;
     }
-    h3 {
-      margin: 30px 0 16px;
-      font-size: 23px;
-      line-height: 1.3;
+    h3 { margin: 34px 0 16px; font-size: 24px; line-height: 1.3; }
+    h4, h5, h6 { margin: 26px 0 12px; font-size: 19px; line-height: 1.4; }
+    p, li { color: #4c4c52; font-size: 16px; line-height: 1.86; }
+    p { margin: 10px 0 18px; }
+    ul, ol { margin: 10px 0 22px; padding-left: 26px; }
+    li + li { margin-top: 4px; }
+    strong { color: #27272a; }
+    .source-highlight { color: var(--source-color, var(--accent)); font-weight: 560; }
+    .review-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 1px 7px;
+      border: 1px solid #f5bf59;
+      border-radius: 999px;
+      background: #fff7e6;
+      color: #a65f00;
+      font-size: .86em;
+      font-weight: 750;
+      white-space: nowrap;
     }
-    h4, h5, h6 {
-      margin: 24px 0 12px;
-      font-size: 18px;
-      line-height: 1.35;
-    }
-    p, li {
-      color: #4d4d4d;
-      font-size: 16px;
-      line-height: 1.82;
-    }
-    ul {
-      padding-left: 24px;
-    }
-    table {
+    .table-wrap {
       width: 100%;
-      margin: 18px 0 34px;
-      border-collapse: collapse;
-      border: 1px solid #dde2e7;
-      font-size: 15px;
+      margin: 18px 0 36px;
+      overflow-x: auto;
+      border: 1px solid #dfe3e8;
     }
+    table { width: 100%; border-collapse: collapse; font-size: 15px; }
     th, td {
-      padding: 11px 14px;
-      border: 1px solid #dde2e7;
+      min-width: 72px;
+      padding: 12px 14px;
+      border-right: 1px solid #dfe3e8;
+      border-bottom: 1px solid #dfe3e8;
       text-align: left;
       vertical-align: top;
+      line-height: 1.65;
     }
-    th {
-      background: var(--soft);
-      font-weight: 800;
-    }
-    tr:nth-child(even) td {
-      background: #fcfcfc;
-    }
+    th:last-child, td:last-child { border-right: 0; }
+    tbody tr:last-child td { border-bottom: 0; }
+    th { background: #f6f7f8; color: #303036; font-weight: 800; }
+    tr:nth-child(even) td { background: #fcfcfd; }
     code {
       padding: 2px 6px;
       border: 1px solid #e0e4e8;
@@ -341,7 +300,7 @@ const html = `<!doctype html>
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size: .92em;
     }
-    pre {
+    pre:not(.mermaid) {
       margin: 18px 0 30px;
       padding: 18px;
       overflow: auto;
@@ -351,150 +310,78 @@ const html = `<!doctype html>
       color: #333;
       line-height: 1.58;
     }
-    pre code {
-      padding: 0;
-      border: 0;
-      background: transparent;
-      white-space: pre;
+    pre:not(.mermaid) code { padding: 0; border: 0; background: transparent; white-space: pre; }
+    .diagram { margin: 18px 0 6px; padding: 0; overflow: hidden; background: #fff; }
+    .diagram + p { margin-top: 0; }
+    .diagram-scroll { width: 100%; overflow-x: auto; }
+    .mermaid {
+      min-width: 900px;
+      margin: 0;
+      opacity: 0;
+      transition: opacity .12s ease;
     }
-    .diagram {
-      margin: 22px 0 42px;
-      padding: 24px;
-      overflow: auto;
-      border: 1px solid #e2e4ea;
-      border-radius: 12px;
-      background: #fbfbfa;
-    }
-    .diagram figcaption {
-      margin-bottom: 18px;
-      color: #222;
-      font-size: 16px;
-      font-weight: 800;
-    }
-    .diagram-card {
-      min-width: 120px;
-      min-height: 46px;
-      display: grid;
-      place-items: center;
-      gap: 2px;
-      padding: 10px 14px;
-      border: 1px solid #d9dde5;
-      border-radius: 6px;
-      background: #fff;
-      color: #303030;
-      text-align: center;
-      font-size: 14px;
-      line-height: 1.35;
-      box-shadow: 0 4px 12px rgba(25, 30, 45, .04);
-    }
-    .diagram-card.root {
-      min-width: 180px;
-      background: #111;
-      color: #fff;
-      border-color: #111;
-      font-weight: 800;
-    }
-    .overview-root {
-      display: grid;
-      place-items: center;
-      margin-bottom: 24px;
-    }
-    .overview-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(210px, 1fr));
-      gap: 16px;
-    }
-    .diagram-group {
-      padding: 14px;
-      border-radius: 10px;
-      border: 1px solid #e1e4eb;
-      background: #fff;
-    }
-    .diagram-group h4 {
-      margin: 0 0 12px;
-      color: #222;
-      font-size: 15px;
-    }
-    .diagram-group > div {
-      display: grid;
-      gap: 8px;
-    }
-    .diagram-group.blue { border-top: 4px solid #4b8cff; }
-    .diagram-group.green { border-top: 4px solid #59c436; }
-    .diagram-group.amber { border-top: 4px solid #f2a32b; }
-    .diagram-group.purple { border-top: 4px solid #8b6cff; }
-    .diagram-group.gray { border-top: 4px solid #8d949e; }
-    .diagram-group.red { border-top: 4px solid #ff6b5e; }
-    .flow-row,
-    .state-chain {
-      min-width: 920px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .flow-step {
-      display: grid;
-      gap: 8px;
-      justify-items: center;
-    }
-    .flow-step b {
-      width: 26px;
-      height: 26px;
-      display: grid;
-      place-items: center;
-      border-radius: 999px;
-      background: #111;
-      color: #fff;
-      font-size: 13px;
-    }
-    .diagram-arrow,
-    .down-arrow {
-      color: #6b7280;
-      font-size: 22px;
-      font-weight: 800;
-    }
-    .core-grid {
-      min-width: 820px;
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 18px;
-      align-items: start;
-    }
-    .core-grid section {
-      display: grid;
-      justify-items: center;
-      gap: 8px;
-    }
-    .core-grid h4 {
-      margin: 0 0 8px;
-      font-size: 15px;
-    }
-    .generic-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 12px;
-    }
-    hr {
-      height: 1px;
-      margin: 42px 0 0;
-      border: 0;
-      background: var(--line);
-    }
+    .mermaid[data-processed="true"] { opacity: 1; }
+    .mermaid svg { display: block; width: 100%; max-width: none !important; height: auto; margin: 0 auto; }
+    hr { height: 1px; margin: 46px 0 0; border: 0; background: var(--line); }
     @media (max-width: 860px) {
       main { width: calc(100vw - 36px); padding-top: 28px; }
       h1 { font-size: 30px; }
-      h2 { font-size: 24px; }
-      table { display: block; overflow: auto; }
+      h2 { font-size: 25px; }
+      h3 { font-size: 21px; }
+    }
+    @media print {
+      main { width: 100%; padding: 0; }
+      .diagram-scroll, .table-wrap { overflow: visible; }
+      .mermaid { min-width: 0; }
     }
   </style>
 </head>
 <body>
-  <main class="markdown-preview">
-${body}
+  <main class="markdown-preview" data-source="AI录音卡App需求文档_v3.0.md" data-diagram-count="${rendered.diagramCount}">
+${rendered.html}
   </main>
+  <script src="./vendor/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: "strict",
+      theme: "base",
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif",
+      flowchart: { htmlLabels: true, useMaxWidth: true, curve: "linear" },
+      themeVariables: {
+        primaryColor: "#eeecff",
+        primaryTextColor: "#35333b",
+        primaryBorderColor: "#9b7cff",
+        lineColor: "#4e4e53",
+        secondaryColor: "#f7f5ff",
+        tertiaryColor: "#ffffff"
+      }
+    });
+    window.addEventListener("DOMContentLoaded", async () => {
+      try {
+        await mermaid.run({ querySelector: ".mermaid" });
+        document.querySelectorAll(".mermaid[data-white-labels]").forEach((diagram) => {
+          const whiteLabelNodeIds = diagram.dataset.whiteLabels.split(",").filter(Boolean);
+          diagram.querySelectorAll("g.node").forEach((node) => {
+            if (!whiteLabelNodeIds.some((nodeId) => node.id.includes("-" + nodeId + "-"))) return;
+            node.style.setProperty("color", "#fff", "important");
+            node.querySelectorAll(".label, .nodeLabel, .nodeLabel p, foreignObject div, foreignObject span").forEach((label) => {
+              label.style.setProperty("color", "#fff", "important");
+            });
+            node.querySelectorAll("text, tspan").forEach((label) => {
+              label.setAttribute("fill", "#fff");
+              label.style.setProperty("fill", "#fff", "important");
+            });
+          });
+        });
+      } catch (error) {
+        console.error(error);
+      }
+    });
+  </script>
 </body>
 </html>
 `;
 
 fs.writeFileSync(outputPath, html);
-console.log(`Built ${path.relative(root, outputPath)}`);
+console.log(`Built ${path.relative(root, outputPath)} from ${path.basename(sourcePath)} (${rendered.diagramCount} Mermaid diagrams)`);

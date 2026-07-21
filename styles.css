@@ -1283,6 +1283,12 @@ button {
   background: #fff;
 }
 
+.prototype-links button.active {
+  border-color: #111;
+  background: #111;
+  color: #fff;
+}
+
 .found-head {
   margin-top: 78px;
 }
@@ -1770,7 +1776,6 @@ button {
   border: 1px solid #eeeae2;
   border-radius: 12px;
   background: #fff;
-  cursor: pointer;
 }
 
 .sync-mini.finishing {
@@ -1791,6 +1796,42 @@ button {
   font-size: 12px;
 }
 
+.sync-title-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sync-title-group strong {
+  white-space: nowrap;
+}
+
+.sync-transport-badge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  min-height: 20px;
+  align-items: center;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #eef1f4;
+  color: #5f6670;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.sync-transport-badge.lan {
+  background: #eaf5ff;
+  color: #2774a8;
+}
+
+.sync-transport-badge.hotspot {
+  background: #f1edff;
+  color: #6c50b7;
+}
+
 .sync-line span {
   min-width: 0;
   color: #777;
@@ -1809,18 +1850,6 @@ button {
 
 .sync-mini .caption {
   margin: 8px 0 0;
-}
-
-.sync-step-btn {
-  min-height: 34px;
-  margin-top: 10px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 8px;
-  background: #111;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 750;
 }
 
 .card-title {
@@ -8804,8 +8833,375 @@ label.prefs-row {
   cursor: not-allowed;
 }
 
+/* APP-SYNC-01 / APP-SYNC-02 · Wi-Fi 高速传输弹窗 */
+.sync-transfer-home-bg {
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.sync-transfer-home-bg + .sync-transfer-sheet {
+  z-index: 2;
+}
+
+.sync-transfer-sheet {
+  max-height: calc(100% - 66px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 26px 22px max(24px, calc(18px + env(safe-area-inset-bottom)));
+  border-radius: 20px 20px 0 0;
+}
+
+.sync-transfer-sheet h2 {
+  margin-bottom: 16px;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.sync-transfer-sheet > p {
+  margin: 16px 0 18px;
+  color: #666;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.sync-connection-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 68px;
+  padding: 12px 14px;
+  border: 1px solid #e7e7e7;
+  border-radius: 14px;
+  background: #f7f7f7;
+}
+
+.sync-connection-status > i {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #a7a7a7;
+  box-shadow: 0 0 0 5px rgba(167, 167, 167, .12);
+}
+
+.sync-connection-status > span {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sync-connection-status b {
+  color: #161616;
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.sync-connection-status small {
+  color: #737373;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.sync-connection-status.active > i,
+.sync-connection-status.loading > i {
+  background: #0a84ff;
+  box-shadow: 0 0 0 5px rgba(10, 132, 255, .12);
+}
+
+.sync-connection-status.success {
+  border-color: #cfe8d7;
+  background: #f1faf4;
+}
+
+.sync-connection-status.success > i {
+  background: #36a15d;
+  box-shadow: 0 0 0 5px rgba(54, 161, 93, .12);
+}
+
+.sync-connection-status.failed {
+  border-color: #f0d2ce;
+  background: #fff5f3;
+}
+
+.sync-connection-status.failed > i {
+  background: #d24f43;
+  box-shadow: 0 0 0 5px rgba(210, 79, 67, .12);
+}
+
+.sync-state-spinner {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(10, 132, 255, .22);
+  border-top-color: #0a84ff;
+  border-radius: 50%;
+  animation: sync-state-spin .75s linear infinite;
+}
+
+@keyframes sync-state-spin {
+  to { transform: rotate(360deg); }
+}
+
+.sync-guide-wifi-card {
+  margin: 16px auto;
+  max-width: 100%;
+  padding: 18px 16px 14px;
+  border: 1px solid rgba(0, 0, 0, .05);
+  background: #fff;
+  pointer-events: none;
+}
+
+.sync-guide-wifi-card div {
+  margin-top: 16px;
+}
+
+.sync-native-system-background {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.sync-native-system-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  background: rgba(0, 0, 0, .18);
+}
+
+.sync-native-wifi-alert {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  z-index: 9;
+  width: calc(100% - 44px);
+  max-width: 310px;
+  padding: 22px 18px 18px;
+  border: 1px solid rgba(255, 255, 255, .7);
+  border-radius: 30px;
+  background: rgba(250, 250, 250, .96);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .16);
+  transform: translate(-50%, -50%);
+}
+
+.sync-native-wifi-alert strong {
+  display: block;
+  padding: 0 5px;
+  color: #111;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.sync-native-wifi-alert div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.sync-native-wifi-alert button {
+  min-height: 50px;
+  border: 0;
+  border-radius: 999px;
+  background: #dedede;
+  color: #111;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sync-native-wifi-alert button:last-child {
+  background: #0a84ff;
+  color: #fff;
+}
+
+.sync-network-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 16px 0 4px;
+  padding: 12px 13px;
+  border-radius: 12px;
+  background: #f3f5f7;
+  color: #5e6369;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.sync-network-tip i {
+  display: grid;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border: 1px solid #8d939a;
+  border-radius: 50%;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.current-wifi-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 13px 14px;
+  border: 1px solid #e5e5e5;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.current-wifi-card > span:nth-child(2) {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.current-wifi-card small {
+  color: #888;
+  font-size: 12px;
+}
+
+.current-wifi-card b {
+  overflow: hidden;
+  color: #171717;
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.current-wifi-card em {
+  color: #269052;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 650;
+}
+
+.current-wifi-icon {
+  position: relative;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 24px;
+  border-top: 3px solid #0a84ff;
+  border-radius: 50% 50% 0 0;
+}
+
+.current-wifi-icon::before,
+.current-wifi-icon::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  border-top: 3px solid #0a84ff;
+  border-radius: 50% 50% 0 0;
+  transform: translateX(-50%);
+}
+
+.current-wifi-icon::before {
+  top: 6px;
+  width: 19px;
+  height: 12px;
+}
+
+.current-wifi-icon::after {
+  top: 14px;
+  width: 7px;
+  height: 5px;
+}
+
+.sync-password-field {
+  display: block;
+  margin-top: 14px;
+}
+
+.sync-password-field > span {
+  display: block;
+  margin-bottom: 7px;
+  color: #333;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.sync-password-field > div {
+  display: flex;
+  min-height: 50px;
+  overflow: hidden;
+  border: 1px solid #d9d9d9;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.sync-password-field input {
+  flex: 1;
+  min-width: 0;
+  padding: 0 13px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #171717;
+  font: inherit;
+  font-size: 15px;
+}
+
+.sync-password-field button {
+  padding: 0 14px;
+  border: 0;
+  background: transparent;
+  color: #0a84ff;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.sync-password-field > small {
+  display: block;
+  margin-top: 6px;
+  color: #929292;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.sync-transfer-sheet .primary-btn,
+.sync-transfer-sheet .secondary-btn {
+  width: 100%;
+  min-height: 52px;
+  margin-top: 10px;
+  border-radius: 12px;
+  font-size: 16px;
+}
+
+.sync-transfer-sheet .primary-btn.disabled,
+.sync-transfer-sheet .primary-btn:disabled {
+  border-color: #c8c8c8;
+  background: #c8c8c8;
+  color: #f1f1f1;
+  cursor: not-allowed;
+}
+
+.sync-cancel-button {
+  width: 100%;
+  min-height: 42px;
+  margin-top: 5px;
+  border: 0;
+  background: transparent;
+  color: #6c6c6c;
+  font-size: 15px;
+  font-weight: 600;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .settings-week-heatmap-scroll {
     scroll-behavior: auto;
+  }
+
+  .sync-state-spinner {
+    animation: none;
   }
 }
