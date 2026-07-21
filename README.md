@@ -81,6 +81,7 @@ node --check scripts/build-prd-preview.js
 - 账号注册
 - 注册验证
 - 重置密码
+- 重置密码邮箱验证码验证
 - 邮箱验证码登录
 - 绑定你的设备
 - 正在搜索设备

@@ -38,6 +38,24 @@ let deleteAccountCode = "";
 let deleteAccountCodeSent = false;
 let deleteAccountConfirmNotice = "";
 
+const prototypeAccounts = {
+  "355569016@qq.com": "Recorder2026",
+  "mhy_1126@qq.com": "Recorder2026"
+};
+const resetPasswordDemoCode = "110035";
+let loginEmail = "";
+let loginPassword = "";
+let loginNotice = "";
+let loginNoticeTone = "";
+let resetPasswordEmail = "355569016@qq.com";
+let resetPasswordValue = "";
+let resetPasswordCode = "";
+let resetPasswordCodeSent = false;
+let resetPasswordCountdown = 0;
+let resetPasswordTimer = null;
+let resetPasswordNotice = "";
+let resetPasswordNoticeTone = "";
+
 const pages = [
   {
     id: "APP-PRD-00",
@@ -99,10 +117,25 @@ const pages = [
     goal: "通过邮箱和新密码发起重置密码流程。",
     entry: "登录 / 注册页点击“忘记密码？”。",
     fields: [["email", "邮箱", "用户输入"], ["new_password", "新密码", "用户输入"]],
-    rules: ["邮箱和新密码填写后才可进入下一步。", "点击下一步进入邮箱验证码验证页，验证通过后完成密码重置。"],
-    states: ["默认", "填写中", "提交中", "邮箱不存在", "网络异常"],
-    deps: ["云端账号：重置密码接口、验证码或邮件发送。"],
-    acceptance: ["重置密码页展示邮箱、新密码和下一步按钮。"]
+    rules: ["邮箱和新密码填写后才可进入下一步。", "邮箱必须对应已注册账号。", "点击下一步向该邮箱发送验证码，并进入独立的重置密码验证页。", "只有验证码校验通过后才将输入的新密码写入对应账号。"],
+    states: ["默认", "填写中", "提交中", "邮箱不存在", "验证码已发送", "网络异常"],
+    deps: ["云端账号：校验账号、生成重置凭证、发送验证码邮件、校验验证码、写入新密码。"],
+    acceptance: ["重置密码页展示可输入的邮箱、新密码和下一步按钮。", "下一步按输入邮箱发送验证码并进入 APP-ONB-07。", "邮箱不存在或输入不完整时停留本页并明确提示。"],
+    prototypeLinks: [["验证重置验证码", "APP-ONB-07"]]
+  },
+  {
+    id: "APP-ONB-07",
+    group: "首启与账号",
+    title: "重置密码验证",
+    priority: "P0",
+    goal: "验证重置密码请求对应的账号邮箱，并在验证码通过后写入新密码。",
+    entry: "APP-ONB-05 输入已注册邮箱和新密码后点击下一步。",
+    fields: [["account_email", "对应账号邮箱", "重置密码输入"], ["verification_code", "6 位邮箱验证码", "用户输入/邮箱"], ["resend_countdown", "重发倒计时", "本地计时"], ["new_password", "待写入的新密码", "上一步安全暂存"]],
+    rules: ["展示本次重置请求对应的账号邮箱。", "发送 6 位验证码邮件并启动重发倒计时。", "验证码错误时不得修改密码。", "验证码通过后将上一步输入的密码设为该账号的新密码。", "完成后返回登录页，用户可使用新密码登录。", "原型交互备注：演示验证码为 110035，仅用于交互验收。"],
+    states: ["等待输入", "验证码不完整", "验证码错误", "验证中", "重置成功", "可重发"],
+    deps: ["云端账号：验证码发送与校验、一次性重置凭证、密码哈希更新、旧会话失效策略。"],
+    acceptance: ["页面按截图结构展示账号邮箱、6 位验证码、重发倒计时和确认按钮。", "验证码未填满或错误时不可完成重置。", "验证成功后新密码立即成为该账号的有效登录密码。", "返回登录页后可用账号邮箱和新密码完成登录。"],
+    prototypeLinks: [["返回重置密码", "APP-ONB-05"], ["重置成功后登录", "APP-ONB-01"]]
   },
   {
     id: "APP-ONB-06",
@@ -1424,6 +1457,44 @@ function authField(value, opts = {}) {
   return `<label class="auth-field ${opts.focus ? "focus" : ""} ${opts.filled ? "filled" : ""}"><span>${h(value)}</span>${actionNode}</label>`;
 }
 
+function authInput(id, value, placeholder, opts = {}) {
+  return `
+    <label class="auth-field auth-input-field ${value ? "filled" : ""}" for="${h(id)}">
+      <input id="${h(id)}" type="${opts.type || "text"}" value="${h(value)}" placeholder="${h(placeholder)}" ${opts.autocomplete ? `autocomplete="${h(opts.autocomplete)}"` : ""}>
+      ${opts.type === "password" ? `<span class="auth-input-icon" aria-hidden="true">●●●</span>` : ""}
+    </label>
+  `;
+}
+
+function authNotice(message, tone = "") {
+  return message ? `<p class="auth-notice ${h(tone)}" role="status">${h(message)}</p>` : "";
+}
+
+function startResetPasswordCountdown() {
+  if (resetPasswordTimer) window.clearInterval(resetPasswordTimer);
+  resetPasswordCountdown = 60;
+  resetPasswordTimer = window.setInterval(() => {
+    resetPasswordCountdown = Math.max(0, resetPasswordCountdown - 1);
+    const resendButton = document.querySelector("[data-action='resend-reset-code']");
+    if (resendButton) {
+      resendButton.textContent = resetPasswordCountdown > 0 ? `重新发送 ${resetPasswordCountdown}` : "重新发送验证码";
+      resendButton.disabled = resetPasswordCountdown > 0;
+    }
+    if (resetPasswordCountdown === 0) {
+      window.clearInterval(resetPasswordTimer);
+      resetPasswordTimer = null;
+    }
+  }, 1000);
+}
+
+function clearResetPasswordCodeError() {
+  if (resetPasswordNoticeTone !== "error") return;
+  resetPasswordNotice = "";
+  resetPasswordNoticeTone = "";
+  const notice = document.querySelector(".auth-notice");
+  if (notice) notice.remove();
+}
+
 function authAgreement() {
   return `<div class="auth-agreements">
     <div><span class="check-dot">✓</span><p>我同意在中国注册我的账号，并接受用户协议和隐私政策。</p></div>
@@ -1442,16 +1513,18 @@ function keyboardMock(type = "number") {
 }
 
 function renderLogin() {
+  const canLogin = Boolean(loginEmail.trim() && loginPassword);
   return screen(`
     <div class="login-brand">AI RECORDER</div>
     <h1 class="login-title">开始使用</h1>
     <button class="auth-option" data-go="APP-ONB-04"><span class="google-mark">G</span><strong>Google 账号登录</strong></button>
     <button class="auth-option" data-go="APP-ONB-04"><span class="apple-mark">●</span><strong>Apple 账号登录</strong></button>
     <div class="login-divider"><span></span><b>或</b><span></span></div>
-    <label class="input-box">邮箱地址</label>
-    <label class="input-box">密码</label>
+    <label class="input-box auth-login-input"><input id="loginEmail" type="email" value="${h(loginEmail)}" placeholder="邮箱地址" autocomplete="email"></label>
+    <label class="input-box auth-login-input"><input id="loginPassword" type="password" value="${h(loginPassword)}" placeholder="密码" autocomplete="current-password"></label>
+    ${authNotice(loginNotice, loginNoticeTone)}
     <button class="link-btn" data-go="APP-ONB-05">忘记密码?</button>
-    <button class="primary-btn login-submit" data-go="APP-ONB-04">登录</button>
+    <button class="primary-btn login-submit ${canLogin ? "" : "disabled"}" data-action="login-with-password" ${canLogin ? "" : "disabled"}>登录</button>
     <button class="link-btn center" data-go="APP-ONB-06">使用验证码登录</button>
     <p class="register-line">还没有账号？ <button class="link-btn inline" data-go="APP-ONB-02">注册</button></p>
     <div class="agreement-list">
@@ -1487,13 +1560,33 @@ function renderRegisterVerify() {
 }
 
 function renderResetPassword() {
+  const canContinue = Boolean(resetPasswordEmail.trim() && resetPasswordValue);
   return authScreen("重置密码", `
     <div class="auth-form">
-      ${authField("mhy_1126@qq.com", { filled: true })}
-      ${authField("••••••••••", { eye: true, filled: true })}
-      <button class="primary-btn auth-primary" data-go="APP-ONB-03">下一步</button>
+      ${authInput("resetPasswordEmail", resetPasswordEmail, "账号邮箱", { type: "email", autocomplete: "email" })}
+      ${authInput("resetPasswordValue", resetPasswordValue, "输入新密码（至少 8 位）", { type: "password", autocomplete: "new-password" })}
+      ${authNotice(resetPasswordNotice, resetPasswordNoticeTone)}
+      <button class="primary-btn auth-primary ${canContinue ? "" : "disabled"}" data-action="submit-reset-password" ${canContinue ? "" : "disabled"}>下一步</button>
     </div>
   `);
+}
+
+function renderResetPasswordVerify() {
+  const digits = resetPasswordCode.padEnd(6, " ").slice(0, 6).split("");
+  const canConfirm = resetPasswordCodeSent && Boolean(resetPasswordValue) && resetPasswordCode.length === 6;
+  const resendLabel = resetPasswordCountdown > 0 ? `重新发送 ${resetPasswordCountdown}` : "重新发送验证码";
+  const verifyNotice = resetPasswordCodeSent
+    ? authNotice(resetPasswordNotice, resetPasswordNoticeTone)
+    : "";
+  return authScreen("验证你的邮箱", `
+    <p class="auth-lead">${resetPasswordCodeSent ? "验证码已发送至你的邮箱" : "我们已经发送了一条验证码到你的邮箱"}<br><strong>${h(resetPasswordEmail)}</strong></p>
+    <div class="code-boxes reset-code-boxes" role="group" aria-label="6 位邮箱验证码">
+      ${digits.map((digit, index) => `<input class="reset-code-digit ${index === resetPasswordCode.length ? "active" : ""}" data-code-index="${index}" inputmode="numeric" maxlength="1" value="${h(digit.trim())}" aria-label="验证码第 ${index + 1} 位">`).join("")}
+    </div>
+    <button class="resend-text resend-action" data-action="resend-reset-code" ${!resetPasswordCodeSent || resetPasswordCountdown > 0 ? "disabled" : ""}>${h(resendLabel)}</button>
+    ${verifyNotice}
+    <button class="primary-btn auth-primary ${canConfirm ? "" : "disabled"}" data-action="confirm-reset-password" ${canConfirm ? "" : "disabled"}>确认</button>
+  `, { back: "APP-ONB-05" });
 }
 
 function renderCodeLogin() {
@@ -3981,6 +4074,7 @@ const renderers = {
   "APP-ONB-03": renderRegisterVerify,
   "APP-ONB-04": renderPermissions,
   "APP-ONB-05": renderResetPassword,
+  "APP-ONB-07": renderResetPasswordVerify,
   "APP-ONB-06": renderCodeLogin,
   "APP-DEV-01": renderDeviceScan,
   "APP-DEV-02": renderDeviceBind,
@@ -4076,7 +4170,7 @@ function renderNav() {
 }
 
 function renderFlow() {
-  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-DEV-05", "APP-HOME-01", "APP-SYNC-02", "APP-SYNC-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-02", "APP-ME-16", "APP-ME-26", "APP-ME-27", "APP-ME-28", "APP-ME-29", "APP-ME-30", "APP-ME-31", "APP-ME-32", "APP-ME-33", "APP-ME-34", "APP-ME-35", "APP-ME-36", "APP-ME-37", "APP-ME-38", "APP-ME-40", "APP-ME-39", "APP-ME-17", "APP-ME-18", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-23", "APP-ME-10", "APP-ME-11", "APP-ME-12", "APP-DEV-03", "APP-DEV-10", "APP-ME-04", "APP-ME-24", "APP-ME-25", "APP-DEV-06", "APP-DEV-07", "APP-DEV-08", "APP-DEV-09"];
+  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-07", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-DEV-05", "APP-HOME-01", "APP-SYNC-02", "APP-SYNC-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-02", "APP-ME-16", "APP-ME-26", "APP-ME-27", "APP-ME-28", "APP-ME-29", "APP-ME-30", "APP-ME-31", "APP-ME-32", "APP-ME-33", "APP-ME-34", "APP-ME-35", "APP-ME-36", "APP-ME-37", "APP-ME-38", "APP-ME-40", "APP-ME-39", "APP-ME-17", "APP-ME-18", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-23", "APP-ME-10", "APP-ME-11", "APP-ME-12", "APP-DEV-03", "APP-DEV-10", "APP-ME-04", "APP-ME-24", "APP-ME-25", "APP-DEV-06", "APP-DEV-07", "APP-DEV-08", "APP-DEV-09"];
   document.getElementById("flowStrip").innerHTML = flow.map((id, index) => {
     const page = pageById(id);
     return `<button class="${id === currentPageId ? "active" : ""}" data-go="${id}">${index + 1}. ${h(page.title)}</button>`;
@@ -4335,6 +4429,98 @@ document.addEventListener("click", (event) => {
     return;
   }
   const action = event.target.closest("[data-action]");
+  if (action && action.dataset.action === "login-with-password") {
+    loginEmail = document.getElementById("loginEmail")?.value.trim().toLowerCase() || "";
+    loginPassword = document.getElementById("loginPassword")?.value || "";
+    if (!loginEmail || !loginPassword) return;
+    if (!Object.prototype.hasOwnProperty.call(prototypeAccounts, loginEmail)) {
+      loginNotice = "未找到该邮箱对应的账号，请检查后重试。";
+      loginNoticeTone = "error";
+      render();
+      return;
+    }
+    if (prototypeAccounts[loginEmail] !== loginPassword) {
+      loginNotice = "邮箱或密码错误，请重新输入。";
+      loginNoticeTone = "error";
+      render();
+      return;
+    }
+    loginNotice = "";
+    loginNoticeTone = "";
+    go("APP-ONB-04");
+    return;
+  }
+  if (action && action.dataset.action === "submit-reset-password") {
+    resetPasswordEmail = document.getElementById("resetPasswordEmail")?.value.trim().toLowerCase() || "";
+    resetPasswordValue = document.getElementById("resetPasswordValue")?.value || "";
+    if (!/^\S+@\S+\.\S+$/.test(resetPasswordEmail)) {
+      resetPasswordNotice = "请输入有效的账号邮箱。";
+      resetPasswordNoticeTone = "error";
+      render();
+      return;
+    }
+    if (resetPasswordValue.length < 8) {
+      resetPasswordNotice = "新密码至少需要 8 位。";
+      resetPasswordNoticeTone = "error";
+      render();
+      return;
+    }
+    if (!Object.prototype.hasOwnProperty.call(prototypeAccounts, resetPasswordEmail)) {
+      resetPasswordNotice = "未找到该邮箱对应的账号，请检查后重试。";
+      resetPasswordNoticeTone = "error";
+      render();
+      return;
+    }
+    resetPasswordCode = "";
+    resetPasswordCodeSent = true;
+    resetPasswordNotice = "";
+    resetPasswordNoticeTone = "";
+    startResetPasswordCountdown();
+    go("APP-ONB-07");
+    requestAnimationFrame(() => document.querySelector(".reset-code-digit")?.focus());
+    return;
+  }
+  if (action && action.dataset.action === "resend-reset-code") {
+    if (!resetPasswordCodeSent || resetPasswordCountdown > 0) return;
+    resetPasswordCode = "";
+    resetPasswordCodeSent = true;
+    resetPasswordNotice = "";
+    resetPasswordNoticeTone = "";
+    startResetPasswordCountdown();
+    render();
+    requestAnimationFrame(() => document.querySelector(".reset-code-digit")?.focus());
+    return;
+  }
+  if (action && action.dataset.action === "confirm-reset-password") {
+    const code = [...document.querySelectorAll(".reset-code-digit")].map((input) => input.value).join("");
+    resetPasswordCode = code;
+    if (!resetPasswordCodeSent || !resetPasswordValue || code.length !== 6) return;
+    if (code !== resetPasswordDemoCode) {
+      resetPasswordNotice = "验证码错误，请检查后重新输入。";
+      resetPasswordNoticeTone = "error";
+      render();
+      requestAnimationFrame(() => document.querySelector(".reset-code-digit")?.focus());
+      return;
+    }
+    prototypeAccounts[resetPasswordEmail] = resetPasswordValue;
+    loginEmail = resetPasswordEmail;
+    loginPassword = "";
+    loginNotice = "密码重置成功，请使用新密码登录。";
+    loginNoticeTone = "success";
+    resetPasswordValue = "";
+    resetPasswordCode = "";
+    resetPasswordCodeSent = false;
+    resetPasswordNotice = "";
+    resetPasswordNoticeTone = "";
+    if (resetPasswordTimer) {
+      window.clearInterval(resetPasswordTimer);
+      resetPasswordTimer = null;
+    }
+    resetPasswordCountdown = 0;
+    go("APP-ONB-01");
+    requestAnimationFrame(() => document.getElementById("loginPassword")?.focus());
+    return;
+  }
   if (action && action.dataset.action === "open-firmware-hotspot-prompt") {
     firmwareHotspotState = "systemPrompt";
     render();
@@ -4673,6 +4859,39 @@ document.addEventListener("click", (event) => {
 });
 
 document.addEventListener("input", (event) => {
+  if (event.target.id === "loginEmail" || event.target.id === "loginPassword") {
+    loginEmail = document.getElementById("loginEmail")?.value || "";
+    loginPassword = document.getElementById("loginPassword")?.value || "";
+    const button = document.querySelector("[data-action='login-with-password']");
+    const canLogin = Boolean(loginEmail.trim() && loginPassword);
+    if (button) {
+      button.disabled = !canLogin;
+      button.classList.toggle("disabled", !canLogin);
+    }
+  }
+  if (event.target.id === "resetPasswordEmail" || event.target.id === "resetPasswordValue") {
+    resetPasswordEmail = document.getElementById("resetPasswordEmail")?.value || "";
+    resetPasswordValue = document.getElementById("resetPasswordValue")?.value || "";
+    const button = document.querySelector("[data-action='submit-reset-password']");
+    const canContinue = Boolean(resetPasswordEmail.trim() && resetPasswordValue);
+    if (button) {
+      button.disabled = !canContinue;
+      button.classList.toggle("disabled", !canContinue);
+    }
+  }
+  if (event.target.matches(".reset-code-digit")) {
+    clearResetPasswordCodeError();
+    event.target.value = event.target.value.replace(/\D/g, "").slice(-1);
+    const inputs = [...document.querySelectorAll(".reset-code-digit")];
+    resetPasswordCode = inputs.map((input) => input.value).join("");
+    if (event.target.value) inputs[Number(event.target.dataset.codeIndex) + 1]?.focus();
+    const button = document.querySelector("[data-action='confirm-reset-password']");
+    const canConfirm = resetPasswordCodeSent && Boolean(resetPasswordValue) && resetPasswordCode.length === 6;
+    if (button) {
+      button.disabled = !canConfirm;
+      button.classList.toggle("disabled", !canConfirm);
+    }
+  }
   if (event.target.id === "currentWifiPassword") {
     currentWifiPassword = event.target.value;
     const connectButton = document.getElementById("currentWifiConnectButton");
@@ -4694,6 +4913,32 @@ document.addEventListener("input", (event) => {
       : deleteAccountCodeSent && deleteAccountCode.trim().length > 0;
     const button = document.querySelector("[data-action='confirm-delete-account']");
     if (button) button.disabled = !canDelete;
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (!event.target.matches(".reset-code-digit") || event.key !== "Backspace" || event.target.value) return;
+  const index = Number(event.target.dataset.codeIndex);
+  document.querySelector(`.reset-code-digit[data-code-index='${index - 1}']`)?.focus();
+});
+
+document.addEventListener("paste", (event) => {
+  if (!event.target.matches(".reset-code-digit")) return;
+  const pastedCode = event.clipboardData?.getData("text").replace(/\D/g, "").slice(0, 6) || "";
+  if (!pastedCode) return;
+  event.preventDefault();
+  clearResetPasswordCodeError();
+  const inputs = [...document.querySelectorAll(".reset-code-digit")];
+  inputs.forEach((input, index) => {
+    input.value = pastedCode[index] || "";
+  });
+  resetPasswordCode = pastedCode;
+  inputs[Math.min(pastedCode.length, 5)]?.focus();
+  const button = document.querySelector("[data-action='confirm-reset-password']");
+  if (button) {
+    const canConfirm = resetPasswordCodeSent && Boolean(resetPasswordValue) && pastedCode.length === 6;
+    button.disabled = !canConfirm;
+    button.classList.toggle("disabled", !canConfirm);
   }
 });
 

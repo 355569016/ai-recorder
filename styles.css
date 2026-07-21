@@ -717,6 +717,23 @@ button {
   font-weight: 600;
 }
 
+.auth-login-input input,
+.auth-input-field input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #111;
+  font: inherit;
+}
+
+.auth-login-input input::placeholder,
+.auth-input-field input::placeholder {
+  color: #aaa;
+  opacity: 1;
+}
+
 .link-btn {
   border: 0;
   background: transparent;
@@ -856,6 +873,18 @@ button {
   line-height: 1;
 }
 
+.auth-input-field:focus-within {
+  border-color: #111;
+  box-shadow: inset 3px 0 0 #111;
+}
+
+.auth-input-icon {
+  flex: 0 0 auto;
+  color: #777;
+  font-size: 8px;
+  letter-spacing: 2px;
+}
+
 .eye-icon {
   width: 24px;
   height: 16px;
@@ -899,6 +928,26 @@ button {
   border-color: #c5c5c5;
   background: #c5c5c5;
   color: #fff;
+}
+
+.auth-notice {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f4f4f4;
+  color: #555;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.auth-notice.success {
+  background: #eef8ef;
+  color: #23773a;
+}
+
+.auth-notice.error {
+  background: #fff0ee;
+  color: #b13b2d;
 }
 
 .auth-agreements {
@@ -946,6 +995,25 @@ button {
   background: #fff;
 }
 
+.code-boxes input {
+  width: 100%;
+  min-width: 0;
+  aspect-ratio: 1 / 1.15;
+  border: 1px solid #aaa;
+  border-radius: 6px;
+  outline: 0;
+  background: #fff;
+  color: #111;
+  font-size: 30px;
+  text-align: center;
+}
+
+.code-boxes input:focus,
+.code-boxes input.active {
+  border-color: #111;
+  box-shadow: 0 0 0 1px #111;
+}
+
 .code-boxes .active {
   border-color: #111;
 }
@@ -954,6 +1022,18 @@ button {
   margin: 14px 0 36px;
   color: #aaa;
   font-size: 18px;
+}
+
+.resend-action {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.resend-action:disabled {
+  cursor: default;
 }
 
 .auth-code-row {
