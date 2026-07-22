@@ -443,3 +443,25 @@ final result: blocked
 Blocked. The available browser automation does not expose the user's Safari surface, and browser choice must remain Safari based on the supplied screenshots. The source fixes are complete, but no post-fix Safari screenshot is available for a final same-browser comparison.
 
 final result: blocked
+
+## 2026-07-22 update: APP-ME-41 change password flow
+
+- Source visual truth: `/Users/andyma/Downloads/IMG_2564.PNG`.
+- Implementation: `index.html?page=APP-ME-41`.
+- Intended viewport: existing 390 x 844 phone surface within the prototype board.
+- Required state: logged-in password change with current password, new password, confirmation, independent visibility controls, and a disabled bottom confirmation button until all fields are populated.
+
+## Interaction and static checks
+
+- APP-ME-18 now routes `更改密码` to APP-ME-41 instead of the unauthenticated email reset flow.
+- Wrong current password and mismatched confirmation produce distinct inline errors.
+- The fixed prototype current password is `Recorder2026`; it is documented in the APP-ME-41 interaction rules and used only for current-password validation.
+- A valid submission does not update the prototype account password. It returns to APP-ME-18 and shows `更改密码验证已完成（原型未保存）。`.
+- The page includes three password inputs, independent visibility controls, bottom-safe confirmation placement, and a four-row page grid for status bar, navigation, content, and footer.
+- `node --check app.js`, `node scripts/build-inline.js`, the focused interaction harness, and `git diff --check` pass.
+
+## Visual comparison evidence
+
+Blocked. The local preview service is available from the workspace, but the in-app browser cannot reach or open the local prototype under its current URL security policy. No pixel-match claim is made; final typography, spacing, and icon fidelity still require a browser-rendered comparison against `IMG_2564.PNG`.
+
+final result: blocked

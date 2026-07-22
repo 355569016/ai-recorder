@@ -37,16 +37,35 @@ let deleteAccountPassword = "";
 let deleteAccountCode = "";
 let deleteAccountCodeSent = false;
 let deleteAccountConfirmNotice = "";
+let deleteAccountConfirmNoticeTone = "";
 
+const prototypeLoginPassword = "A88888888";
+const prototypeVerificationCode = "888888";
 const prototypeAccounts = {
-  "355569016@qq.com": "Recorder2026",
-  "mhy_1126@qq.com": "Recorder2026"
+  "355569016@qq.com": prototypeLoginPassword,
+  "mhy_1126@qq.com": prototypeLoginPassword
 };
-const resetPasswordDemoCode = "110035";
 let loginEmail = "";
 let loginPassword = "";
 let loginNotice = "";
 let loginNoticeTone = "";
+let registerEmail = "";
+let registerPassword = "";
+let registerPasswordVisible = false;
+let registerAgreementAccepted = true;
+let registerMarketingOptIn = true;
+let registerNotice = "";
+let registerNoticeTone = "";
+let registerCode = "";
+let registerCodeCountdown = 0;
+let registerCodeTimer = null;
+let registerCodeNotice = "";
+let registerCodeNoticeTone = "";
+let codeLoginEmail = "";
+let codeLoginCode = "";
+let codeLoginCodeSent = false;
+let codeLoginNotice = "";
+let codeLoginNoticeTone = "";
 let resetPasswordEmail = "355569016@qq.com";
 let resetPasswordValue = "";
 let resetPasswordCode = "";
@@ -55,6 +74,19 @@ let resetPasswordCountdown = 0;
 let resetPasswordTimer = null;
 let resetPasswordNotice = "";
 let resetPasswordNoticeTone = "";
+const currentAccountEmail = "355569016@qq.com";
+const changePasswordPrototypeCurrent = prototypeLoginPassword;
+let changePasswordCurrent = "";
+let changePasswordNew = "";
+let changePasswordConfirm = "";
+let changePasswordVisibility = {
+  current: false,
+  new: false,
+  confirm: false
+};
+let changePasswordNotice = "";
+let changePasswordNoticeTone = "";
+let changePasswordSuccessNotice = "";
 
 const pages = [
   {
@@ -79,6 +111,7 @@ const pages = [
     entry: "首次打开 App、会话失效、点击绑定/录音/生成时未登录。",
     fields: [["auth_state", "登录状态", "云端账号"], ["login_method", "登录方式", "Google / Apple / Email / 验证码"], ["agreement_version", "协议版本", "云端账号/本地缓存"], ["privacy_opt_in", "资讯授权", "用户勾选"]],
     rules: ["未勾选用户协议、隐私政策和 AI 数据处理说明时不可提交登录/注册。", "第三方登录、邮箱密码登录、验证码登录共用同一协议确认状态。", "未登录不可绑定设备、不可开始硬件录音、不可提交转写与 AI 生成。", "登录后检查协议与隐私版本，版本更新需重新确认。"],
+    walkthroughNote: "流程走通必填：邮箱使用 355569016@qq.com 或 mhy_1126@qq.com，所有登录密码统一使用 A88888888。重置密码仅做原型演示，不会改变登录密码。",
     states: ["默认", "提交中", "登录失败", "网络异常", "协议未确认", "账号未注册"],
     deps: ["云端账号：Google / Apple / Email / 验证码登录与刷新 token，接口待后端定义。", "合规：用户协议、隐私政策、AI 数据处理说明、营销消息授权。"],
     acceptance: ["页面结构包含第三方登录、邮箱密码、忘记密码、验证码登录、注册和协议勾选。", "未登录点击录音主按钮时必须进入登录拦截。", "登录成功后可回到原触发动作或进入绑定你的设备页。"]
@@ -91,10 +124,11 @@ const pages = [
     goal: "使用邮箱和密码创建账号，并确认协议与资讯授权。",
     entry: "登录 / 注册页点击“还没有账号？注册”。",
     fields: [["email", "邮箱", "用户输入"], ["password", "密码", "用户输入"], ["agreement_version", "协议版本", "云端账号/本地缓存"], ["privacy_opt_in", "资讯授权", "用户勾选"]],
-    rules: ["邮箱和密码填写后才可进入下一步。", "未勾选用户协议和隐私政策时不可提交。", "点击下一步进入注册验证页。"],
-    states: ["默认", "填写中", "提交中", "邮箱已存在", "协议未确认"],
-    deps: ["云端账号：注册接口、邮箱格式校验。", "合规：用户协议、隐私政策、资讯授权。"],
-    acceptance: ["注册页展示邮箱、密码、下一步、协议勾选和营销授权。", "下一步进入注册验证页。"]
+    rules: ["邮箱和密码均为可编辑输入框。", "邮箱必须通过基本邮箱正则校验；格式错误时停留本页并提示“请输入有效的邮箱地址”。", "密码至少 8 位；长度不足时停留本页并提示“密码至少需要 8 位”。", "未勾选用户协议和隐私政策时不可提交，并明确提示。", "点击下一步进入注册验证页。", "注册仅做原型演示，输入的邮箱和密码不加入固定登录账号。"],
+    walkthroughNote: "原型走通说明：注册邮箱可任意输入，但必须符合邮箱格式；注册密码至少 8 位。注册成功仅供演示，实际登录仍只能使用固定演示账号和密码 A88888888。",
+    states: ["默认", "填写中", "邮箱格式错误", "密码长度不足", "协议未确认", "验证码已发送"],
+    deps: ["原型：本地邮箱格式、密码长度与协议勾选校验。", "生产版：云端注册接口、邮箱唯一性和密码强度策略。", "合规：用户协议、隐私政策、资讯授权。"],
+    acceptance: ["注册页的邮箱和密码可真实输入。", "邮箱格式错误、密码少于 8 位、协议未确认时分别显示对应错误。", "输入合法后进入 APP-ONB-03，但不生成新的可登录账号。"]
   },
   {
     id: "APP-ONB-03",
@@ -104,23 +138,25 @@ const pages = [
     goal: "输入邮箱验证码完成注册验证并进入绑定设备流程。",
     entry: "账号注册页点击下一步。",
     fields: [["email", "待验证邮箱", "注册输入"], ["verification_code", "6 位验证码", "用户输入/邮箱"], ["resend_countdown", "重发倒计时", "本地计时"]],
-    rules: ["展示已发送验证码的邮箱。", "验证码为 6 位输入框。", "倒计时结束后可重新发送。", "验证成功后进入绑定你的设备。"],
+    rules: ["展示 APP-ONB-02 输入的待验证邮箱。", "6 位验证码框均可输入，仅接受数字。", "验证码未填满时确认按钮禁用。", "验证码错误时停留本页并提示“验证码错误，请检查后重新输入”。", "倒计时结束后可重新发送。", "验证成功后进入绑定你的设备，但不创建可登录账号。"],
+    walkthroughNote: "流程走通必填：所有验证码页面统一使用固定验证码 888888。本页注册仅做原型演示，不会把注册输入加入固定登录账号。",
     states: ["等待输入", "验证码不完整", "验证中", "验证码错误", "可重发"],
-    deps: ["云端账号：发送验证码、校验验证码、创建会话。"],
-    acceptance: ["注册验证页展示 6 位验证码输入和重发倒计时。", "验证成功进入绑定你的设备。"]
+    deps: ["原型：本地固定验证码校验与重发倒计时。", "生产版：云端发送验证码、校验验证码、创建账号与会话。"],
+    acceptance: ["注册验证页展示可输入的 6 位验证码和重发倒计时。", "错误验证码被拦截并显示错误提示。", "输入 888888 后进入绑定你的设备。"]
   },
   {
     id: "APP-ONB-05",
     group: "首启与账号",
     title: "重置密码",
     priority: "P0",
-    goal: "通过邮箱和新密码发起重置密码流程。",
+    goal: "演示通过邮箱和新密码发起重置密码流程，原型不保存新密码。",
     entry: "登录 / 注册页点击“忘记密码？”。",
     fields: [["email", "邮箱", "用户输入"], ["new_password", "新密码", "用户输入"]],
-    rules: ["邮箱和新密码填写后才可进入下一步。", "邮箱必须对应已注册账号。", "点击下一步向该邮箱发送验证码，并进入独立的重置密码验证页。", "只有验证码校验通过后才将输入的新密码写入对应账号。"],
+    rules: ["邮箱和新密码填写后才可进入下一步。", "邮箱必须对应已注册账号。", "点击下一步向该邮箱发送验证码，并进入独立的重置密码验证页。", "验证码校验通过后仅展示重置成功反馈，原型不写入或保存新密码。", "重置演示完成后，原登录密码 A88888888 保持不变。"],
+    walkthroughNote: "流程走通必填：账号邮箱使用 355569016@qq.com 或 mhy_1126@qq.com，新密码至少 8 位。本次重置仅做演示，完成后仍使用统一登录密码 A88888888。",
     states: ["默认", "填写中", "提交中", "邮箱不存在", "验证码已发送", "网络异常"],
-    deps: ["云端账号：校验账号、生成重置凭证、发送验证码邮件、校验验证码、写入新密码。"],
-    acceptance: ["重置密码页展示可输入的邮箱、新密码和下一步按钮。", "下一步按输入邮箱发送验证码并进入 APP-ONB-07。", "邮箱不存在或输入不完整时停留本页并明确提示。"],
+    deps: ["原型：校验演示账号、模拟发送与校验验证码，不写入新密码。", "生产版仍需云端账号提供重置凭证、验证码校验与密码写入能力。"],
+    acceptance: ["重置密码页展示可输入的邮箱、新密码和下一步按钮。", "下一步按输入邮箱发送验证码并进入 APP-ONB-07。", "邮箱不存在或输入不完整时停留本页并明确提示。", "验证成功后不改变演示账号密码，仍只能使用 A88888888 登录。"],
     prototypeLinks: [["验证重置验证码", "APP-ONB-07"]]
   },
   {
@@ -128,13 +164,14 @@ const pages = [
     group: "首启与账号",
     title: "重置密码验证",
     priority: "P0",
-    goal: "验证重置密码请求对应的账号邮箱，并在验证码通过后写入新密码。",
+    goal: "验证重置密码请求对应的账号邮箱，并在验证码通过后演示重置成功，不保存新密码。",
     entry: "APP-ONB-05 输入已注册邮箱和新密码后点击下一步。",
-    fields: [["account_email", "对应账号邮箱", "重置密码输入"], ["verification_code", "6 位邮箱验证码", "用户输入/邮箱"], ["resend_countdown", "重发倒计时", "本地计时"], ["new_password", "待写入的新密码", "上一步安全暂存"]],
-    rules: ["展示本次重置请求对应的账号邮箱。", "发送 6 位验证码邮件并启动重发倒计时。", "验证码错误时不得修改密码。", "验证码通过后将上一步输入的密码设为该账号的新密码。", "完成后返回登录页，用户可使用新密码登录。", "原型交互备注：演示验证码为 110035，仅用于交互验收。"],
+    fields: [["account_email", "对应账号邮箱", "重置密码输入"], ["verification_code", "6 位邮箱验证码", "用户输入/邮箱"], ["resend_countdown", "重发倒计时", "本地计时"], ["new_password", "仅用于演示的新密码", "上一步临时输入/不保存"]],
+    rules: ["展示本次重置请求对应的账号邮箱。", "发送 6 位验证码邮件并启动重发倒计时。", "验证码错误时不得完成重置演示。", "验证码通过后仅展示重置成功反馈，不将上一步输入的新密码写入账号。", "完成后返回登录页，原型账号仍使用统一密码 A88888888 登录。"],
+    walkthroughNote: "流程走通必填：所有验证码页面统一使用 888888。本页仅演示重置成功，不保存新密码；返回登录后仍使用 A88888888。",
     states: ["等待输入", "验证码不完整", "验证码错误", "验证中", "重置成功", "可重发"],
-    deps: ["云端账号：验证码发送与校验、一次性重置凭证、密码哈希更新、旧会话失效策略。"],
-    acceptance: ["页面按截图结构展示账号邮箱、6 位验证码、重发倒计时和确认按钮。", "验证码未填满或错误时不可完成重置。", "验证成功后新密码立即成为该账号的有效登录密码。", "返回登录页后可用账号邮箱和新密码完成登录。"],
+    deps: ["原型：验证码发送与校验为前端模拟，不执行密码哈希更新或会话失效。", "生产版需云端账号提供一次性重置凭证、密码更新与旧会话失效策略。"],
+    acceptance: ["页面按截图结构展示账号邮箱、6 位验证码、重发倒计时和确认按钮。", "验证码未填满或错误时不可完成重置。", "验证成功后只展示重置成功反馈，不写入新密码。", "返回登录页后，输入的新密码必须登录失败，统一密码 A88888888 必须仍可登录。"],
     prototypeLinks: [["返回重置密码", "APP-ONB-05"], ["重置成功后登录", "APP-ONB-01"]]
   },
   {
@@ -145,10 +182,11 @@ const pages = [
     goal: "使用邮箱验证码完成登录。",
     entry: "登录 / 注册页点击“使用验证码登录”。",
     fields: [["email", "邮箱", "用户输入"], ["verification_code", "验证码", "用户输入/邮箱"], ["agreement_version", "协议版本", "云端账号/本地缓存"], ["privacy_opt_in", "资讯授权", "用户勾选"]],
-    rules: ["邮箱填写后可发送验证码。", "邮箱和验证码填写完整后可登录。", "可切换回密码登录，也可进入账号注册。"],
+    rules: ["邮箱和验证码均为可编辑输入框。", "点击发送前先校验邮箱格式；格式错误时显示对应提示。", "只有固定演示账号可发送验证码；其他邮箱显示“该邮箱尚未注册，请先注册账号”。", "发送成功后填写 6 位验证码才可提交登录。", "验证码错误时停留本页并明确提示。", "验证码正确后进入绑定你的设备。", "可切换回密码登录，也可进入账号注册。"],
+    walkthroughNote: "流程走通必填：邮箱仅支持 355569016@qq.com 或 mhy_1126@qq.com；所有验证码页面统一使用 888888。未注册邮箱需显示“账号未注册”类异常提示。",
     states: ["默认", "已发送验证码", "登录中", "验证码错误", "账号未注册"],
     deps: ["云端账号：发送登录验证码、验证码登录、刷新 token。", "合规：用户协议、隐私政策、资讯授权。"],
-    acceptance: ["邮箱验证码登录页展示邮箱、验证码、发送按钮、登录按钮、密码登录入口和注册入口。"]
+    acceptance: ["邮箱和验证码可真实输入。", "邮箱格式错误、账号未注册、验证码错误均显示不同的页内提示。", "固定账号输入 888888 后进入绑定你的设备。", "保留密码登录入口和注册入口。"]
   },
   {
     id: "APP-ONB-04",
@@ -348,13 +386,13 @@ const pages = [
     group: "文件",
     title: "筛选和排序",
     priority: "P0",
-    goal: "在文件列表中按创建时间、文件夹、来源和设备筛选排序。",
+    goal: "在文件列表中按创建时间、文件夹和“来自”筛选排序；“来自”用于区分不同绑定设备产生的录音与导入音频。",
     entry: "文件列表标题栏倒三角按钮。",
-    fields: [["sort_field", "排序字段", "本地筛选"], ["folder_id", "文件夹", "本地数据库"], ["folder_name", "文件夹名称", "用户输入"], ["folder_file_count", "文件夹文件数", "本地数据库"], ["source_type", "来源", "本地数据库"], ["device_type", "设备来源", "本地数据库"]],
-    rules: ["筛选是用户可见操作，作为 App 内弹层展示。", "默认按创建时间排序。", "全部文件、未分类、回收站为固定入口。", "来源区分硬件设备和导入音频。", "文件夹标题右侧加号用于新增文件夹，点击后展示文件夹命名输入框，保存后新文件夹加入文件夹列表。", "每个自定义文件夹右侧三个点打开操作菜单，支持重命名和删除文件夹。", "删除空文件夹可直接删除；删除非空文件夹时必须二次确认，并提示将同步删除文件夹内的内容。"],
+    fields: [["sort_field", "排序字段", "本地筛选"], ["folder_id", "文件夹", "本地数据库"], ["folder_name", "文件夹名称", "用户输入"], ["folder_file_count", "文件夹文件数", "本地数据库"], ["source_type", "来源类型（hardware_recording / imported_audio）", "本地数据库"], ["source_device_id", "来源设备 ID", "绑定设备记录 / 文件元数据"], ["source_device_name", "来源设备名称", "绑定设备记录"]],
+    rules: ["筛选是用户可见操作，作为 App 内弹层展示。", "默认按创建时间排序。", "全部文件、未分类、回收站为固定入口。", "“来自”表示文件的实际来源：每一台绑定设备按稳定 device_id 独立成项，显示该设备当前名称，例如 AI Recorder A1、AI Recorder A1 Pro；导入音频不关联设备，统一显示为“导入”。", "同型号的多台绑定设备不得仅按型号合并；应按 device_id 区分，并使用设备昵称或序列号后四位消歧。", "每个来源项后的数量仅统计当前文件范围内来自该设备或导入的文件。", "文件夹标题右侧加号用于新增文件夹，点击后展示文件夹命名输入框，保存后新文件夹加入文件夹列表。", "每个自定义文件夹右侧三个点打开操作菜单，支持重命名和删除文件夹。", "删除空文件夹可直接删除；删除非空文件夹时必须二次确认，并提示将同步删除文件夹内的内容。"],
     states: ["默认", "新增文件夹", "重命名文件夹", "删除空文件夹", "删除非空文件夹确认", "已选择文件夹", "已选择来源", "清空筛选"],
     deps: ["本地数据库：文件夹、来源、删除状态、设备来源。"],
-    acceptance: ["文件首页点击筛选按钮打开筛选和排序弹层。", "弹层为底部筛选和排序面板，包含创建时间、文件夹和来源筛选。", "点击文件夹加号可输入名称并新增文件夹。", "点击文件夹三个点可重命名或删除文件夹。", "非空文件夹删除前必须出现确认弹窗，并明确同步删除文件夹内容。"]
+    acceptance: ["文件首页点击筛选按钮打开筛选和排序弹层。", "弹层为底部筛选和排序面板，包含创建时间、文件夹和“来自”筛选。", "“来自”逐项显示有文件的绑定设备名称，并单独显示“导入”；选择某台设备后只保留由该 device_id 产生的文件，选择“导入”后只保留导入音频。", "点击文件夹加号可输入名称并新增文件夹。", "点击文件夹三个点可重命名或删除文件夹。", "非空文件夹删除前必须出现确认弹窗，并明确同步删除文件夹内容。"]
   },
   {
     id: "APP-FILE-13",
@@ -922,10 +960,25 @@ const pages = [
     goal: "管理邮箱、密码以及第三方登录绑定方式。",
     entry: "账号页点击登录方式。",
     fields: [["email", "邮箱", "账号系统"], ["change_password", "更改密码", "账号系统"], ["google_binding", "Google 绑定", "第三方登录"], ["apple_binding", "Apple 绑定", "第三方登录"]],
-    rules: ["邮箱仅展示当前账号。", "更改密码进入重置密码链路。", "Google 和 Apple 展示添加状态。"],
-    states: ["邮箱登录", "第三方未绑定"],
+    rules: ["邮箱仅展示当前账号。", "更改密码进入已登录账号的独立更改密码页，不进入未登录的邮箱重置密码链路。", "更改密码必须验证当前密码，再提交新密码。", "原型只演示密码校验和成功反馈，不保存新密码。", "Google 和 Apple 展示添加状态。"],
+    states: ["邮箱登录", "第三方未绑定", "密码校验完成"],
     deps: ["账号系统。", "第三方登录服务。"],
-    acceptance: ["页面样式参考登录方式截图。"]
+    acceptance: ["页面样式参考登录方式截图。", "点击更改密码进入 APP-ME-41。", "校验完成返回本页并展示原型未保存的反馈。"]
+  },
+  {
+    id: "APP-ME-41",
+    group: "我的",
+    title: "更改密码",
+    priority: "P1",
+    goal: "已登录用户通过当前密码验证身份，并演示设置新的账号密码。",
+    entry: "APP-ME-18 管理登录方式点击“更改密码”。",
+    fields: [["current_password", "当前密码", "用户输入（原型固定校验：A88888888）"], ["new_password", "新密码", "用户输入"], ["confirm_password", "确认密码", "用户输入"]],
+    rules: ["仅已登录账号可进入。", "当前密码、新密码和确认密码全部填写后才可点击确认。", "新密码至少 8 位，且不能与当前密码相同。", "确认密码必须与新密码一致。", "三项密码均支持独立显示或隐藏。", "确认后仅展示校验完成反馈并返回 APP-ME-18，不保存新密码；后续校验仍使用 A88888888。", "本流程不发送邮箱验证码，不与忘记密码的 APP-ONB-05 / APP-ONB-07 混用。"],
+    walkthroughNote: "流程走通必填：所有登录密码和当前密码校验统一使用 A88888888；新密码至少 8 位，且不能与当前密码相同。",
+    states: ["默认", "填写中", "当前密码错误", "新密码不符合要求", "两次密码不一致", "提交中", "校验完成（未保存）"],
+    deps: ["账号系统：当前密码校验、密码强度校验；原型不发起密码写入。"],
+    acceptance: ["页面按参考图展示当前密码、新密码、确认密码和底部确认按钮。", "未填写完整时确认按钮禁用。", "当前密码错误或两次新密码不一致时停留本页并明确提示。", "校验完成后返回管理登录方式页并展示“更改密码验证已完成（原型未保存）。”。", "再次进入页面时，固定当前密码仍为 A88888888。"],
+    prototypeLinks: [["返回管理登录方式", "APP-ME-18"]]
   },
   {
     id: "APP-ME-19",
@@ -974,10 +1027,11 @@ const pages = [
     goal: "在删除账号前说明风险并要求用户阅读确认。",
     entry: "账号页点击删除账号。",
     fields: [["delete_account_terms", "删除说明", "本地文案"], ["read_confirmed", "阅读确认", "用户操作"], ["delete_confirm_method", "密码或验证码", "账号系统"], ["delete_confirm_action", "确认删除", "用户操作/账号系统"]],
-    rules: ["未勾选阅读确认时下一步禁用。", "用户可点击我已阅读并理解上述条款切换选中状态。", "勾选后下一步可点击，并进入密码或验证码确认删除步骤。", "确认页提供密码确认和邮箱验证码确认两种方式，用户可点击切换。", "密码方式需输入当前账号密码后才能点击确认删除。", "验证码方式需先点击发送验证码，系统向当前账号邮箱发送验证码；用户输入验证码后才能点击确认删除。", "点击确认删除后调用账号删除接口，成功后清除本地会话并返回登录/注册页。", "强调数据、会员资格、账号权限与工作空间影响。", "返回按钮回到账号页或上一步。"],
-    states: ["未勾选", "已勾选", "确认删除", "密码确认", "验证码未发送", "验证码已发送", "删除中", "删除完成"],
+    rules: ["未勾选阅读确认时下一步禁用。", "用户可点击我已阅读并理解上述条款切换选中状态。", "勾选后下一步可点击，并进入密码或验证码确认删除步骤。", "确认页提供密码确认和邮箱验证码确认两种方式，用户可点击切换。", "密码方式需输入统一登录密码；密码错误时停留本页并提示“账号密码错误”。", "验证码方式需先点击发送验证码，再输入 6 位验证码；验证码错误时停留本页并明确提示。", "密码或验证码校验通过后才返回登录/注册页。", "强调数据、会员资格、账号权限与工作空间影响。", "返回按钮回到账号页或上一步。"],
+    walkthroughNote: "流程走通必填：密码方式统一使用 A88888888；验证码方式需先点击“发送验证码”，再输入统一验证码 888888。",
+    states: ["未勾选", "已勾选", "确认删除", "密码确认", "密码错误", "验证码未发送", "验证码已发送", "验证码错误", "删除中", "删除完成"],
     deps: ["账号系统：密码校验、邮箱验证码、删除账号接口。"],
-    acceptance: ["删除账号页样式参考截图，底部确认区固定。", "阅读确认可选中和取消选中。", "未选中阅读确认时下一步不可点击，选中后下一步可点击。", "下一步后进入密码或验证码确认删除步骤。", "密码和验证码可以切换。", "验证码方式点击发送后提示验证码已发送至当前账号邮箱。", "确认删除成功后回到登录/注册页。"]
+    acceptance: ["删除账号页样式参考截图，底部确认区固定。", "阅读确认可选中和取消选中。", "未选中阅读确认时下一步不可点击，选中后下一步可点击。", "下一步后进入密码或验证码确认删除步骤。", "密码和验证码可以切换。", "验证码方式点击发送后，移除重复的灰色已发送说明，只保留一条醒目的成功提示。", "错误密码或错误验证码必须停留确认页并显示红色错误提示。", "输入 A88888888 或发送后输入 888888 可完成确认并回到登录/注册页。"]
   },
   {
     id: "APP-ME-05",
@@ -1288,6 +1342,10 @@ function h(text) {
   }[char]));
 }
 
+function isValidEmail(value) {
+  return /^\S+@\S+\.\S+$/.test(String(value || "").trim());
+}
+
 function pageById(id) {
   return pages.find((page) => page.id === id) || pages[0];
 }
@@ -1299,6 +1357,17 @@ function go(id) {
   }
   previousPageId = currentPageId;
   currentPageId = id === "APP-HOME-02" ? "APP-HOME-01" : id;
+  if (currentPageId === "APP-ME-41" && previousPageId !== "APP-ME-41") {
+    changePasswordCurrent = "";
+    changePasswordNew = "";
+    changePasswordConfirm = "";
+    changePasswordVisibility = { current: false, new: false, confirm: false };
+    changePasswordNotice = "";
+    changePasswordNoticeTone = "";
+    changePasswordSuccessNotice = "";
+  } else if (previousPageId === "APP-ME-18" && currentPageId !== "APP-ME-41") {
+    changePasswordSuccessNotice = "";
+  }
   if (currentPageId === "APP-SYNC-01" && previousPageId !== "APP-SYNC-01") {
     hotspotTransferState = "awaiting";
   }
@@ -1461,7 +1530,7 @@ function authInput(id, value, placeholder, opts = {}) {
   return `
     <label class="auth-field auth-input-field ${value ? "filled" : ""}" for="${h(id)}">
       <input id="${h(id)}" type="${opts.type || "text"}" value="${h(value)}" placeholder="${h(placeholder)}" ${opts.autocomplete ? `autocomplete="${h(opts.autocomplete)}"` : ""}>
-      ${opts.type === "password" ? `<span class="auth-input-icon" aria-hidden="true">●●●</span>` : ""}
+      ${opts.toggleAction ? `<button type="button" class="auth-input-toggle" data-action="${h(opts.toggleAction)}" aria-label="${opts.type === "password" ? "显示" : "隐藏"}密码"><span class="eye-icon" aria-hidden="true"></span></button>` : opts.type === "password" ? `<span class="auth-input-icon" aria-hidden="true">●●●</span>` : ""}
     </label>
   `;
 }
@@ -1487,6 +1556,23 @@ function startResetPasswordCountdown() {
   }, 1000);
 }
 
+function startRegisterCodeCountdown() {
+  if (registerCodeTimer) window.clearInterval(registerCodeTimer);
+  registerCodeCountdown = 60;
+  registerCodeTimer = window.setInterval(() => {
+    registerCodeCountdown = Math.max(0, registerCodeCountdown - 1);
+    const resendButton = document.querySelector("[data-action='resend-register-code']");
+    if (resendButton) {
+      resendButton.textContent = registerCodeCountdown > 0 ? `重新发送 ${registerCodeCountdown}` : "重新发送验证码";
+      resendButton.disabled = registerCodeCountdown > 0;
+    }
+    if (registerCodeCountdown === 0) {
+      window.clearInterval(registerCodeTimer);
+      registerCodeTimer = null;
+    }
+  }, 1000);
+}
+
 function clearResetPasswordCodeError() {
   if (resetPasswordNoticeTone !== "error") return;
   resetPasswordNotice = "";
@@ -1495,10 +1581,16 @@ function clearResetPasswordCodeError() {
   if (notice) notice.remove();
 }
 
-function authAgreement() {
+function authAgreement(opts = {}) {
+  const interactive = Boolean(opts.interactive);
+  const requiredChecked = interactive ? registerAgreementAccepted : true;
+  const marketingChecked = interactive ? registerMarketingOptIn : true;
+  const row = (checked, text, action, required = false) => interactive
+    ? `<button type="button" class="auth-agreement-row" data-action="${h(action)}" aria-pressed="${checked ? "true" : "false"}"><span class="check-dot ${checked ? "" : "unchecked"}">${checked ? "✓" : ""}</span><p>${h(text)}${required ? "" : ""}</p></button>`
+    : `<div><span class="check-dot">✓</span><p>${h(text)}</p></div>`;
   return `<div class="auth-agreements">
-    <div><span class="check-dot">✓</span><p>我同意在中国注册我的账号，并接受用户协议和隐私政策。</p></div>
-    <div><span class="check-dot">✓</span><p>请让我及时了解 AI 录音卡的最新资讯和优惠活动。</p></div>
+    ${row(requiredChecked, "我同意在中国注册我的账号，并接受用户协议和隐私政策。", "toggle-register-agreement", true)}
+    ${row(marketingChecked, "请让我及时了解 AI 录音卡的最新资讯和优惠活动。", "toggle-register-marketing")}
   </div>`;
 }
 
@@ -1540,22 +1632,30 @@ function renderLogin() {
 }
 
 function renderRegister() {
+  const canContinue = Boolean(registerEmail.trim() && registerPassword);
   return authScreen("账号注册", `
     <div class="auth-form">
-      ${authField("mhy_1126@qq.com", { action: "×", filled: true })}
-      ${authField("••••••••••", { eye: true, filled: true })}
-      <button class="primary-btn auth-primary" data-go="APP-ONB-03">下一步</button>
-      ${authAgreement()}
+      ${authInput("registerEmail", registerEmail, "邮箱地址", { type: "email", autocomplete: "email" })}
+      ${authInput("registerPassword", registerPassword, "密码（至少 8 位）", { type: registerPasswordVisible ? "text" : "password", autocomplete: "new-password", toggleAction: "toggle-register-password" })}
+      ${authNotice(registerNotice, registerNoticeTone)}
+      <button class="primary-btn auth-primary ${canContinue ? "" : "disabled"}" data-action="submit-register" ${canContinue ? "" : "disabled"}>下一步</button>
+      ${authAgreement({ interactive: true })}
     </div>
   `);
 }
 
 function renderRegisterVerify() {
+  const digits = registerCode.padEnd(6, " ").slice(0, 6).split("");
+  const canConfirm = registerCode.length === 6;
+  const resendLabel = registerCodeCountdown > 0 ? `重新发送 ${registerCodeCountdown}` : "重新发送验证码";
   return authScreen("验证你的邮箱", `
-    <p class="auth-lead">我们已经发送了一条验证码到你的邮箱<br><strong>mhy_1126@qq.com</strong></p>
-    <div class="code-boxes"><span class="active"></span><span></span><span></span><span></span><span></span><span></span></div>
-    <p class="resend-text">重新发送 54</p>
-    <button class="primary-btn auth-primary disabled" data-go="APP-ONB-04">开始使用</button>
+    <p class="auth-lead">我们已经发送了一条验证码到你的邮箱<br><strong>${h(registerEmail || "demo@example.com")}</strong></p>
+    <div class="code-boxes register-code-boxes" role="group" aria-label="6 位注册验证码">
+      ${digits.map((digit, index) => `<input class="register-code-digit ${index === registerCode.length ? "active" : ""}" data-code-index="${index}" inputmode="numeric" maxlength="1" value="${h(digit.trim())}" aria-label="验证码第 ${index + 1} 位">`).join("")}
+    </div>
+    <button class="resend-text resend-action" data-action="resend-register-code" ${registerCodeCountdown > 0 ? "disabled" : ""}>${h(resendLabel)}</button>
+    ${authNotice(registerCodeNotice, registerCodeNoticeTone)}
+    <button class="primary-btn auth-primary ${canConfirm ? "" : "disabled"}" data-action="confirm-register-code" ${canConfirm ? "" : "disabled"}>开始使用</button>
   `, { back: "APP-ONB-02" });
 }
 
@@ -1590,14 +1690,16 @@ function renderResetPasswordVerify() {
 }
 
 function renderCodeLogin() {
+  const canLogin = codeLoginCodeSent && codeLoginCode.length === 6;
   return authScreen("邮箱登录", `
     <div class="auth-form">
-      ${authField("邮箱")}
+      ${authInput("codeLoginEmail", codeLoginEmail, "邮箱", { type: "email", autocomplete: "email" })}
       <div class="auth-code-row">
-        ${authField("验证码")}
-        <button class="primary-btn">发送</button>
+        ${authInput("codeLoginCode", codeLoginCode, "验证码", { autocomplete: "one-time-code" })}
+        <button class="primary-btn ${codeLoginCodeSent ? "sent" : ""}" data-action="send-code-login">${codeLoginCodeSent ? "重新发送" : "发送"}</button>
       </div>
-      <button class="primary-btn auth-primary disabled" data-go="APP-ONB-04">登录</button>
+      ${authNotice(codeLoginNotice, codeLoginNoticeTone)}
+      <button class="primary-btn auth-primary ${canLogin ? "" : "disabled"}" data-action="login-with-code" ${canLogin ? "" : "disabled"}>登录</button>
       <button class="link-btn center" data-go="APP-ONB-01">使用密码登录</button>
       <p class="register-line">还没有账号吗？ <button class="link-btn inline" data-go="APP-ONB-02">注册</button></p>
       ${authAgreement()}
@@ -1879,8 +1981,8 @@ function renderFilterSheet() {
       `).join("")}
       <h3 class="filter-title-alone">来自</h3>
       <div class="source-list">
-        <button>Note · 对话模式 <em>(3)</em></button>
-        <button>Note Pro <em>(30)</em></button>
+        <button>AI Recorder A1 <em>(3)</em></button>
+        <button>AI Recorder A1 Pro <em>(30)</em></button>
         <button>导入 <em>(2)</em></button>
       </div>
     </section>
@@ -3356,13 +3458,47 @@ function renderLoginMethods() {
       ${meTop("", { back: "APP-ME-17" })}
       <section>
         <h1>管理我的登录方式</h1>
-        ${accountRow("邮箱", { value: "355569016@qq.com", arrow: false })}
-        ${accountRow("更改密码", { go: "APP-ONB-05" })}
+        ${changePasswordSuccessNotice ? `<p class="login-method-success" role="status">${h(changePasswordSuccessNotice)}</p>` : ""}
+        ${accountRow("邮箱", { value: currentAccountEmail, arrow: false })}
+        ${accountRow("更改密码", { go: "APP-ME-41" })}
         <div class="me-line"></div>
         ${accountRow("Google", { icon: "google", value: "添加", arrow: false })}
         ${accountRow("Apple", { icon: "apple", value: "添加", arrow: false })}
         <p>添加多个登录方式，可随时通过任一绑定方式登录。</p>
       </section>
+    </main>
+  `;
+}
+
+function changePasswordField(id, value, placeholder, fieldKey) {
+  const visible = changePasswordVisibility[fieldKey];
+  return `
+    <div class="change-password-field">
+      <input id="${h(id)}" type="${visible ? "text" : "password"}" value="${h(value)}" placeholder="${h(placeholder)}" autocomplete="${fieldKey === "current" ? "current-password" : "new-password"}">
+      <button type="button" data-action="toggle-change-password-visibility" data-password-field="${h(fieldKey)}" aria-label="${visible ? "隐藏" : "显示"}${h(placeholder)}" aria-pressed="${visible ? "true" : "false"}">
+        <span class="eye-icon" aria-hidden="true"></span>
+      </button>
+    </div>
+  `;
+}
+
+function renderChangePassword() {
+  const canSubmit = Boolean(changePasswordCurrent && changePasswordNew && changePasswordConfirm);
+  return `
+    <main class="me-simple-page change-password-page">
+      ${meTop("", { back: "APP-ME-18" })}
+      <section class="change-password-content">
+        <h1>更改密码</h1>
+        <div class="change-password-form">
+          ${changePasswordField("changePasswordCurrent", changePasswordCurrent, "当前密码", "current")}
+          ${changePasswordField("changePasswordNew", changePasswordNew, "新密码", "new")}
+          ${changePasswordField("changePasswordConfirm", changePasswordConfirm, "确认密码", "confirm")}
+          ${authNotice(changePasswordNotice, changePasswordNoticeTone)}
+        </div>
+      </section>
+      <footer class="change-password-footer">
+        <button class="primary-btn ${canSubmit ? "" : "disabled"}" data-action="submit-change-password" ${canSubmit ? "" : "disabled"}>确认</button>
+      </footer>
     </main>
   `;
 }
@@ -3384,7 +3520,7 @@ function renderLoggedInDevices() {
           <div class="me-line"></div>
         `).join("") : `<div class="logged-device-empty">暂无已登录设备</div>`}
       </section>
-      <p class="logged-device-warning"><b>注意：</b> 如发现异常登录，请立即登出并重置密码以保护账号安全。</p>
+      <p class="logged-device-warning"><b>注意：</b> 如发现异常登录，请立即登出并更改密码以保护账号安全。</p>
     </main>
     ${pendingDevice ? `
       <div class="scrim" data-action="cancel-logged-device-logout"></div>
@@ -3435,7 +3571,7 @@ function renderDeleteAccount() {
   if (deleteAccountStep === "confirm") {
     const canDelete = deleteAccountConfirmMode === "password"
       ? deleteAccountPassword.trim().length > 0
-      : deleteAccountCodeSent && deleteAccountCode.trim().length > 0;
+      : deleteAccountCodeSent && deleteAccountCode.length === 6;
     return `
       <main class="me-simple-page delete-account-page delete-account-confirm-page">
         ${meTop("删除账号", { back: "APP-ME-22" })}
@@ -3455,9 +3591,9 @@ function renderDeleteAccount() {
               <input id="deleteCode" inputmode="numeric" maxlength="6" value="${h(deleteAccountCode)}" placeholder="请输入 6 位验证码">
               <button type="button" class="${deleteAccountCodeSent ? "sent" : ""}" data-action="send-delete-account-code">${deleteAccountCodeSent ? "已发送" : "发送验证码"}</button>
             </div>
-            <p class="delete-confirm-hint">${deleteAccountCodeSent ? "验证码已发送至当前账号邮箱 mhy_1126@qq.com，请输入后确认删除。" : "点击发送验证码后，系统会向当前账号邮箱 mhy_1126@qq.com 发送验证码。"}</p>
+            ${deleteAccountCodeSent ? "" : `<p class="delete-confirm-hint">点击发送验证码后，系统会向当前账号邮箱 mhy_1126@qq.com 发送验证码。</p>`}
           `}
-          ${deleteAccountConfirmNotice ? `<p class="delete-confirm-notice">${h(deleteAccountConfirmNotice)}</p>` : ""}
+          ${deleteAccountConfirmNotice ? `<p class="delete-confirm-notice ${h(deleteAccountConfirmNoticeTone)}">${h(deleteAccountConfirmNotice)}</p>` : ""}
         </section>
         <div class="delete-account-footer final">
           <button class="danger-fill" data-action="confirm-delete-account" ${canDelete ? "" : "disabled"}>确认删除</button>
@@ -4134,6 +4270,7 @@ const renderers = {
   "APP-ME-40": renderFaceIdPermission,
   "APP-ME-17": renderAccountPage,
   "APP-ME-18": renderLoginMethods,
+  "APP-ME-41": renderChangePassword,
   "APP-ME-19": renderLoggedInDevices,
   "APP-ME-20": renderTwoStepVerification,
   "APP-ME-21": renderLogoutConfirm,
@@ -4170,7 +4307,7 @@ function renderNav() {
 }
 
 function renderFlow() {
-  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-07", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-DEV-05", "APP-HOME-01", "APP-SYNC-02", "APP-SYNC-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-02", "APP-ME-16", "APP-ME-26", "APP-ME-27", "APP-ME-28", "APP-ME-29", "APP-ME-30", "APP-ME-31", "APP-ME-32", "APP-ME-33", "APP-ME-34", "APP-ME-35", "APP-ME-36", "APP-ME-37", "APP-ME-38", "APP-ME-40", "APP-ME-39", "APP-ME-17", "APP-ME-18", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-23", "APP-ME-10", "APP-ME-11", "APP-ME-12", "APP-DEV-03", "APP-DEV-10", "APP-ME-04", "APP-ME-24", "APP-ME-25", "APP-DEV-06", "APP-DEV-07", "APP-DEV-08", "APP-DEV-09"];
+  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-07", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-DEV-05", "APP-HOME-01", "APP-SYNC-02", "APP-SYNC-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-02", "APP-ME-16", "APP-ME-26", "APP-ME-27", "APP-ME-28", "APP-ME-29", "APP-ME-30", "APP-ME-31", "APP-ME-32", "APP-ME-33", "APP-ME-34", "APP-ME-35", "APP-ME-36", "APP-ME-37", "APP-ME-38", "APP-ME-40", "APP-ME-39", "APP-ME-17", "APP-ME-18", "APP-ME-41", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-23", "APP-ME-10", "APP-ME-11", "APP-ME-12", "APP-DEV-03", "APP-DEV-10", "APP-ME-04", "APP-ME-24", "APP-ME-25", "APP-DEV-06", "APP-DEV-07", "APP-DEV-08", "APP-DEV-09"];
   document.getElementById("flowStrip").innerHTML = flow.map((id, index) => {
     const page = pageById(id);
     return `<button class="${id === currentPageId ? "active" : ""}" data-go="${id}">${index + 1}. ${h(page.title)}</button>`;
@@ -4204,7 +4341,7 @@ function renderSpec(page) {
         ${page.fields.map(([field, desc, source]) => `<tr><td><code>${h(field)}</code></td><td>${h(desc)}</td><td>${h(source)}</td></tr>`).join("")}
       </tbody></table>
     </section>
-    <section class="spec-section"><h3>交互规则</h3><ul>${page.rules.map((item) => `<li>${h(item)}</li>`).join("")}</ul></section>
+    <section class="spec-section"><h3>交互规则</h3><ul>${page.walkthroughNote ? `<li class="walkthrough-note">${h(page.walkthroughNote)}</li>` : ""}${page.rules.map((item) => `<li>${h(item)}</li>`).join("")}</ul></section>
     <section class="spec-section"><h3>页面状态</h3><ul>${page.states.map((item) => `<li>${h(item)}</li>`).join("")}</ul></section>
     <section class="spec-section"><h3>接口 / 能力依赖</h3><ul>${page.deps.map((item) => `<li>${h(item)}</li>`).join("")}</ul></section>
     <section class="spec-section"><h3>验收点</h3><ul>${page.acceptance.map((item) => `<li>${h(item)}</li>`).join("")}</ul></section>
@@ -4429,10 +4566,206 @@ document.addEventListener("click", (event) => {
     return;
   }
   const action = event.target.closest("[data-action]");
+  if (action && action.dataset.action === "toggle-register-password") {
+    registerPasswordVisible = !registerPasswordVisible;
+    render();
+    requestAnimationFrame(() => document.getElementById("registerPassword")?.focus());
+    return;
+  }
+  if (action && action.dataset.action === "toggle-register-agreement") {
+    registerAgreementAccepted = !registerAgreementAccepted;
+    if (registerNoticeTone === "error") {
+      registerNotice = "";
+      registerNoticeTone = "";
+    }
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "toggle-register-marketing") {
+    registerMarketingOptIn = !registerMarketingOptIn;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "submit-register") {
+    registerEmail = document.getElementById("registerEmail")?.value.trim().toLowerCase() || "";
+    registerPassword = document.getElementById("registerPassword")?.value || "";
+    if (!isValidEmail(registerEmail)) {
+      registerNotice = "请输入有效的邮箱地址。";
+      registerNoticeTone = "error";
+      render();
+      requestAnimationFrame(() => document.getElementById("registerEmail")?.focus());
+      return;
+    }
+    if (registerPassword.length < 8) {
+      registerNotice = "密码至少需要 8 位。";
+      registerNoticeTone = "error";
+      render();
+      requestAnimationFrame(() => document.getElementById("registerPassword")?.focus());
+      return;
+    }
+    if (!registerAgreementAccepted) {
+      registerNotice = "请先同意用户协议和隐私政策。";
+      registerNoticeTone = "error";
+      render();
+      return;
+    }
+    registerNotice = "";
+    registerNoticeTone = "";
+    registerCode = "";
+    registerCodeNotice = "";
+    registerCodeNoticeTone = "";
+    startRegisterCodeCountdown();
+    go("APP-ONB-03");
+    requestAnimationFrame(() => document.querySelector(".register-code-digit")?.focus());
+    return;
+  }
+  if (action && action.dataset.action === "resend-register-code") {
+    if (registerCodeCountdown > 0) return;
+    registerCode = "";
+    registerCodeNotice = "验证码已重新发送。";
+    registerCodeNoticeTone = "success";
+    startRegisterCodeCountdown();
+    render();
+    requestAnimationFrame(() => document.querySelector(".register-code-digit")?.focus());
+    return;
+  }
+  if (action && action.dataset.action === "confirm-register-code") {
+    const code = [...document.querySelectorAll(".register-code-digit")].map((input) => input.value).join("");
+    registerCode = code;
+    if (code.length !== 6) return;
+    if (code !== prototypeVerificationCode) {
+      registerCodeNotice = "验证码错误，请检查后重新输入。";
+      registerCodeNoticeTone = "error";
+      render();
+      requestAnimationFrame(() => document.querySelector(".register-code-digit")?.focus());
+      return;
+    }
+    registerCodeNotice = "";
+    registerCodeNoticeTone = "";
+    if (registerCodeTimer) {
+      window.clearInterval(registerCodeTimer);
+      registerCodeTimer = null;
+    }
+    registerCodeCountdown = 0;
+    go("APP-ONB-04");
+    return;
+  }
+  if (action && action.dataset.action === "send-code-login") {
+    codeLoginEmail = document.getElementById("codeLoginEmail")?.value.trim().toLowerCase() || "";
+    codeLoginCode = "";
+    if (!isValidEmail(codeLoginEmail)) {
+      codeLoginCodeSent = false;
+      codeLoginNotice = "请输入有效的邮箱地址。";
+      codeLoginNoticeTone = "error";
+      render();
+      requestAnimationFrame(() => document.getElementById("codeLoginEmail")?.focus());
+      return;
+    }
+    if (!Object.prototype.hasOwnProperty.call(prototypeAccounts, codeLoginEmail)) {
+      codeLoginCodeSent = false;
+      codeLoginNotice = "该邮箱尚未注册，请先注册账号。";
+      codeLoginNoticeTone = "error";
+      render();
+      return;
+    }
+    codeLoginCodeSent = true;
+    codeLoginNotice = "验证码已发送至该邮箱。";
+    codeLoginNoticeTone = "success";
+    render();
+    requestAnimationFrame(() => document.getElementById("codeLoginCode")?.focus());
+    return;
+  }
+  if (action && action.dataset.action === "login-with-code") {
+    codeLoginEmail = document.getElementById("codeLoginEmail")?.value.trim().toLowerCase() || "";
+    codeLoginCode = document.getElementById("codeLoginCode")?.value.replace(/\D/g, "").slice(0, 6) || "";
+    if (!Object.prototype.hasOwnProperty.call(prototypeAccounts, codeLoginEmail)) {
+      codeLoginNotice = "该邮箱尚未注册，请先注册账号。";
+      codeLoginNoticeTone = "error";
+      render();
+      return;
+    }
+    if (!codeLoginCodeSent) {
+      codeLoginNotice = "请先发送验证码。";
+      codeLoginNoticeTone = "error";
+      render();
+      return;
+    }
+    if (codeLoginCode !== prototypeVerificationCode) {
+      codeLoginNotice = "验证码错误，请检查后重新输入。";
+      codeLoginNoticeTone = "error";
+      render();
+      requestAnimationFrame(() => document.getElementById("codeLoginCode")?.focus());
+      return;
+    }
+    codeLoginNotice = "";
+    codeLoginNoticeTone = "";
+    go("APP-ONB-04");
+    return;
+  }
+  if (action && action.dataset.action === "toggle-change-password-visibility") {
+    const fieldKey = action.dataset.passwordField;
+    if (Object.prototype.hasOwnProperty.call(changePasswordVisibility, fieldKey)) {
+      changePasswordVisibility[fieldKey] = !changePasswordVisibility[fieldKey];
+      render();
+      const inputId = {
+        current: "changePasswordCurrent",
+        new: "changePasswordNew",
+        confirm: "changePasswordConfirm"
+      }[fieldKey];
+      requestAnimationFrame(() => document.getElementById(inputId)?.focus());
+    }
+    return;
+  }
+  if (action && action.dataset.action === "submit-change-password") {
+    changePasswordCurrent = document.getElementById("changePasswordCurrent")?.value || "";
+    changePasswordNew = document.getElementById("changePasswordNew")?.value || "";
+    changePasswordConfirm = document.getElementById("changePasswordConfirm")?.value || "";
+    if (!changePasswordCurrent || !changePasswordNew || !changePasswordConfirm) return;
+    if (changePasswordPrototypeCurrent !== changePasswordCurrent) {
+      changePasswordNotice = "当前密码不正确，请重新输入。";
+      changePasswordNoticeTone = "error";
+      render();
+      requestAnimationFrame(() => document.getElementById("changePasswordCurrent")?.focus());
+      return;
+    }
+    if (changePasswordNew.length < 8) {
+      changePasswordNotice = "新密码至少需要 8 位。";
+      changePasswordNoticeTone = "error";
+      render();
+      requestAnimationFrame(() => document.getElementById("changePasswordNew")?.focus());
+      return;
+    }
+    if (changePasswordNew === changePasswordCurrent) {
+      changePasswordNotice = "新密码不能与当前密码相同。";
+      changePasswordNoticeTone = "error";
+      render();
+      requestAnimationFrame(() => document.getElementById("changePasswordNew")?.focus());
+      return;
+    }
+    if (changePasswordNew !== changePasswordConfirm) {
+      changePasswordNotice = "两次输入的新密码不一致。";
+      changePasswordNoticeTone = "error";
+      render();
+      requestAnimationFrame(() => document.getElementById("changePasswordConfirm")?.focus());
+      return;
+    }
+    changePasswordNotice = "";
+    changePasswordNoticeTone = "";
+    changePasswordSuccessNotice = "更改密码验证已完成（原型未保存）。";
+    go("APP-ME-18");
+    return;
+  }
   if (action && action.dataset.action === "login-with-password") {
     loginEmail = document.getElementById("loginEmail")?.value.trim().toLowerCase() || "";
     loginPassword = document.getElementById("loginPassword")?.value || "";
     if (!loginEmail || !loginPassword) return;
+    if (!isValidEmail(loginEmail)) {
+      loginNotice = "请输入有效的邮箱地址。";
+      loginNoticeTone = "error";
+      render();
+      requestAnimationFrame(() => document.getElementById("loginEmail")?.focus());
+      return;
+    }
     if (!Object.prototype.hasOwnProperty.call(prototypeAccounts, loginEmail)) {
       loginNotice = "未找到该邮箱对应的账号，请检查后重试。";
       loginNoticeTone = "error";
@@ -4495,17 +4828,16 @@ document.addEventListener("click", (event) => {
     const code = [...document.querySelectorAll(".reset-code-digit")].map((input) => input.value).join("");
     resetPasswordCode = code;
     if (!resetPasswordCodeSent || !resetPasswordValue || code.length !== 6) return;
-    if (code !== resetPasswordDemoCode) {
+    if (code !== prototypeVerificationCode) {
       resetPasswordNotice = "验证码错误，请检查后重新输入。";
       resetPasswordNoticeTone = "error";
       render();
       requestAnimationFrame(() => document.querySelector(".reset-code-digit")?.focus());
       return;
     }
-    prototypeAccounts[resetPasswordEmail] = resetPasswordValue;
     loginEmail = resetPasswordEmail;
     loginPassword = "";
-    loginNotice = "密码重置成功，请使用新密码登录。";
+    loginNotice = "密码重置演示已完成，请使用原密码登录。";
     loginNoticeTone = "success";
     resetPasswordValue = "";
     resetPasswordCode = "";
@@ -4823,23 +5155,42 @@ document.addEventListener("click", (event) => {
   if (action && action.dataset.action === "switch-delete-confirm-mode") {
     deleteAccountConfirmMode = action.dataset.deleteMode || "password";
     deleteAccountConfirmNotice = "";
+    deleteAccountConfirmNoticeTone = "";
     render();
     return;
   }
   if (action && action.dataset.action === "send-delete-account-code") {
     deleteAccountConfirmMode = "code";
     deleteAccountCodeSent = true;
-    deleteAccountConfirmNotice = "验证码已发送至当前账号邮箱 mhy_1126@qq.com。";
+    deleteAccountConfirmNotice = "验证码已发送至 mhy_1126@qq.com，请输入 6 位验证码完成身份确认。";
+    deleteAccountConfirmNoticeTone = "success";
     render();
     return;
   }
   if (action && action.dataset.action === "confirm-delete-account") {
+    if (deleteAccountConfirmMode === "password" && deleteAccountPassword !== prototypeLoginPassword) {
+      deleteAccountConfirmNotice = "账号密码错误，请重新输入。";
+      deleteAccountConfirmNoticeTone = "error";
+      render();
+      requestAnimationFrame(() => document.getElementById("deletePassword")?.focus());
+      return;
+    }
+    if (deleteAccountConfirmMode === "code" && (!deleteAccountCodeSent || deleteAccountCode !== prototypeVerificationCode)) {
+      deleteAccountConfirmNotice = deleteAccountCodeSent
+        ? "验证码错误，请检查后重新输入。"
+        : "请先发送验证码。";
+      deleteAccountConfirmNoticeTone = "error";
+      render();
+      requestAnimationFrame(() => document.getElementById("deleteCode")?.focus());
+      return;
+    }
     deleteAccountStep = "warning";
     deleteAccountReadConfirmed = false;
     deleteAccountPassword = "";
     deleteAccountCode = "";
     deleteAccountCodeSent = false;
     deleteAccountConfirmNotice = "";
+    deleteAccountConfirmNoticeTone = "";
     go("APP-ONB-01");
     return;
   }
@@ -4859,9 +5210,94 @@ document.addEventListener("click", (event) => {
 });
 
 document.addEventListener("input", (event) => {
+  if (event.target.id === "registerEmail" || event.target.id === "registerPassword") {
+    registerEmail = document.getElementById("registerEmail")?.value || "";
+    registerPassword = document.getElementById("registerPassword")?.value || "";
+    if (registerNoticeTone === "error") {
+      registerNotice = "";
+      registerNoticeTone = "";
+      document.querySelector(".auth-screen .auth-notice")?.remove();
+    }
+    const button = document.querySelector("[data-action='submit-register']");
+    const canContinue = Boolean(registerEmail.trim() && registerPassword);
+    if (button) {
+      button.disabled = !canContinue;
+      button.classList.toggle("disabled", !canContinue);
+    }
+  }
+  if (event.target.matches(".register-code-digit")) {
+    event.target.value = event.target.value.replace(/\D/g, "").slice(-1);
+    const inputs = [...document.querySelectorAll(".register-code-digit")];
+    registerCode = inputs.map((input) => input.value).join("");
+    if (registerCodeNoticeTone === "error") {
+      registerCodeNotice = "";
+      registerCodeNoticeTone = "";
+      document.querySelector(".auth-screen .auth-notice")?.remove();
+    }
+    if (event.target.value) inputs[Number(event.target.dataset.codeIndex) + 1]?.focus();
+    const button = document.querySelector("[data-action='confirm-register-code']");
+    if (button) {
+      button.disabled = registerCode.length !== 6;
+      button.classList.toggle("disabled", registerCode.length !== 6);
+    }
+  }
+  if (event.target.id === "codeLoginEmail") {
+    const nextEmail = event.target.value;
+    if (nextEmail !== codeLoginEmail && codeLoginCodeSent) {
+      codeLoginCodeSent = false;
+      codeLoginCode = "";
+      const codeInput = document.getElementById("codeLoginCode");
+      if (codeInput) codeInput.value = "";
+    }
+    codeLoginEmail = nextEmail;
+    codeLoginNotice = "";
+    codeLoginNoticeTone = "";
+    document.querySelector(".auth-screen .auth-notice")?.remove();
+    const button = document.querySelector("[data-action='login-with-code']");
+    if (button) {
+      button.disabled = true;
+      button.classList.add("disabled");
+    }
+  }
+  if (event.target.id === "codeLoginCode") {
+    codeLoginCode = event.target.value.replace(/\D/g, "").slice(0, 6);
+    event.target.value = codeLoginCode;
+    if (codeLoginNoticeTone === "error") {
+      codeLoginNotice = "";
+      codeLoginNoticeTone = "";
+      document.querySelector(".auth-screen .auth-notice")?.remove();
+    }
+    const button = document.querySelector("[data-action='login-with-code']");
+    const canLogin = codeLoginCodeSent && codeLoginCode.length === 6;
+    if (button) {
+      button.disabled = !canLogin;
+      button.classList.toggle("disabled", !canLogin);
+    }
+  }
+  if (["changePasswordCurrent", "changePasswordNew", "changePasswordConfirm"].includes(event.target.id)) {
+    changePasswordCurrent = document.getElementById("changePasswordCurrent")?.value || "";
+    changePasswordNew = document.getElementById("changePasswordNew")?.value || "";
+    changePasswordConfirm = document.getElementById("changePasswordConfirm")?.value || "";
+    if (changePasswordNoticeTone === "error") {
+      changePasswordNotice = "";
+      changePasswordNoticeTone = "";
+      document.querySelector(".change-password-page .auth-notice")?.remove();
+    }
+    const button = document.querySelector("[data-action='submit-change-password']");
+    const canSubmit = Boolean(changePasswordCurrent && changePasswordNew && changePasswordConfirm);
+    if (button) {
+      button.disabled = !canSubmit;
+      button.classList.toggle("disabled", !canSubmit);
+    }
+  }
   if (event.target.id === "loginEmail" || event.target.id === "loginPassword") {
     loginEmail = document.getElementById("loginEmail")?.value || "";
     loginPassword = document.getElementById("loginPassword")?.value || "";
+    if (loginNoticeTone === "error") {
+      loginNotice = "";
+      loginNoticeTone = "";
+      document.querySelector(".auth-notice")?.remove();
+    }
     const button = document.querySelector("[data-action='login-with-password']");
     const canLogin = Boolean(loginEmail.trim() && loginPassword);
     if (button) {
@@ -4872,6 +5308,11 @@ document.addEventListener("input", (event) => {
   if (event.target.id === "resetPasswordEmail" || event.target.id === "resetPasswordValue") {
     resetPasswordEmail = document.getElementById("resetPasswordEmail")?.value || "";
     resetPasswordValue = document.getElementById("resetPasswordValue")?.value || "";
+    if (resetPasswordNoticeTone === "error") {
+      resetPasswordNotice = "";
+      resetPasswordNoticeTone = "";
+      document.querySelector(".auth-screen .auth-notice")?.remove();
+    }
     const button = document.querySelector("[data-action='submit-reset-password']");
     const canContinue = Boolean(resetPasswordEmail.trim() && resetPasswordValue);
     if (button) {
@@ -4903,40 +5344,56 @@ document.addEventListener("input", (event) => {
   }
   if (event.target.id === "deletePassword") {
     deleteAccountPassword = event.target.value;
+    deleteAccountConfirmNotice = "";
+    deleteAccountConfirmNoticeTone = "";
   }
   if (event.target.id === "deleteCode") {
-    deleteAccountCode = event.target.value;
+    deleteAccountCode = event.target.value.replace(/\D/g, "").slice(0, 6);
+    event.target.value = deleteAccountCode;
+    deleteAccountConfirmNotice = "";
+    deleteAccountConfirmNoticeTone = "";
   }
   if (event.target.id === "deletePassword" || event.target.id === "deleteCode") {
     const canDelete = deleteAccountConfirmMode === "password"
       ? deleteAccountPassword.trim().length > 0
-      : deleteAccountCodeSent && deleteAccountCode.trim().length > 0;
+      : deleteAccountCodeSent && deleteAccountCode.length === 6;
     const button = document.querySelector("[data-action='confirm-delete-account']");
     if (button) button.disabled = !canDelete;
   }
 });
 
 document.addEventListener("keydown", (event) => {
-  if (!event.target.matches(".reset-code-digit") || event.key !== "Backspace" || event.target.value) return;
+  if (!event.target.matches(".reset-code-digit, .register-code-digit") || event.key !== "Backspace" || event.target.value) return;
   const index = Number(event.target.dataset.codeIndex);
-  document.querySelector(`.reset-code-digit[data-code-index='${index - 1}']`)?.focus();
+  const selector = event.target.matches(".register-code-digit") ? ".register-code-digit" : ".reset-code-digit";
+  document.querySelector(`${selector}[data-code-index='${index - 1}']`)?.focus();
 });
 
 document.addEventListener("paste", (event) => {
-  if (!event.target.matches(".reset-code-digit")) return;
+  if (!event.target.matches(".reset-code-digit, .register-code-digit")) return;
   const pastedCode = event.clipboardData?.getData("text").replace(/\D/g, "").slice(0, 6) || "";
   if (!pastedCode) return;
   event.preventDefault();
-  clearResetPasswordCodeError();
-  const inputs = [...document.querySelectorAll(".reset-code-digit")];
+  const isRegisterCode = event.target.matches(".register-code-digit");
+  if (!isRegisterCode) clearResetPasswordCodeError();
+  const selector = isRegisterCode ? ".register-code-digit" : ".reset-code-digit";
+  const inputs = [...document.querySelectorAll(selector)];
   inputs.forEach((input, index) => {
     input.value = pastedCode[index] || "";
   });
-  resetPasswordCode = pastedCode;
+  if (isRegisterCode) {
+    registerCode = pastedCode;
+    registerCodeNotice = "";
+    registerCodeNoticeTone = "";
+  } else {
+    resetPasswordCode = pastedCode;
+  }
   inputs[Math.min(pastedCode.length, 5)]?.focus();
-  const button = document.querySelector("[data-action='confirm-reset-password']");
+  const button = document.querySelector(isRegisterCode ? "[data-action='confirm-register-code']" : "[data-action='confirm-reset-password']");
   if (button) {
-    const canConfirm = resetPasswordCodeSent && Boolean(resetPasswordValue) && pastedCode.length === 6;
+    const canConfirm = isRegisterCode
+      ? pastedCode.length === 6
+      : resetPasswordCodeSent && Boolean(resetPasswordValue) && pastedCode.length === 6;
     button.disabled = !canConfirm;
     button.classList.toggle("disabled", !canConfirm);
   }

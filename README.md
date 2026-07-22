@@ -116,6 +116,8 @@ node --check scripts/build-prd-preview.js
 - 转写任务状态
 - AI 笔记
 - 用量账本
+- 管理登录方式
+- 更改密码（已登录账号）
 - 设备详情
 - 隐私与安全
 - 异常状态
