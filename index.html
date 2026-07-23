@@ -331,7 +331,8 @@ const pages = [
     states: ["新版本提示", "跳过本版本", "稍后再说", "立即更新"],
     deps: ["云端固件版本服务。", "设备能力：Wi-Fi 热点更新/蓝牙更新支持情况。"],
     acceptance: ["更新弹窗展示更新内容、跳过此更新、立即更新和稍后再说。", "立即更新链路进入连接设备热点或蓝牙更新流程。"],
-    prototypeLinks: [["立即更新", "APP-DEV-07"], ["蓝牙更新", "APP-DEV-08"]]
+    prototypeLinks: [["立即更新", "APP-DEV-07"]],
+    prototypeActions: [["蓝牙更新", "start-firmware-update", "bluetooth"]]
   },
   {
     id: "APP-DEV-07",
@@ -340,12 +341,11 @@ const pages = [
     priority: "P1",
     goal: "在支持 Wi-Fi 固件更新时，引导手机连接设备热点以传输固件包。",
     entry: "固件更新提示点击立即更新且设备支持 Wi-Fi 热点更新。",
-    fields: [["hotspot_ssid", "设备热点", "设备广播"], ["update_transport", "更新方式", "硬件能力"], ["system_join_prompt", "系统加入弹窗", "系统权限"]],
-    rules: ["如果硬件不支持 Wi-Fi 更新，本页不展示，直接使用蓝牙更新。", "页面中的取消和加入仅为系统操作示意，不可点击。", "点击继续后，在当前连接设备热点页面上叠加系统加入无线局域网确认弹窗。", "系统弹窗点击取消后回到连接设备热点引导页；点击加入后才进入固件更新中页。"],
-    states: ["等待连接热点", "系统加入确认", "取消加入", "确认加入"],
+    fields: [["hotspot_ssid", "设备热点", "设备广播"], ["update_transport", "更新方式", "硬件能力"], ["system_join_preview", "系统加入弹窗示意", "本地演示"]],
+    rules: ["如果硬件不支持 Wi-Fi 更新，本页不展示，直接使用蓝牙更新。", "页面中的取消和加入仅为系统操作示意，不可点击。", "点击继续后直接进入 APP-DEV-08 固件更新中页，从下载固件包开始演示，不在本页弹出系统加入确认。", "实际系统加入热点弹窗在 APP-DEV-08 的连接到 AI Recorder A1 步骤出现。"],
+    states: ["等待继续", "进入固件更新", "取消更新"],
     deps: ["iOS / Android Wi-Fi 热点连接能力。", "硬件热点协议待确认。"],
-    acceptance: ["页面解释手机将连接 AI Recorder A1 热点完成更新，示意卡不可操作。", "点击继续后系统确认弹窗覆盖在当前连接设备热点页上。", "系统取消返回当前引导页，系统加入进入 APP-DEV-08 固件更新中；页面取消返回设备详情。"],
-    prototypeLinks: [["连接失败", "APP-DEV-09"]]
+    acceptance: ["页面解释手机将连接 AI Recorder A1 热点完成更新，示意卡不可操作。", "点击继续直接进入 APP-DEV-08 并显示下载固件包步骤，不弹出加入热点确认。", "页面取消返回设备详情。"]
   },
   {
     id: "APP-DEV-08",
@@ -353,13 +353,13 @@ const pages = [
     title: "固件更新中",
     priority: "P0",
     goal: "展示固件更新进度，提醒用户保持设备充电、未录音且不要退出 App。",
-    entry: "连接设备热点成功后；或蓝牙更新开始后。",
-    fields: [["firmware_package", "固件包", "云端固件服务"], ["update_step", "更新步骤", "固件更新服务"], ["update_progress", "更新进度", "本地任务状态"], ["device_safe_state", "设备安全状态", "BLE 状态包"]],
-    rules: ["更新前必须确认设备未录音且电量满足更新要求。", "更新中保持设备充电状态，不允许发起录音。", "更新过程失败时进入连接失败弹窗。", "更新完成后返回设备详情并刷新固件版本。"],
-    states: ["下载固件包", "连接设备", "传输固件包", "安装固件包", "更新完成", "连接失败"],
+    entry: "连接设备热点页点击继续；或选择蓝牙更新。",
+    fields: [["firmware_package", "固件包", "云端固件服务"], ["update_step", "更新步骤", "固件更新服务"], ["update_progress", "更新进度", "本地任务状态"], ["system_join_prompt", "系统加入热点弹窗", "系统权限"], ["device_safe_state", "设备安全状态", "BLE 状态包"]],
+    rules: ["进入本页先显示下载固件包，加载 3 秒后自动进入连接到 AI Recorder A1。", "Wi-Fi 更新进入连接步骤时自动弹出系统加入热点确认；点击加入后立即开始传输固件包，传输 3 秒后进入安装固件包。", "系统弹窗点击取消后停留在连接到 AI Recorder A1，并显示重新连接按钮；点击后再次唤起加入热点弹窗。", "进入安装固件包后停留在当前状态，不自动跳转更新完成；通过右侧状态链路的更新完成按钮进入文件首页。", "蓝牙更新不弹出热点确认，连接、传输和安装过程由页面自动推进。", "离开本页时停止未完成的原型计时，避免后台继续推进。"],
+    states: ["下载固件包", "连接到 AI Recorder A1", "等待重新连接", "传输固件包到 AI Recorder A1", "安装固件包", "更新完成", "连接失败"],
     deps: ["云端固件包下载。", "BLE / Wi-Fi 传输协议。", "设备安装进度回传。"],
-    acceptance: ["更新中页展示设备图、步骤列表和禁用的更新中按钮。", "失败链路进入连接失败页，完成链路返回设备详情。"],
-    prototypeLinks: [["连接失败", "APP-DEV-09"], ["更新完成", "APP-DEV-03"]]
+    acceptance: ["进入页面时下载固件包为当前步骤，3 秒后自动进入连接步骤并在 Wi-Fi 更新时弹出加入热点确认。", "点击取消停留在连接步骤并显示重新连接；点击重新连接可再次弹出确认。", "点击加入后传输步骤持续 3 秒，随后进入安装固件包并保持停留。", "右侧连接失败进入失败页，更新完成进入 APP-HOME-01 文件首页。"],
+    prototypeLinks: [["连接失败", "APP-DEV-09"], ["更新完成", "APP-HOME-01"]]
   },
   {
     id: "APP-DEV-09",
@@ -369,11 +369,11 @@ const pages = [
     goal: "更新过程中 Wi-Fi 热点或蓝牙连接失败时，说明原因并提供重试或改用蓝牙更新。",
     entry: "固件更新中连接设备失败。",
     fields: [["failure_reason", "失败原因", "系统网络/BLE"], ["retry_action", "重试", "用户操作"], ["fallback_transport", "备用更新方式", "硬件能力"]],
-    rules: ["热点连接失败时提示靠近设备或改用蓝牙更新。", "蓝牙更新失败时提示靠近设备并重试。", "改用蓝牙更新后回到固件更新中页并切换更新方式。"],
+    rules: ["热点连接失败时提示靠近设备或改用蓝牙更新。", "点击重试后返回 APP-DEV-08 固件更新中页，从连接到 AI Recorder A1 步骤继续更新；Wi-Fi 更新重新唤起加入热点确认。", "蓝牙更新失败时点击重试返回固件更新中页，并从连接步骤继续。", "改用蓝牙更新后回到固件更新中页并切换更新方式。"],
     states: ["热点失败", "蓝牙失败", "重试", "改用蓝牙更新"],
     deps: ["系统 Wi-Fi 连接状态。", "BLE 连接状态。"],
-    acceptance: ["失败弹窗包含重试和改用蓝牙更新按钮。", "重试回到连接设备热点，改用蓝牙更新进入固件更新中。"],
-    prototypeLinks: [["重试", "APP-DEV-07"], ["改用蓝牙更新", "APP-DEV-08"]]
+    acceptance: ["失败弹窗包含重试和改用蓝牙更新按钮。", "重试进入 APP-DEV-08 并从连接步骤继续更新，不返回 APP-DEV-07 说明页。", "改用蓝牙更新进入 APP-DEV-08 并切换为蓝牙更新。"],
+    prototypeActions: [["重试", "retry-firmware-update"], ["改用蓝牙更新", "start-firmware-update", "bluetooth"]]
   },
   {
     id: "APP-SYNC-01",
@@ -411,13 +411,13 @@ const pages = [
     priority: "P0",
     goal: "3 秒内让用户知道设备是否可用、同步是否进行中，并直接在首页浏览文件列表。",
     entry: "登录/绑定成功后默认进入，底部文件 Tab。",
-    fields: [["current_device", "当前设备", "本地数据库/云端设备"], ["connection_state", "连接状态", "BLE 状态包"], ["battery_storage_record", "电量/存储/录音", "BLE 状态包"], ["recording_live_sync", "录音中持续同步", "BLE 分片传输/本地缓存"], ["finish_sync_transfer", "结束录音补传", "同步队列"], ["sync_summary", "同步摘要", "本地数据库/BLE 文件列表"], ["file_list", "文件列表", "本地数据库"], ["file_source", "文件来源", "本地数据库"]],
-    rules: ["打开 App 时如果硬件正在录音，首页默认只显示设备录音中状态，不展示同步状态条。", "录音中持续同步是后端和 App 端的后台传输接收动作：App 持续接收硬件分片，先写入本地临时缓存和同步队列，但该过程不对用户展示。", "用户结束录音后，首页才展示结束录音后的同步传送状态，将录音期间尚未完成的分片继续补传、校验并合并。", "补传完成后，把本次硬件录音保存为新的文件记录，并插入文件列表顶部，状态为未转写。", "首页左上设备状态使用紧凑设备图标入口，不再使用大面积状态卡。", "当前已选择录音卡的名称、连接状态、电量和存储需要直接显示在设备入口外层，不必展开下拉即可查看。", "点击设备图标进入当前设备详情；点击设备旁下拉箭头展开添加设备和已绑定设备列表。", "蓝牙系统层面可支持手机同时连接多个 BLE 外设，但 AI 录音卡是否允许多设备并发录音/同步取决于固件连接数、带宽、同步队列和冲突处理；MVP 建议支持多设备绑定与切换，当前活跃录音/同步设备一次只选一个。", "已绑定设备列表需要展示多个设备的连接状态，支持点击切换；已连接设备显示绿色状态，断开连接设备显示灰色离线状态。", "未连接或未绑定时，通过下拉菜单提供添加设备入口，不占用大面积状态卡。", "首页只在结束录音补传、同步失败或其他需要用户关注的同步任务时显示同步状态条；录音中后台持续同步不显示。", "文件列表是首页下半区，不再作为单独页面；滚动到设备状态和同步摘要不可见后，文件列表标题默认吸顶。", "文件列表标题栏左侧为文件列表文字和倒三角筛选/排序入口，右侧为导入音频按钮。", "点击导入音频打开导入音频弹层，可从文件或相册调起系统选择器。", "底部中间录音按钮是全局主按钮，不是普通 Tab。"],
-    states: ["未绑定/未连接", "设备已连接", "录音中持续同步", "结束录音补传中", "同步完成并新增文件", "同步失败", "空文件", "加载更多"],
+    fields: [["current_device", "当前设备", "本地数据库/云端设备"], ["connection_state", "连接状态", "BLE 状态包"], ["battery_storage_record", "电量/存储/录音", "BLE 状态包"], ["recording_live_sync", "录音中持续同步", "BLE 分片传输/本地缓存"], ["sync_batch_id", "本次同步批次", "同步队列"], ["sync_task_count", "已完成数/本批次总数", "同步队列"], ["sync_overall_progress", "本批次整体字节进度", "同步队列"], ["sync_priority_order", "待同步任务顺序", "同步队列"], ["finish_sync_transfer", "结束录音补传", "同步队列"], ["sync_summary", "同步摘要", "本地数据库/BLE 文件列表"], ["file_list", "文件列表", "本地数据库"], ["file_source", "文件来源", "本地数据库"]],
+    rules: ["打开 App 时如果硬件正在录音，首页默认只显示设备录音中状态，不展示同步状态条。", "录音中持续同步是后端和 App 端的后台传输接收动作：App 持续接收硬件分片，先写入本地临时缓存和同步队列，但该过程不对用户展示。", "用户结束录音后，首页才展示结束录音后的同步传送状态，将录音期间尚未完成的分片继续补传、校验并合并。", "补传完成后，把本次硬件录音保存为新的文件记录，并插入文件列表顶部，状态为未转写。", "首页左上设备状态使用紧凑设备图标入口，不再使用大面积状态卡。", "当前已选择录音卡的名称、连接状态、电量和存储需要直接显示在设备入口外层，不必展开下拉即可查看。", "点击设备图标进入当前设备详情；点击设备旁下拉箭头展开添加设备和已绑定设备列表。", "蓝牙系统层面可支持手机同时连接多个 BLE 外设，但 AI 录音卡是否允许多设备并发录音/同步取决于固件连接数、带宽、同步队列和冲突处理；MVP 建议支持多设备绑定与切换，当前活跃录音/同步设备一次只选一个。", "已绑定设备列表需要展示多个设备的连接状态，支持点击切换；已连接设备显示绿色状态，断开连接设备显示灰色离线状态。", "未连接或未绑定时，通过下拉菜单提供添加设备入口，不占用大面积状态卡。", "首页只在结束录音补传、同步失败或其他需要用户关注的同步任务时显示同步状态条；录音中后台持续同步不显示。", "同步状态条压缩为单行，依次展示同步状态、当前传输方式、本批次整体进度、已完成数/总数和预计剩余时间，底部只保留 2px 整体进度线。", "外部百分比按本次同步批次全部文件的累计已传输字节除以批次总字节计算，不代表当前单个文件的进度。", "本批次存在多个任务时显示已完成数/总数，例如 3/12，并提供队列入口；仅有 1 个任务时不显示数量和队列入口。", "点击多任务状态条主体或队列入口，在当前首页打开本次同步队列；点击右侧切换入口打开传输方式选择，两者为独立点击区域。", "队列按当前同步、待同步、已完成分组展示；当前任务不可被其他任务打断，已完成任务仅在本批次内保留同步完成状态。", "本批次任务数超过 3 个时，待同步任务展示优先同步操作；点击后把该任务移动到当前任务之后，并立即更新其他待同步任务的顺序。", "单个任务完成后更新其状态和外部已完成数，自动开始队列中的下一项；本批次全部完成后外部状态变为同步完成。", "本批次完成后若产生新的同步任务，创建新的批次并清空上一批队列展示，不在新队列中显示历史同步文件。", "同步状态条不使用大卡片、阴影或第二行通知，文件列表紧接状态条显示。", "文件列表是首页下半区，不再作为单独页面；滚动到设备状态和同步摘要不可见后，文件列表标题默认吸顶。", "文件列表标题栏左侧为文件列表文字和倒三角筛选/排序入口，右侧为导入音频按钮。", "点击导入音频打开导入音频弹层，可从文件或相册调起系统选择器。", "底部中间录音按钮是全局主按钮，不是普通 Tab。"],
+    states: ["未绑定/未连接", "设备已连接", "录音中持续同步", "单任务同步中", "多任务队列同步中", "任务优先级已调整", "单个任务同步完成", "本批次同步完成", "新同步批次", "同步失败", "空文件", "加载更多"],
     deps: ["BLE 状态包：电量、存储、录音状态。", "BLE 分片传输：录音过程中的增量音频、偏移量和校验值。", "本地数据库：文件列表、同步队列、转写状态。", "本地临时缓存：录音未结束前的已同步分片。", "云端文件：上传/删除/状态，接口待后端定义。"],
-    acceptance: ["打开 App 默认处于硬件录音场景时，首页只展示设备录音中状态，不展示同步进度模块。", "点击录音中页结束后，首页必须展示剩余内容补传和校验进度。", "补传完成后，文件列表顶部必须新增本次录音文件，来源为硬件录音，状态为未转写。", "首页设备状态为紧凑图标入口，点击设备图标进入当前设备详情。", "当前已选择录音卡的名称、连接状态、电量、存储在设备入口外层可直接查看。", "点击设备状态旁下拉箭头展开添加设备和多个已绑定设备。", "已绑定设备示例至少包含两个已连接设备和一个已断开设备，点击设备行可以切换当前设备。", "导入音频和倒三角入口位于文件列表标题栏。", "导入音频弹层包含从文件里导入和从相册里导入两个系统选择入口。", "下拉/继续滚动可加载更多文件。", "录音主按钮点击前执行登录/绑定/连接检查。"],
+    acceptance: ["打开 App 默认处于硬件录音场景时，首页只展示设备录音中状态，不展示同步进度模块。", "点击录音中页结束后，首页必须展示剩余内容补传和校验进度。", "同步状态条为约 40px 高的单行结构，状态、方式、整体进度、任务数量、预计时间、队列和切换入口不换行。", "多任务状态显示已完成数/总数并可打开队列；单任务状态不显示数量和队列入口。", "外部百分比和底部 2px 进度线必须与本批次累计字节进度一致。", "任务数超过 3 个时，待同步任务可以设为优先；操作后当前任务保持不变，目标任务移动到下一顺位。", "单个任务完成后已完成数增加并开始下一项；新批次开始后队列只展示新批次任务，不展示上一批历史任务。", "切换入口可打开传输方式选择。", "补传完成后，文件列表顶部必须新增本次录音文件，来源为硬件录音，状态为未转写。", "首页设备状态为紧凑图标入口，点击设备图标进入当前设备详情。", "当前已选择录音卡的名称、连接状态、电量、存储在设备入口外层可直接查看。", "点击设备状态旁下拉箭头展开添加设备和多个已绑定设备。", "已绑定设备示例至少包含两个已连接设备和一个已断开设备，点击设备行可以切换当前设备。", "导入音频和倒三角入口位于文件列表标题栏。", "导入音频弹层包含从文件里导入和从相册里导入两个系统选择入口。", "下拉/继续滚动可加载更多文件。", "录音主按钮点击前执行登录/绑定/连接检查。"],
     prototypeLinks: [["设备详情", "APP-DEV-03"], ["添加设备", "APP-DEV-01"]],
-    prototypeActions: [["蓝牙同步", "set-sync-transport", "ble"], ["局域网同步", "set-sync-transport", "lan"], ["录音卡热点", "set-sync-transport", "hotspot"], ["模拟同步完成", "home-complete-sync"]]
+    prototypeActions: [["蓝牙同步", "set-sync-transport", "ble"], ["局域网同步", "set-sync-transport", "lan"], ["录音卡热点", "set-sync-transport", "hotspot"], ["完成当前任务", "home-complete-sync"], ["单任务新批次", "home-start-single-sync-batch"], ["重置多任务队列", "home-reset-sync-batch"]]
   },
   {
     id: "APP-HOME-03",
@@ -1353,10 +1353,34 @@ let askPlaudTipVisible = true;
 let deviceSnTipOpen = false;
 let homeSyncStage = "finishing";
 let homeSyncTransport = "ble";
+let homeSyncPanel = "";
+let homeSyncPriorityTaskId = "";
+let homeSyncBatchSerial = 1;
+function createDefaultHomeSyncQueue() {
+  return [
+    { id: "sync-01", title: "Design workshop", size: 18, transferred: 18, status: "completed" },
+    { id: "sync-02", title: "Weekly planning", size: 24, transferred: 24, status: "completed" },
+    { id: "sync-03", title: "Customer discovery", size: 28, transferred: 28, status: "completed" },
+    { id: "sync-04", title: "Strategy sync review", size: 32, transferred: 29.4, status: "syncing" },
+    { id: "sync-05", title: "Product stand-up", size: 20, transferred: 7, status: "pending" },
+    { id: "sync-06", title: "Launch checklist", size: 18, transferred: 5, status: "pending" },
+    { id: "sync-07", title: "Partner interview", size: 35, transferred: 0, status: "pending" },
+    { id: "sync-08", title: "Research debrief", size: 42, transferred: 0, status: "pending" },
+    { id: "sync-09", title: "Team retrospective", size: 27, transferred: 0, status: "pending" },
+    { id: "sync-10", title: "Campaign review", size: 21, transferred: 0, status: "pending" },
+    { id: "sync-11", title: "Feature planning", size: 16, transferred: 0, status: "pending" },
+    { id: "sync-12", title: "Quarterly summary", size: 40, transferred: 0, status: "pending" }
+  ];
+}
+let homeSyncQueue = createDefaultHomeSyncQueue();
 let homeDeviceMenuOpen = false;
 let activeHomeDeviceId = "a1";
 let hotspotTransferState = "awaiting";
-let firmwareHotspotState = "awaiting";
+let firmwareUpdateStep = "download";
+let firmwareUpdateTransport = "wifi";
+let firmwareJoinPromptOpen = false;
+let firmwareUpdateTimer = null;
+let firmwareRetryAtConnection = false;
 let currentWifiTransferState = "idle";
 let currentWifiPassword = "";
 let currentWifiPasswordVisible = false;
@@ -1414,13 +1438,75 @@ function pageById(id) {
   return pages.find((page) => page.id === id) || pages[0];
 }
 
+function clearFirmwareUpdateTimer() {
+  if (!firmwareUpdateTimer) return;
+  window.clearTimeout(firmwareUpdateTimer);
+  firmwareUpdateTimer = null;
+}
+
+function scheduleFirmwareUpdateStep(callback, delay = 3000) {
+  clearFirmwareUpdateTimer();
+  firmwareUpdateTimer = window.setTimeout(() => {
+    firmwareUpdateTimer = null;
+    if (currentPageId !== "APP-DEV-08") return;
+    callback();
+  }, delay);
+}
+
+function beginFirmwareTransfer() {
+  firmwareUpdateStep = "transfer";
+  firmwareJoinPromptOpen = false;
+  render();
+  scheduleFirmwareUpdateStep(() => {
+    if (firmwareUpdateStep !== "transfer") return;
+    firmwareUpdateStep = "install";
+    render();
+  });
+}
+
+function beginFirmwareUpdateFlow() {
+  clearFirmwareUpdateTimer();
+  firmwareUpdateStep = "download";
+  firmwareJoinPromptOpen = false;
+  scheduleFirmwareUpdateStep(() => {
+    if (firmwareUpdateStep !== "download") return;
+    firmwareUpdateStep = "connect";
+    if (firmwareUpdateTransport === "wifi") {
+      firmwareJoinPromptOpen = true;
+      render();
+      return;
+    }
+    render();
+    scheduleFirmwareUpdateStep(() => {
+      if (firmwareUpdateStep !== "connect") return;
+      beginFirmwareTransfer();
+    });
+  });
+}
+
+function resumeFirmwareUpdateAtConnection() {
+  clearFirmwareUpdateTimer();
+  firmwareUpdateStep = "connect";
+  firmwareJoinPromptOpen = firmwareUpdateTransport === "wifi";
+  if (firmwareUpdateTransport === "bluetooth") {
+    scheduleFirmwareUpdateStep(() => {
+      if (firmwareUpdateStep !== "connect") return;
+      beginFirmwareTransfer();
+    });
+  }
+}
+
 function go(id) {
   if (syncPrototypeTimer) {
     window.clearTimeout(syncPrototypeTimer);
     syncPrototypeTimer = null;
   }
+  clearFirmwareUpdateTimer();
   previousPageId = currentPageId;
   currentPageId = id === "APP-HOME-02" ? "APP-HOME-01" : id;
+  if (currentPageId !== "APP-HOME-01") {
+    homeSyncPanel = "";
+  }
   if (currentPageId === "APP-ME-41" && previousPageId !== "APP-ME-41") {
     changePasswordCurrent = "";
     changePasswordNew = "";
@@ -1436,7 +1522,16 @@ function go(id) {
     hotspotTransferState = "awaiting";
   }
   if (currentPageId === "APP-DEV-07" && previousPageId !== "APP-DEV-07") {
-    firmwareHotspotState = "awaiting";
+    firmwareUpdateTransport = "wifi";
+    firmwareJoinPromptOpen = false;
+  }
+  if (currentPageId === "APP-DEV-08" && previousPageId !== "APP-DEV-08") {
+    if (firmwareRetryAtConnection) {
+      resumeFirmwareUpdateAtConnection();
+    } else {
+      beginFirmwareUpdateFlow();
+    }
+    firmwareRetryAtConnection = false;
   }
   if (currentPageId === "APP-SYNC-02" && previousPageId !== "APP-SYNC-02") {
     currentWifiTransferState = "idle";
@@ -1514,38 +1609,158 @@ function fileCard(file) {
   `;
 }
 
+function homeSyncStats() {
+  const total = homeSyncQueue.length;
+  const completed = homeSyncQueue.filter((task) => task.status === "completed").length;
+  const totalBytes = homeSyncQueue.reduce((sum, task) => sum + task.size, 0);
+  const transferredBytes = homeSyncQueue.reduce((sum, task) => sum + Math.min(task.transferred, task.size), 0);
+  const percent = totalBytes ? Math.round((transferredBytes / totalBytes) * 100) : 0;
+  const remainingBytes = Math.max(0, totalBytes - transferredBytes);
+  const speed = homeSyncTransport === "lan" ? 4 : homeSyncTransport === "hotspot" ? 2 : .45;
+  const remainingMinutes = Math.max(1, Math.ceil((remainingBytes / speed) / 60));
+  return { total, completed, totalBytes, transferredBytes, percent, remainingBytes, remainingMinutes };
+}
+
+function homeSyncTaskPercent(task) {
+  return task.size ? Math.round((Math.min(task.transferred, task.size) / task.size) * 100) : 0;
+}
+
+function orderedHomeSyncQueue() {
+  return [
+    ...homeSyncQueue.filter((task) => task.status === "syncing"),
+    ...homeSyncQueue.filter((task) => task.status === "pending"),
+    ...homeSyncQueue.filter((task) => task.status === "completed")
+  ];
+}
+
 function renderHomeSyncModule(stage = homeSyncStage) {
   const transportViews = {
     ble: { label: "蓝牙", tone: "ble" },
     lan: { label: "局域网", tone: "lan" },
     hotspot: { label: "录音卡热点", tone: "hotspot" }
   };
-  const syncViews = {
-    finishing: {
-      tone: "finishing",
-      title: "同步传送中",
-      file: "29.4 / 32 MB · 预计 20 秒",
-      percent: 92
-    },
-    saved: {
-      tone: "saved",
-      title: "同步完成",
-      file: "已保存到手机",
-      percent: 100
-    }
-  };
-  const view = syncViews[stage];
-  if (!view) return "";
+  if (!homeSyncQueue.length || !["finishing", "saved"].includes(stage)) return "";
+  const stats = homeSyncStats();
+  const multipleTasks = stats.total > 1;
+  const allCompleted = stats.completed === stats.total;
   const transport = transportViews[homeSyncTransport] || transportViews.ble;
+  const title = allCompleted || stage === "saved" ? "同步完成" : "同步中";
+  const remainingText = allCompleted ? "已保存到手机" : `预计 ${stats.remainingMinutes} 分钟`;
+  const mainTag = multipleTasks ? "button" : "div";
+  const mainAction = multipleTasks ? ' data-action="open-home-sync-queue" aria-label="打开本次同步队列"' : ' aria-label="当前同步任务"';
   return `
-    <section class="sync-mini ${view.tone}">
-      <div class="sync-line">
-        <div class="sync-title-group"><strong>${h(view.title)}</strong><i class="sync-transport-badge ${transport.tone}">${h(transport.label)}</i></div>
-        <span>${h(view.file)}</span><b>${view.percent}%</b>
-      </div>
-      <div class="progress compact"><b style="width:${view.percent}%"></b></div>
+    <section class="sync-mini ${allCompleted ? "saved" : "finishing"}" aria-label="当前同步状态">
+      <${mainTag} class="sync-mini-main"${mainAction}>
+        <strong>${h(title)}</strong>
+        <i class="sync-transport-badge ${transport.tone}">${h(transport.label)}</i>
+        <b>${stats.percent}%</b>
+        ${multipleTasks ? `<em class="sync-mini-count">${stats.completed}/${stats.total}</em>` : ""}
+        <span>${h(remainingText)}</span>
+        ${multipleTasks ? '<em class="sync-mini-queue">队列 ›</em>' : ""}
+      </${mainTag}>
+      <button class="sync-mini-switch" data-action="open-home-sync-methods">切换</button>
+      <div class="sync-mini-progress" aria-hidden="true"><b style="width:${stats.percent}%"></b></div>
     </section>
   `;
+}
+
+function renderHomeSyncPanel() {
+  if (!homeSyncPanel) return "";
+  const transportLabels = { ble: "蓝牙", lan: "局域网", hotspot: "录音卡热点" };
+  const transport = transportLabels[homeSyncTransport] || transportLabels.ble;
+  const stats = homeSyncStats();
+  const showPriority = stats.total > 3;
+  const queueItems = orderedHomeSyncQueue();
+  const body = homeSyncPanel === "queue" ? `
+    <div class="home-sync-sheet-heading">
+      <span><small>本次同步队列 · 批次 ${homeSyncBatchSerial}</small><strong>${stats.completed}/${stats.total} 已完成 · 整体 ${stats.percent}%</strong></span>
+      <button data-action="close-home-sync-panel" aria-label="关闭">×</button>
+    </div>
+    <div class="home-sync-queue-list" aria-label="本次同步任务">
+      ${queueItems.map((task) => {
+        const taskPercent = homeSyncTaskPercent(task);
+        const stateText = task.status === "completed"
+          ? "同步完成"
+          : task.status === "syncing"
+            ? "正在同步"
+            : task.transferred > 0 ? "等待续传" : "等待同步";
+        const pendingOrder = task.status === "pending"
+          ? homeSyncQueue.filter((item) => item.status === "pending").findIndex((item) => item.id === task.id) + 1
+          : 0;
+        return `
+          <article class="home-sync-queue-item ${task.status} ${homeSyncPriorityTaskId === task.id ? "priority" : ""}" data-sync-task-id="${h(task.id)}">
+            <span>
+              <strong>${h(task.title)}</strong>
+              <small>${h(transport)} · ${task.transferred.toFixed(task.transferred % 1 ? 1 : 0)} / ${task.size} MB · ${h(stateText)}${pendingOrder ? ` · 待同步第 ${pendingOrder} 位` : ""}</small>
+            </span>
+            <div class="home-sync-queue-status">
+              <b>${taskPercent}%</b>
+              ${showPriority && task.status === "pending" ? `<button data-action="prioritize-home-sync-task" data-task-id="${h(task.id)}">${homeSyncPriorityTaskId === task.id ? "已优先" : "优先同步"}</button>` : `<em>${h(stateText)}</em>`}
+            </div>
+            <div class="home-sync-task-progress"><i style="width:${taskPercent}%"></i></div>
+          </article>
+        `;
+      }).join("")}
+    </div>
+  ` : `
+    <div class="home-sync-sheet-heading">
+      <span><small>传输方式</small><strong>切换同步方式</strong></span>
+      <button data-action="close-home-sync-panel" aria-label="关闭">×</button>
+    </div>
+    <div class="home-sync-method-list">
+      ${[["ble", "蓝牙", "低打扰，适合小文件"], ["lan", "局域网", "保持手机联网，高速传输"], ["hotspot", "录音卡热点", "网络不可用时使用"]].map(([value, label, note]) => `
+        <button class="${homeSyncTransport === value ? "active" : ""}" data-action="set-sync-transport" data-value="${value}">
+          <span><b>${label}</b><small>${note}</small></span><i>${homeSyncTransport === value ? "当前" : "切换"}</i>
+        </button>
+      `).join("")}
+    </div>
+  `;
+  return `
+    <div class="scrim subtle home-sync-scrim" data-action="close-home-sync-panel"></div>
+    <section class="bottom-sheet home-sync-sheet" role="dialog" aria-modal="true">${body}</section>
+  `;
+}
+
+function prioritizeHomeSyncTask(taskId) {
+  if (homeSyncQueue.length <= 3) return;
+  const taskIndex = homeSyncQueue.findIndex((task) => task.id === taskId && task.status === "pending");
+  if (taskIndex < 0) return;
+  const [task] = homeSyncQueue.splice(taskIndex, 1);
+  const activeIndex = homeSyncQueue.findIndex((item) => item.status === "syncing");
+  homeSyncQueue.splice(activeIndex >= 0 ? activeIndex + 1 : 0, 0, task);
+  homeSyncPriorityTaskId = task.id;
+}
+
+function completeCurrentHomeSyncTask() {
+  const activeTask = homeSyncQueue.find((task) => task.status === "syncing");
+  if (!activeTask) return;
+  activeTask.status = "completed";
+  activeTask.transferred = activeTask.size;
+  if (homeSyncPriorityTaskId === activeTask.id) homeSyncPriorityTaskId = "";
+  const nextTask = homeSyncQueue.find((task) => task.status === "pending");
+  if (nextTask) {
+    nextTask.status = "syncing";
+    homeSyncStage = "finishing";
+  } else {
+    homeSyncStage = "saved";
+    homeSyncPriorityTaskId = "";
+  }
+}
+
+function startSingleHomeSyncBatch() {
+  homeSyncBatchSerial += 1;
+  homeSyncQueue = [{ id: `sync-new-${homeSyncBatchSerial}`, title: "New field interview", size: 22, transferred: 7.6, status: "syncing" }];
+  homeSyncPriorityTaskId = "";
+  homeSyncStage = "finishing";
+  homeSyncPanel = "";
+}
+
+function resetMultiHomeSyncBatch() {
+  homeSyncBatchSerial += 1;
+  homeSyncQueue = createDefaultHomeSyncQueue();
+  homeSyncPriorityTaskId = "";
+  homeSyncStage = "finishing";
+  homeSyncPanel = "";
 }
 
 function bottom(active = "files") {
@@ -1953,7 +2168,7 @@ function renderHomeContent({ showSync = true } = {}) {
 }
 
 function renderHome() {
-  return screen(renderHomeContent(), { title: "文件", action: "search", active: "files" });
+  return `${screen(renderHomeContent(), { title: "文件", action: "search", active: "files" })}${renderHomeSyncPanel()}`;
 }
 
 function renderHomeTrashToast() {
@@ -4018,7 +4233,7 @@ function renderFirmwareHotspotContent() {
         <strong>“AI Recorder A1”想要加入无线局域网“XXXX”吗?</strong>
         <div><span>取消</span><b>加入</b></div>
       </div>
-      <button class="primary-btn" data-action="open-firmware-hotspot-prompt">继续</button>
+      <button class="primary-btn" data-go="APP-DEV-08">继续</button>
       <button class="secondary-btn" data-go="APP-DEV-03">取消</button>
       <p class="caption">若硬件不支持 Wi-Fi 更新，则默认使用蓝牙更新并直接进入更新中。</p>
     </section>
@@ -4026,10 +4241,40 @@ function renderFirmwareHotspotContent() {
 }
 
 function renderFirmwareHotspot() {
-  if (firmwareHotspotState === "systemPrompt") {
+  return screen(renderFirmwareHotspotContent(), { title: " ", back: "APP-DEV-06", bottom: false, compact: true });
+}
+
+function renderFirmwareUpdatingContent() {
+  const steps = [
+    ["download", "下载固件包"],
+    ["connect", "连接到 AI Recorder A1"],
+    ["transfer", "传输固件包到 AI Recorder A1"],
+    ["install", "安装固件包"]
+  ];
+  const activeIndex = Math.max(0, steps.findIndex(([id]) => id === firmwareUpdateStep));
+  const reconnectVisible = firmwareUpdateTransport === "wifi"
+    && firmwareUpdateStep === "connect"
+    && !firmwareJoinPromptOpen;
+  return `
+    <section class="firmware-page">
+      <h1>正在更新固件</h1>
+      <p>请保持设备处于充电状态，且未在录音。<br>更新过程中请勿退出应用。</p>
+      ${firmwareArt()}
+    </section>
+    <section class="firmware-steps">
+      ${steps.map(([id, label], index) => `<div class="firmware-step ${index < activeIndex ? "done" : ""} ${index === activeIndex ? "active" : ""}" data-firmware-step="${id}"><i></i><span>${label}</span></div>`).join("")}
+      ${reconnectVisible
+        ? `<button class="primary-btn" data-action="reopen-firmware-hotspot-prompt">重新连接</button>`
+        : `<button class="primary-btn disabled">更新中</button>`}
+    </section>
+  `;
+}
+
+function renderFirmwareUpdating() {
+  if (firmwareJoinPromptOpen) {
     return screen(`
       <div class="sync-native-system-background dimmed" aria-hidden="true">
-        ${renderFirmwareHotspotContent()}
+        ${renderFirmwareUpdatingContent()}
       </div>
       <div class="sync-native-system-scrim" aria-hidden="true"></div>
       <section class="sync-native-wifi-alert" role="dialog" aria-modal="true" aria-labelledby="firmwareNativeWifiTitle">
@@ -4039,26 +4284,9 @@ function renderFirmwareHotspot() {
           <button type="button" data-action="confirm-firmware-hotspot-prompt">加入</button>
         </div>
       </section>
-    `, { title: " ", back: "APP-DEV-06", bottom: false, compact: true });
+    `, { title: " ", back: "APP-DEV-03", bottom: false, compact: true });
   }
-  return screen(renderFirmwareHotspotContent(), { title: " ", back: "APP-DEV-06", bottom: false, compact: true });
-}
-
-function renderFirmwareUpdating() {
-  return screen(`
-    <section class="firmware-page">
-      <h1>正在更新固件</h1>
-      <p>请保持设备处于充电状态，且未在录音。<br>更新过程中请勿退出应用。</p>
-      ${firmwareArt()}
-    </section>
-    <section class="firmware-steps">
-      <div class="firmware-step done"><i></i><span>下载固件包</span></div>
-      <div class="firmware-step active"><i></i><span>连接到 AI Recorder A1</span></div>
-      <div class="firmware-step"><i></i><span>传输固件包到 AI Recorder A1</span></div>
-      <div class="firmware-step"><i></i><span>安装固件包</span></div>
-      <button class="primary-btn disabled">更新中</button>
-    </section>
-  `, { title: " ", back: "APP-DEV-03", bottom: false, compact: true });
+  return screen(renderFirmwareUpdatingContent(), { title: " ", back: "APP-DEV-03", bottom: false, compact: true });
 }
 
 function renderFirmwareConnectionFailed() {
@@ -4072,8 +4300,8 @@ function renderFirmwareConnectionFailed() {
       <h2>连接失败</h2>
       <div class="sheet-line"></div>
       <p>无法连接到 AI Recorder A1 的热点。<br>请靠近设备，或改用蓝牙进行更新。</p>
-      <button class="primary-btn" data-go="APP-DEV-07">重试</button>
-      <button class="secondary-btn" data-go="APP-DEV-08">改用蓝牙更新</button>
+      <button class="primary-btn" data-action="retry-firmware-update">重试</button>
+      <button class="secondary-btn" data-action="start-firmware-update" data-value="bluetooth">改用蓝牙更新</button>
     </section>
   `, { title: " ", back: "APP-DEV-08", bottom: false, compact: true });
 }
@@ -4917,18 +5145,30 @@ document.addEventListener("click", (event) => {
     requestAnimationFrame(() => document.getElementById("loginPassword")?.focus());
     return;
   }
-  if (action && action.dataset.action === "open-firmware-hotspot-prompt") {
-    firmwareHotspotState = "systemPrompt";
+  if (action && action.dataset.action === "start-firmware-update") {
+    firmwareUpdateTransport = action.dataset.value === "bluetooth" ? "bluetooth" : "wifi";
+    go("APP-DEV-08");
+    return;
+  }
+  if (action && action.dataset.action === "retry-firmware-update") {
+    firmwareRetryAtConnection = true;
+    go("APP-DEV-08");
+    return;
+  }
+  if (action && action.dataset.action === "reopen-firmware-hotspot-prompt") {
+    if (currentPageId !== "APP-DEV-08" || firmwareUpdateStep !== "connect") return;
+    firmwareJoinPromptOpen = true;
     render();
     return;
   }
   if (action && action.dataset.action === "cancel-firmware-hotspot-prompt") {
-    firmwareHotspotState = "awaiting";
+    firmwareJoinPromptOpen = false;
     render();
     return;
   }
   if (action && action.dataset.action === "confirm-firmware-hotspot-prompt") {
-    go("APP-DEV-08");
+    if (currentPageId !== "APP-DEV-08" || firmwareUpdateStep !== "connect") return;
+    beginFirmwareTransfer();
     return;
   }
   if (action && action.dataset.action === "open-hotspot-join-prompt") {
@@ -4952,7 +5192,7 @@ document.addEventListener("click", (event) => {
       syncPrototypeTimer = window.setTimeout(() => {
         syncPrototypeTimer = null;
         if (currentPageId !== "APP-SYNC-01" || hotspotTransferState !== "success") return;
-        homeSyncStage = "finishing";
+        startSingleHomeSyncBatch();
         homeSyncTransport = "hotspot";
         go("APP-HOME-01");
       }, 2000);
@@ -4989,7 +5229,7 @@ document.addEventListener("click", (event) => {
         syncPrototypeTimer = window.setTimeout(() => {
           syncPrototypeTimer = null;
           if (currentPageId !== "APP-SYNC-02" || currentWifiTransferState !== "success") return;
-          homeSyncStage = "finishing";
+          startSingleHomeSyncBatch();
           homeSyncTransport = "lan";
           go("APP-HOME-01");
         }, 2000);
@@ -4999,6 +5239,7 @@ document.addEventListener("click", (event) => {
   }
   if (action && action.dataset.action === "set-sync-transport") {
     homeSyncTransport = action.dataset.value || "ble";
+    homeSyncPanel = "";
     render();
     return;
   }
@@ -5053,7 +5294,7 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (action && action.dataset.action === "finish-recording-sync") {
-    homeSyncStage = "finishing";
+    startSingleHomeSyncBatch();
     homeSyncTransport = "ble";
     go("APP-HOME-01");
     return;
@@ -5064,12 +5305,43 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (action && action.dataset.action === "home-complete-sync") {
-    homeSyncStage = "saved";
+    completeCurrentHomeSyncTask();
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "home-start-single-sync-batch") {
+    startSingleHomeSyncBatch();
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "home-reset-sync-batch") {
+    resetMultiHomeSyncBatch();
     render();
     return;
   }
   if (action && action.dataset.action === "home-reset-sync-demo") {
     homeSyncStage = "recording";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "open-home-sync-queue") {
+    if (homeSyncQueue.length <= 1) return;
+    homeSyncPanel = "queue";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "prioritize-home-sync-task") {
+    prioritizeHomeSyncTask(action.dataset.taskId || "");
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "open-home-sync-methods") {
+    homeSyncPanel = "methods";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "close-home-sync-panel") {
+    homeSyncPanel = "";
     render();
     return;
   }
@@ -5522,6 +5794,10 @@ document.addEventListener("submit", (event) => {
   }
   render();
 });
+
+if (currentPageId === "APP-DEV-08") {
+  beginFirmwareUpdateFlow();
+}
 
 try {
   render();

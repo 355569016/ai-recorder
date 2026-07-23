@@ -465,3 +465,87 @@ final result: blocked
 Blocked. The local preview service is available from the workspace, but the in-app browser cannot reach or open the local prototype under its current URL security policy. No pixel-match claim is made; final typography, spacing, and icon fidelity still require a browser-rendered comparison against `IMG_2564.PNG`.
 
 final result: blocked
+
+## 2026-07-23 update: APP-HOME-01 single-line sync status
+
+- Source visual truth: `/Users/andyma/.codex/generated_images/019f8a51-1219-71e1-9122-236c64af9430/exec-dc41c9b0-d1d6-4fa0-be99-c578bcd109c1.png`.
+- Browser-rendered implementation screenshot: `implementation-home-sync.png`.
+- Side-by-side comparison evidence: `design-qa-home-sync-comparison.png` (source left, implementation right).
+- Viewport/state: 390 × 844 phone surface, APP-HOME-01, finishing sync, LAN selected after interaction test.
+- Density normalization: source 853 × 1844 was normalized to 390 × 844; implementation was captured at 390 × 844 CSS px with device scale factor 1.
+
+## Full-view comparison
+
+- The implementation preserves the existing APP-HOME-01 device summary, file-list header, file rows, global recording button, and bottom navigation.
+- The sync region is a true 40px single-line row with no wrap: status, method, percentage, remaining time, queue entry, and switch entry all remain visible.
+- The 2px progress line remains inside the row and the file list begins immediately below it.
+
+## Focused interaction evidence
+
+- Sync row measured 350 × 40 CSS px; its main tap target had equal client and scroll width (308px) and no vertical overflow.
+- Clicking the main row opened the queue panel and showed the active task, transfer method, 29.4 / 32 MB, 92%, and expected remaining time.
+- Clicking `切换` opened the method selector. Selecting `局域网` changed the inline badge to `局域网`, closed the selector, and the queue panel reflected the same method.
+- The first browser pass exposed a sheet/scrim z-index collision; `.bottom-sheet.home-sync-sheet` was raised above the scrim and the full interaction was retested successfully.
+- Browser console was checked. Two identical URL-less `MutationObserver.observe` errors originated from the in-app browser layer; the app contains no `MutationObserver` usage, and no app interaction or rendering error was observed.
+
+## Required fidelity surfaces
+
+- Fonts and typography: existing app font stack, weight hierarchy, and compact numeric labels are preserved; all single-line labels remain legible without truncating the queue or switch actions.
+- Spacing and layout rhythm: the former card was reduced to a 40px divider row; no radius, shadow, extra notice row, or large vertical gap remains.
+- Colors and visual tokens: existing monochrome UI, semantic transport badge colors, blue action color, and black progress token are retained.
+- Image quality and asset fidelity: no source product imagery or icon asset was replaced; the existing device and navigation assets remain unchanged.
+- Copy and content: `同步中`, transfer method, `92%`, `预计 20 秒`, `队列 ›`, and `切换` appear in the agreed order.
+
+## Findings
+
+- No actionable P0, P1, or P2 mismatch remains for the requested sync-region change.
+- The implementation retains the existing `文件列表` toolbar that was already part of APP-HOME-01; this is an intentional product constraint outside the sync-region edit.
+
+## Comparison history
+
+- Earlier finding: [P1] the transfer-method sheet was visually present but its controls were below the scrim and could not receive clicks.
+- Fix made: increased the specific sheet stacking rule above the scrim.
+- Post-fix evidence: `局域网` selection completed, the sheet closed, the inline badge updated, and the queue detail matched the new method.
+
+## Follow-up polish
+
+- None required for this scoped change.
+
+final result: passed
+
+## 2026-07-23 update: APP-HOME-01 multi-task sync queue
+
+- Source visual truth: `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-74c232e7-8dd1-4ea0-8f2a-5526eca2867b.png`.
+- Browser-rendered implementation screenshot: `implementation-home-sync-queue.png`.
+- Side-by-side comparison evidence: `design-qa-home-sync-queue-comparison.png` (source left, implementation right).
+- Viewport/state: 390 × 844 phone surface, APP-HOME-01, 12-task batch with 3 completed tasks and the queue panel open.
+
+## Full-view comparison
+
+- The compact external sync row remains a 40px single-line structure and now shows the overall batch progress, `3/12`, estimated remaining time, queue entry, and transfer-method switch without wrapping.
+- The bottom sheet reuses the existing visual language while expanding from a single task to a vertically scrollable current-batch queue.
+- Each task clearly separates its per-file percentage from the external batch percentage; pending tasks expose a compact `优先同步` action without increasing the external row height.
+
+## Focused interaction evidence
+
+- Default 12-task batch renders `同步中 / 蓝牙 / 35% / 3/12 / 预计 8 分钟 / 队列 ›`; the 35% value is calculated from cumulative transferred bytes across the batch.
+- Opening the queue shows 12 tasks grouped in current, pending, and completed order. The current task remains first and cannot be interrupted.
+- Selecting `Quarterly summary` for priority moved it to the first pending position, retained the current task, and changed its action state to `已优先`.
+- Completing the current task changed the external count to `4/12`, updated the overall percentage to 36%, marked the completed task, and automatically promoted the prioritized task to active.
+- Starting a new single-task batch cleared the prior batch, omitted `1/1`, removed the queue entry, and rendered no historical queue tasks.
+- Resetting the demo restored the multi-task `3/12` batch for review.
+- Browser console was checked. Two identical URL-less `MutationObserver.observe` errors originated from the in-app browser layer; the app contains no `MutationObserver` usage, and no app interaction or rendering error was observed.
+
+## Requirements coverage
+
+- APP-HOME-01 now documents batch identity, task count, overall byte progress, task ordering, single-task visibility, priority behavior, completion advancement, and new-batch history clearing.
+- `优先同步` is available only when the batch contains more than three tasks and only for pending tasks.
+- Priority changes reorder the pending list immediately after the active task; they do not restart or interrupt the active transfer.
+- Completed tasks remain visible only inside the current batch. A new batch replaces the queue instead of mixing historical files into the new task list.
+
+## Findings
+
+- No actionable P0, P1, or P2 mismatch remains for the requested multi-task queue behavior.
+- The source showed a one-task queue; the multi-task rows, overall progress semantics, `3/12`, and priority actions are intentional requirement-driven additions.
+
+final result: passed

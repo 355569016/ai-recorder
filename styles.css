@@ -1877,52 +1877,98 @@ button {
 }
 
 .sync-mini {
-  margin: 10px 0 12px;
-  padding: 12px 14px;
-  border: 1px solid #eeeae2;
-  border-radius: 12px;
+  position: relative;
+  height: 40px;
+  margin: 8px 0 6px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  border-top: 1px solid #eeeae2;
+  border-bottom: 1px solid #eeeae2;
   background: #fff;
+  overflow: hidden;
 }
 
 .sync-mini.finishing {
-  border-color: #ffe0b7;
-  background: linear-gradient(135deg, #fff8ef, #ffffff);
+  border-color: #ece8df;
 }
 
 .sync-mini.saved {
-  border-color: #cdeed5;
-  background: linear-gradient(135deg, #f3fff6, #ffffff);
+  border-color: #dcecdf;
 }
 
-.sync-line {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 8px;
-  align-items: center;
-  font-size: 12px;
-}
-
-.sync-title-group {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+.sync-mini-main,
+.sync-mini-switch {
   min-width: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
 }
 
-.sync-title-group strong {
+.sync-mini-main {
+  padding: 0 9px 2px 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #111;
+  text-align: left;
+}
+
+.sync-mini-main strong,
+.sync-mini-main b,
+.sync-mini-main span,
+.sync-mini-main em {
+  flex: 0 0 auto;
   white-space: nowrap;
+}
+
+.sync-mini-main strong {
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.sync-mini-main b,
+.sync-mini-main span,
+.sync-mini-main em {
+  font-size: 10px;
+  line-height: 1;
+}
+
+.sync-mini-main b {
+  font-weight: 850;
+}
+
+.sync-mini-main span {
+  min-width: 0;
+  flex: 1 1 auto;
+  color: #777;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sync-mini-main em {
+  color: #555;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.sync-mini-main .sync-mini-count {
+  color: #111;
+}
+
+.sync-mini-main .sync-mini-queue {
+  color: #555;
 }
 
 .sync-transport-badge {
   display: inline-flex;
   flex: 0 0 auto;
-  min-height: 20px;
+  min-height: 16px;
   align-items: center;
-  padding: 0 7px;
+  padding: 0 5px;
   border-radius: 999px;
   background: #eef1f4;
   color: #5f6670;
-  font-size: 10px;
+  font-size: 9px;
   font-style: normal;
   font-weight: 750;
   line-height: 1;
@@ -1938,24 +1984,240 @@ button {
   color: #6c50b7;
 }
 
-.sync-line span {
-  min-width: 0;
-  color: #777;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.sync-mini-switch {
+  min-width: 42px;
+  margin: 8px 0 9px;
+  padding: 0 0 1px 10px;
+  border-left: 1px solid #e7e4de;
+  color: #1778e6;
+  font-size: 11px;
+  font-weight: 850;
 }
 
-.sync-line b {
+.sync-mini-main:active,
+.sync-mini-switch:active {
+  opacity: .58;
+}
+
+.sync-mini-main:focus-visible,
+.sync-mini-switch:focus-visible {
+  outline: 2px solid #111;
+  outline-offset: -2px;
+}
+
+.sync-mini-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: #eeeeec;
+}
+
+.sync-mini-progress b {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #111;
+}
+
+.sync-mini.saved .sync-mini-progress b {
+  background: #31aa61;
+}
+
+.home-sync-scrim {
+  z-index: 6;
+}
+
+.bottom-sheet.home-sync-sheet {
+  z-index: 7;
+  padding: 10px 20px 26px;
+}
+
+.home-sync-sheet-heading {
+  min-height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #eeeae2;
+}
+
+.home-sync-sheet-heading span {
+  display: grid;
+  gap: 3px;
+}
+
+.home-sync-sheet-heading small,
+.home-sync-sheet-heading strong {
+  display: block;
+}
+
+.home-sync-sheet-heading small {
+  color: #777;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.home-sync-sheet-heading strong {
+  font-size: 17px;
+}
+
+.home-sync-sheet-heading button {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: #f2f1ee;
+  color: #111;
+  font-size: 21px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.home-sync-queue-list {
+  max-height: 500px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.home-sync-queue-item {
+  position: relative;
+  min-height: 82px;
+  padding: 12px 0 10px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 7px 12px;
+  align-items: start;
+  border-bottom: 1px solid #eeeae2;
+}
+
+.home-sync-queue-item:last-child {
+  border-bottom: 0;
+}
+
+.home-sync-queue-item.priority {
+  box-shadow: inset 3px 0 #1778e6;
+  padding-left: 10px;
+}
+
+.home-sync-queue-item > span {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.home-sync-queue-item strong {
+  font-size: 13px;
+}
+
+.home-sync-queue-item small {
+  color: #777;
+  font-size: 10px;
+}
+
+.home-sync-queue-status {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+}
+
+.home-sync-queue-status > b {
   font-size: 12px;
 }
 
-.progress.compact {
-  margin-top: 9px;
+.home-sync-queue-status > em {
+  color: #777;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 800;
 }
 
-.sync-mini .caption {
-  margin: 8px 0 0;
+.home-sync-queue-status > button {
+  min-height: 24px;
+  padding: 0 8px;
+  border: 1px solid #d8d5ce;
+  border-radius: 999px;
+  background: #fff;
+  color: #1778e6;
+  font-size: 10px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.home-sync-queue-item.priority .home-sync-queue-status > button {
+  border-color: #cfe5ff;
+  background: #eef6ff;
+}
+
+.home-sync-task-progress {
+  grid-column: 1 / -1;
+  height: 3px;
+  border-radius: 999px;
+  background: #ecebea;
+  overflow: hidden;
+}
+
+.home-sync-task-progress i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #111;
+}
+
+.home-sync-queue-item.completed .home-sync-task-progress i {
+  background: #31aa61;
+}
+
+.home-sync-queue-item.pending .home-sync-task-progress i {
+  background: #9aa2ac;
+}
+
+.home-sync-method-list {
+  display: grid;
+}
+
+.home-sync-method-list > button {
+  min-height: 58px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 0;
+  border-bottom: 1px solid #eeeae2;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.home-sync-method-list > button:last-child {
+  border-bottom: 0;
+}
+
+.home-sync-method-list span {
+  display: grid;
+  gap: 4px;
+}
+
+.home-sync-method-list b {
+  font-size: 13px;
+}
+
+.home-sync-method-list small {
+  color: #777;
+  font-size: 10px;
+}
+
+.home-sync-method-list i {
+  color: #777;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.home-sync-method-list > button.active i {
+  color: #1778e6;
 }
 
 .card-title {
@@ -6707,6 +6969,16 @@ button {
   min-height: 42px;
   color: #111;
   font-size: 18px;
+}
+
+.firmware-step span {
+  position: relative;
+  z-index: 2;
+  display: inline-block;
+  line-height: 1.4;
+  background: #fff;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .firmware-step::before {
