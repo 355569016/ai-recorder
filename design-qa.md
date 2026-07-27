@@ -42,6 +42,36 @@ patches made since previous QA pass:
 
 final result: passed
 
+## 2026-07-27 update: APP-HOME-01 priority sync merged into all files
+
+- Source visual truth: `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-07fdfa01-daa7-40dc-8780-2a143b457c09.png`.
+- Browser-rendered implementation screenshot: `implementation-home-sync-priority-in-list.jpg`.
+- Focused before/after evidence: `design-qa-home-sync-priority-in-list-comparison.png`.
+- Reviewed state: APP-HOME-01, finishing sync, Bluetooth selected, 3/12 completed, one active task and eight waiting tasks.
+
+## Visual and information-architecture changes
+
+- The compact sync strip keeps batch status, transfer method, overall progress, completed/total count, estimated time, and `快传`; the visible `队列 ›` entry and the independent queue sheet are removed.
+- The active task and all eight waiting tasks are rendered at the top of `全部文件`, before already synchronized files.
+- Every waiting row shows exactly `等待传输`; queue positions such as `第 1 位` are removed.
+- Waiting rows omit transport method, transferred/total byte values, disclosure arrows, and per-file progress bars.
+- When more than three tasks are waiting, the `优先同步` action appears directly after the waiting status. The selected task moves immediately after the active task and changes to `已优先`.
+
+## Interaction evidence
+
+- Default multi-task state rendered one active row, eight pending rows, and eight priority actions, with zero queue openers and zero queue sheets.
+- Selecting `Quarterly summary` moved it from the last waiting position to the first waiting position while `周一项目复盘` remained active.
+- After completing five tasks, only three tasks remained waiting and the number of priority actions changed from eight to zero, confirming the strict `待传输任务超过 3 个` threshold.
+- `快传` still opens the transfer-method sheet with Bluetooth, LAN, and recorder-hotspot choices.
+- The right-side requirements now specify the removed queue UI, the merged file-list model, exact waiting copy, the priority threshold and ordering behavior, and the omission of per-file transfer method and byte size.
+
+## Findings
+
+- No actionable P0, P1, or P2 mismatch remains for the requested queue removal and file-list priority interaction.
+- Backend sync ordering remains an implementation dependency; only the user-visible queue entry and queue-list UI were removed.
+
+final result: passed
+
 ## 2026-07-07 update: APP-ONB-01 and APP-HOME-01 revision
 
 scope:
@@ -547,5 +577,204 @@ final result: passed
 
 - No actionable P0, P1, or P2 mismatch remains for the requested multi-task queue behavior.
 - The source showed a one-task queue; the multi-task rows, overall progress semantics, `3/12`, and priority actions are intentional requirement-driven additions.
+
+final result: passed
+
+## 2026-07-27 update: APP-HOME-01 low-interruption file sync states
+
+- Source visual truth: `/Users/andyma/.codex/generated_images/019f9ed8-7ba8-7e32-ae1f-69884ce2864a/exec-59b3580b-90d0-413e-b0f2-cdf9b30b72b6.png`.
+- Browser-rendered implementation screenshot: `implementation-home-sync-low-interruption.png`.
+- Side-by-side comparison evidence: `design-qa-home-sync-low-interruption-comparison.png` (source left, implementation right).
+- Viewport/state: 390 × 844 phone surface, APP-HOME-01, finishing sync, Bluetooth selected, 3/12 completed.
+- Density normalization: source 852 × 1832 was normalized to 390 × 844; implementation was captured at 390 × 844 CSS px with device scale factor 1.
+
+## Full-view comparison
+
+- The compact batch sync strip remains directly under the device summary and retains overall progress, queue access, and a black `快传` action.
+- The list toolbar now reads `全部文件`; the active and next waiting hardware recordings appear at the top of the list in a reduced-emphasis disabled style.
+- Active and waiting rows contain no file-level progress bar, action button, or disclosure chevron. Completed files continue to use the normal file-row presentation.
+- The failure row uses the final user-authorized copy `同步失败，请重试…` with a single `重试` action. The earlier design-image phrase `录音已安全保留` is intentionally omitted to avoid implying a storage guarantee.
+
+## Focused interaction evidence
+
+- Clicking `快传` opened the transfer-method sheet with Bluetooth, LAN, and recorder-hotspot choices.
+- Clicking the compact batch strip opened the 12-task queue and preserved the 35% overall byte progress, 3/12 count, and active/pending task ordering.
+- Clicking the failed row's `重试` action changed the row to `正在重试…`, removed the button, applied `aria-disabled="true"`, and reused the grey non-interactive transfer state.
+- DOM inspection confirmed both transfer rows have zero buttons, zero disclosure chevrons, and zero per-file progress elements.
+- The APP-HOME-01 requirement panel now documents `file_transfer_state`, `全部文件`, the disabled transfer-row behavior, conditional batch-strip visibility, and the exact failure/retry copy.
+
+## Required fidelity surfaces
+
+- Typography and hierarchy: title, device summary, compact sync strip, list title, file metadata, and semantic recovery copy retain the existing prototype scale and weight system.
+- Spacing and layout: the batch strip remains compact; no additional sync card or per-file progress bar increases vertical interruption.
+- Colors and semantics: active/waiting/retrying states use grey disabled styling, failure uses red recovery styling, and completed files retain normal contrast.
+- Interaction semantics: unfinished files are not clickable; only the failed state exposes a recovery action.
+
+## Findings
+
+- No actionable P0, P1, or P2 mismatch remains for the approved low-interruption sync-state design.
+- The only visual deviation from the generated source is the explicitly requested failure-copy correction from `同步失败 · 录音已安全保留` to `同步失败，请重试…`.
+
+final result: passed
+
+## 2026-07-27 update: APP-HOME-01 no-sync state and low-interruption threshold
+
+- Source visual truth: `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-13396240-f15b-4414-b171-36c1539fcc7b.png`.
+- Browser-rendered implementation screenshot: `implementation-home-no-sync-tasks.png`.
+- Full-board comparison evidence: `design-qa-home-no-sync-tasks-comparison.png`.
+- Focused phone comparison evidence: `design-qa-home-no-sync-tasks-phone-comparison.png`.
+- Viewport/state: 2048 × 1056 CSS px, APP-HOME-01, `当前无同步任务` selected.
+- Density normalization: the 3840 × 2100 source screenshot was cropped below its 180px browser chrome and normalized to 2048 × 1056; the focused source phone crop and 390 × 844 implementation phone were both normalized to 390 × 844.
+
+## Full-view and focused comparison
+
+- The no-sync implementation matches the reference hierarchy: connected-device summary, immediate `全部文件` toolbar, normal highlighted `周一项目复盘` row, failed-file recovery row, remaining normal files, and persistent bottom navigation.
+- The phone comparison confirms the intended absence of the compact sync strip, overall progress line, queue entry, `快传` button, and grey active/waiting transfer rows.
+- Existing typography, white surfaces, green completed-file highlight, semantic chips, recovery red, black primary buttons, row spacing, and rounded phone frame remain consistent with the reference.
+- No additional raster asset or replacement icon was required for this state.
+
+## Focused interaction evidence
+
+- Clicking `当前无同步任务` produces zero `[aria-label="当前同步状态"]` regions, zero `快传` buttons, and zero `.file-card-transfer-disabled` rows; the first file is the normal `周一项目复盘` item.
+- The selected state-chain button receives the active style and clears any open sync panel.
+- A one-task batch with an estimated one minute remaining produces zero top sync regions and zero `快传` buttons, while retaining its single disabled file row because that file is still transferring.
+- Restoring the multi-task batch produces one top sync region, one `快传` button, two disabled transfer rows, and the expected `同步中 / 蓝牙 / 35% / 3/12 / 预计 8 分钟 / 队列` content.
+- The three requirement callouts render in red (`rgb(200, 67, 53)`) at font weight 800. They explicitly state the dual-condition visibility threshold, the no-task presentation, and that device reconnection triggers automatic retry while the failure state and manual retry button appear only after the automatic retry limit is reached.
+
+## Findings
+
+- No actionable P0, P1, or P2 mismatch remains for the no-sync state or the low-interruption visibility threshold.
+- The red requirement callouts are an intentional specification addition requested after the supplied screenshot and therefore do not appear in the source image.
+
+final result: passed
+
+## 2026-07-27 update: APP-HOME-01 first-version fast-transfer scope
+
+- Source visual truth: `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-07fdfa01-daa7-40dc-8780-2a143b457c09.png`.
+- Browser-rendered implementation screenshot: `implementation-home-sync-v1-fast-transfer.jpg`.
+- Focused before/after evidence: `design-qa-home-sync-v1-fast-transfer-comparison.png`.
+- Source pixels: 3840 × 2100. Implementation full-page pixels: 1280 × 1960. Focused phone regions were normalized to 500 × 1000 for comparison.
+- State: APP-HOME-01, finishing sync, Bluetooth selected, 3/12 completed, three visible waiting-file examples.
+
+## Full-view and focused comparison
+
+- The source and implementation retain the same phone frame, device summary, compact batch strip, `全部文件` toolbar, grey transfer rows, semantic status colors, and persistent bottom navigation.
+- The implementation intentionally limits the visible waiting-transfer examples to three rows while preserving the previously approved `等待传输 + 优先同步` treatment.
+- The compact strip still uses the existing typography, spacing, monochrome palette, two-pixel progress line, and black `快传` action. No imagery or new visual asset was introduced.
+- The visible list density is reduced without changing row height, type scale, chip styling, or file-status hierarchy.
+
+## Interaction evidence
+
+- APP-HOME-01 rendered exactly three `.file-card-transfer-disabled.pending` rows and three `.file-transfer-priority` actions while the backend demo batch retained more than three pending tasks.
+- Clicking `快传` changed the rendered page directly to `APP-SYNC-01 连接录音卡进行高速传输`; zero transfer-method sheets were present before or after the click.
+- APP-SYNC-02 is absent from the page registry, left navigation, state chain, renderer map, and flow strip. Opening the legacy `?page=APP-SYNC-02` URL safely resolves to APP-SYNC-01.
+- APP-SYNC-01 and APP-HOME-01 right-side requirements now state that the first version supports the recorder-hotspot route only and does not include the current-Wi-Fi provisioning flow.
+
+## Required fidelity surfaces
+
+- Fonts and typography: existing family, weights, sizes, line heights, truncation behavior, and hierarchy are unchanged.
+- Spacing and layout rhythm: the compact status strip and file-row spacing remain aligned with the source; only the number of waiting examples changed.
+- Colors and visual tokens: grey disabled rows, blue priority action, black `快传`, red recovery copy, and white surfaces remain consistent.
+- Image quality and asset fidelity: no source image, logo, illustration, or custom icon was added or replaced.
+- Copy and content: waiting rows still read exactly `等待传输`; first-version routing copy now names APP-SYNC-01 and explicitly defers APP-SYNC-02.
+
+## Findings
+
+- No actionable P0, P1, or P2 mismatch remains for the requested three-row density limit or direct fast-transfer route.
+- The three-row limit is documented as prototype density control; priority availability continues to use the complete backend pending-task count.
+
+final result: passed
+
+## 2026-07-27 update: APP-HOME-01 no-recorder state
+
+- Source visual truth: `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-29575455-6dc6-48b9-96c6-b2a971b08d58.png`.
+- Browser-rendered implementation screenshot: `implementation-home-no-device-state.png`.
+- Focused state comparison evidence: `design-qa-home-no-device-state-comparison.png`.
+- State: APP-HOME-01, `未添加录音卡` selected.
+
+## Visual comparison
+
+- The existing device-summary footprint is preserved so the page hierarchy does not jump between device states.
+- In the no-recorder state, the device icon, name, connection details, battery/storage data, and dropdown are replaced by one bordered `添加设备` action using the existing monochrome button language.
+- The compact sync strip, progress line, `快传` action, and grey active/waiting transfer rows are absent; normal files remain directly browsable below `全部文件`.
+- No new image asset, custom icon, decorative card, or additional explanatory copy was introduced into the phone UI.
+
+## Interaction evidence
+
+- Selecting `未添加录音卡` produces one `.home-device-empty-action`, zero `.home-device-current` summaries, zero `[aria-label="当前同步状态"]` regions, and zero `.file-card-transfer-disabled` rows.
+- The selected state-chain control receives the active style.
+- Clicking `添加设备` enters APP-DEV-01 `正在搜索设备`.
+- Selecting the adjacent `当前无同步任务` state restores the connected-device summary while keeping the sync strip and transfer rows hidden, confirming the two states remain independent.
+- The right-side field list, red strong rule, page-state list, interaction rules, and acceptance criteria all document the no-recorder behavior.
+
+## Findings
+
+- No actionable P0, P1, or P2 mismatch remains for the requested no-recorder state.
+- The reference screenshot shows the device-added state; the comparison intentionally demonstrates the requested replacement within the same device-summary position.
+
+final result: passed
+
+## 2026-07-27 update: APP-HOME-01 no-recorder entry polish
+
+- Source visual truth: `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-4bf7326f-ec15-46f8-943c-2b546977a18f.png`.
+- Captured pre-fix implementation: `implementation-home-no-device-before-polish.png`.
+- Browser-rendered post-fix implementation: `implementation-home-no-device-polished.png`.
+- Full phone before/after evidence: `design-qa-home-no-device-polish-comparison.png`.
+- Focused entry evidence: `design-qa-home-no-device-polish-detail.png`.
+- Added/no-recorder consistency evidence: `design-qa-home-device-state-consistency.png`.
+- Source pixels: 3840 × 2100. Implementation pixels: 1280 × 1960. Phone views were normalized to 500 × 1000; focused entry regions were normalized to 600 × 190.
+- State: APP-HOME-01, `未添加录音卡` selected.
+
+## Initial audit findings and fixes
+
+- [P1] The full-width outlined control read as a separate form button instead of the device summary's empty state. Fixed by removing the visible outer border and reusing the same 58px device-entry structure.
+- [P2] Centered single-line copy broke the added/no-recorder hierarchy and made the empty state visually heavier than real device data. Fixed with the same left visual area and right two-line information area used by the connected state.
+- [P2] The previous control communicated only an action, not what the action would do. Fixed with the restrained secondary line `搜索并绑定新的 AI Recorder`, which describes the destination without inventing device data.
+
+## Post-fix visual comparison
+
+- The connected and no-recorder entry states both measure 284 × 58 CSS px and use the same two-column alignment, typography scale, spacing rhythm, and borderless surface.
+- The no-recorder state uses a neutral grey treatment instead of the connected state's green indicator and black device details, so it remains identifiable without implying connection or stored hardware data.
+- The `添加设备` label now occupies the same hierarchy position as the real device name; its secondary guidance occupies the same position as connection/battery/storage metadata.
+- The full phone comparison confirms that removing the large outline reduces empty-state interruption and lets `全部文件` remain the dominant content region.
+
+## Required fidelity surfaces
+
+- Fonts and typography: 13px/800 primary and 10px secondary text match the existing device summary hierarchy; no wrapping or truncation issue is visible.
+- Spacing and layout rhythm: the entry retains the existing 58px height, 58px + flexible grid, 8px gap, and 18px section margin.
+- Colors and visual tokens: black primary copy, muted grey secondary copy, and neutral device treatment reuse existing monochrome tokens; no new decorative color was introduced.
+- Image quality and asset fidelity: the implementation reuses the existing recorder visual component; no new raster asset, substitute logo, emoji, or custom decorative icon was introduced.
+- Copy and content: no device name, connection status, battery value, storage value, or dropdown is rendered; the only content is the add action and its generic purpose.
+
+## Interaction and accessibility evidence
+
+- The whole 284 × 58 entry is clickable and has the accessible label `添加设备，搜索并绑定新的 AI Recorder`.
+- Clicking the entry opens APP-DEV-01 `正在搜索设备`.
+- The no-recorder state contains zero `.home-device-current` summaries and zero device-menu controls, sync-status regions, or disabled transfer rows.
+- A visible focus outline is provided for keyboard focus; hover and pressed states use the existing subtle neutral background.
+
+## Final findings
+
+- No actionable P0, P1, or P2 issue remains for the no-recorder entry styling or its consistency with the connected-device state.
+
+final result: passed
+
+## 2026-07-27 update: APP-HOME-01 hotspot sync hides fast-transfer action
+
+- Source visual truth: `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-e13af855-bfd7-4301-a8f3-eb025cb18bd5.png`.
+- Browser-rendered implementation screenshot: `implementation-home-hotspot-no-fast-transfer.png`.
+- State: APP-HOME-01, multi-task sync, `录音卡热点` selected.
+
+## Visual and interaction evidence
+
+- The hotspot sync strip retains `同步中`, the `录音卡热点` transport badge, overall percentage, completed/total count, estimated time, and the two-pixel progress line.
+- The right-side `快传` button is absent while hotspot transfer is active, so the current high-speed state does not offer a redundant high-speed entry.
+- Browser verification found zero `快传` buttons, one current sync region, and one `.sync-mini.hotspot-active` region in hotspot mode.
+- Switching back to `蓝牙同步` restores exactly one `快传` button and removes the hotspot-active layout class.
+- The right-side red strong rule, interaction rules, and acceptance criteria now distinguish Bluetooth from recorder-hotspot behavior.
+
+## Findings
+
+- No actionable P0, P1, or P2 issue remains for the hotspot fast-transfer state.
 
 final result: passed

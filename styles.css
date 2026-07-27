@@ -1650,6 +1650,69 @@ button {
   margin: 4px 0 18px;
 }
 
+.home-device-switcher.home-device-empty {
+  display: inline-grid;
+}
+
+.home-device-empty-action {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  align-items: stretch;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #111;
+  text-align: left;
+  cursor: pointer;
+}
+
+.home-device-empty-action:hover,
+.home-device-empty-action:active {
+  background: #f7f6f2;
+}
+
+.home-device-empty-action:focus-visible {
+  outline: 2px solid #111;
+  outline-offset: 2px;
+}
+
+.home-device-empty-visual {
+  min-height: 58px;
+  display: grid;
+  place-items: center;
+  opacity: .42;
+}
+
+.home-device-empty-copy {
+  min-width: 0;
+  align-self: center;
+  display: block;
+  padding: 8px 10px 8px 12px;
+}
+
+.home-device-empty-copy b {
+  display: block;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.home-device-empty-copy small {
+  display: block;
+  margin-top: 4px;
+  color: #8a8a8a;
+  font-size: 10px;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .home-device-button,
 .home-device-toggle {
   position: relative;
@@ -1896,12 +1959,15 @@ button {
   border-color: #dcecdf;
 }
 
+.sync-mini.hotspot-active {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .sync-mini-main,
 .sync-mini-switch {
   min-width: 0;
   border: 0;
   background: transparent;
-  cursor: pointer;
 }
 
 .sync-mini-main {
@@ -1955,10 +2021,6 @@ button {
   color: #111;
 }
 
-.sync-mini-main .sync-mini-queue {
-  color: #555;
-}
-
 .sync-transport-badge {
   display: inline-flex;
   flex: 0 0 auto;
@@ -1974,32 +2036,27 @@ button {
   line-height: 1;
 }
 
-.sync-transport-badge.lan {
-  background: #eaf5ff;
-  color: #2774a8;
-}
-
 .sync-transport-badge.hotspot {
   background: #f1edff;
   color: #6c50b7;
 }
 
 .sync-mini-switch {
-  min-width: 42px;
-  margin: 8px 0 9px;
-  padding: 0 0 1px 10px;
-  border-left: 1px solid #e7e4de;
-  color: #1778e6;
+  min-width: 52px;
+  margin: 5px 0 6px 4px;
+  padding: 0 10px 1px;
+  border-radius: 8px;
+  background: #111;
+  color: #fff;
   font-size: 11px;
   font-weight: 850;
+  cursor: pointer;
 }
 
-.sync-mini-main:active,
 .sync-mini-switch:active {
   opacity: .58;
 }
 
-.sync-mini-main:focus-visible,
 .sync-mini-switch:focus-visible {
   outline: 2px solid #111;
   outline-offset: -2px;
@@ -2023,201 +2080,6 @@ button {
 
 .sync-mini.saved .sync-mini-progress b {
   background: #31aa61;
-}
-
-.home-sync-scrim {
-  z-index: 6;
-}
-
-.bottom-sheet.home-sync-sheet {
-  z-index: 7;
-  padding: 10px 20px 26px;
-}
-
-.home-sync-sheet-heading {
-  min-height: 62px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  border-bottom: 1px solid #eeeae2;
-}
-
-.home-sync-sheet-heading span {
-  display: grid;
-  gap: 3px;
-}
-
-.home-sync-sheet-heading small,
-.home-sync-sheet-heading strong {
-  display: block;
-}
-
-.home-sync-sheet-heading small {
-  color: #777;
-  font-size: 10px;
-  font-weight: 800;
-}
-
-.home-sync-sheet-heading strong {
-  font-size: 17px;
-}
-
-.home-sync-sheet-heading button {
-  width: 32px;
-  height: 32px;
-  border: 0;
-  border-radius: 50%;
-  background: #f2f1ee;
-  color: #111;
-  font-size: 21px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.home-sync-queue-list {
-  max-height: 500px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
-.home-sync-queue-item {
-  position: relative;
-  min-height: 82px;
-  padding: 12px 0 10px;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 7px 12px;
-  align-items: start;
-  border-bottom: 1px solid #eeeae2;
-}
-
-.home-sync-queue-item:last-child {
-  border-bottom: 0;
-}
-
-.home-sync-queue-item.priority {
-  box-shadow: inset 3px 0 #1778e6;
-  padding-left: 10px;
-}
-
-.home-sync-queue-item > span {
-  min-width: 0;
-  display: grid;
-  gap: 5px;
-}
-
-.home-sync-queue-item strong {
-  font-size: 13px;
-}
-
-.home-sync-queue-item small {
-  color: #777;
-  font-size: 10px;
-}
-
-.home-sync-queue-status {
-  display: grid;
-  justify-items: end;
-  gap: 6px;
-}
-
-.home-sync-queue-status > b {
-  font-size: 12px;
-}
-
-.home-sync-queue-status > em {
-  color: #777;
-  font-size: 10px;
-  font-style: normal;
-  font-weight: 800;
-}
-
-.home-sync-queue-status > button {
-  min-height: 24px;
-  padding: 0 8px;
-  border: 1px solid #d8d5ce;
-  border-radius: 999px;
-  background: #fff;
-  color: #1778e6;
-  font-size: 10px;
-  font-weight: 850;
-  cursor: pointer;
-}
-
-.home-sync-queue-item.priority .home-sync-queue-status > button {
-  border-color: #cfe5ff;
-  background: #eef6ff;
-}
-
-.home-sync-task-progress {
-  grid-column: 1 / -1;
-  height: 3px;
-  border-radius: 999px;
-  background: #ecebea;
-  overflow: hidden;
-}
-
-.home-sync-task-progress i {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: #111;
-}
-
-.home-sync-queue-item.completed .home-sync-task-progress i {
-  background: #31aa61;
-}
-
-.home-sync-queue-item.pending .home-sync-task-progress i {
-  background: #9aa2ac;
-}
-
-.home-sync-method-list {
-  display: grid;
-}
-
-.home-sync-method-list > button {
-  min-height: 58px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  border: 0;
-  border-bottom: 1px solid #eeeae2;
-  background: #fff;
-  text-align: left;
-  cursor: pointer;
-}
-
-.home-sync-method-list > button:last-child {
-  border-bottom: 0;
-}
-
-.home-sync-method-list span {
-  display: grid;
-  gap: 4px;
-}
-
-.home-sync-method-list b {
-  font-size: 13px;
-}
-
-.home-sync-method-list small {
-  color: #777;
-  font-size: 10px;
-}
-
-.home-sync-method-list i {
-  color: #777;
-  font-size: 10px;
-  font-style: normal;
-  font-weight: 800;
-}
-
-.home-sync-method-list > button.active i {
-  color: #1778e6;
 }
 
 .card-title {
@@ -2325,6 +2187,89 @@ button {
 
 .file-card:last-child {
   border-bottom: 0;
+}
+
+.file-card-transfer-disabled {
+  color: #aaa;
+  cursor: default;
+  user-select: none;
+}
+
+.file-card-transfer-disabled .file-name,
+.file-card-transfer-disabled .file-meta {
+  color: #aaa;
+}
+
+.file-card-transfer-disabled .chip {
+  background: #f1f1ef;
+  color: #aaa;
+}
+
+.file-transfer-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  color: #a2a2a2;
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.file-transfer-spinner {
+  width: 14px;
+  height: 14px;
+  border-color: rgba(150, 150, 150, .24);
+  border-top-color: #999;
+}
+
+.file-transfer-priority {
+  min-height: 26px;
+  padding: 0 9px;
+  border: 1px solid #d5e5f8;
+  border-radius: 999px;
+  background: #fff;
+  color: #1778e6;
+  font-size: 10px;
+  font-weight: 850;
+  cursor: pointer;
+  user-select: auto;
+}
+
+.file-transfer-priority:active {
+  opacity: .58;
+}
+
+.file-transfer-priority:focus-visible {
+  outline: 2px solid #1778e6;
+  outline-offset: 2px;
+}
+
+.file-transfer-priority.active,
+.file-transfer-priority:disabled {
+  border-color: #cfe5ff;
+  background: #eef6ff;
+  color: #1778e6;
+  opacity: 1;
+  cursor: default;
+}
+
+.file-card-recovery {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
+.file-card-recovery > span {
+  color: var(--red);
+  font-size: 11px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.file-card-recovery > button {
+  width: 72px;
+  min-height: 38px;
 }
 
 .file-name {
@@ -8307,6 +8252,11 @@ button {
   font-weight: 700;
 }
 
+.spec-section .spec-critical-rule {
+  color: var(--red);
+  font-weight: 800;
+}
+
 .spec-table {
   width: 100%;
   border-collapse: collapse;
@@ -9344,7 +9294,7 @@ label.prefs-row {
   cursor: not-allowed;
 }
 
-/* APP-SYNC-01 / APP-SYNC-02 · Wi-Fi 高速传输弹窗 */
+/* APP-SYNC-01 · 录音卡热点高速传输弹窗 */
 .sync-transfer-home-bg {
   height: 100%;
   overflow: hidden;
@@ -9558,127 +9508,6 @@ label.prefs-row {
   font-weight: 800;
 }
 
-.current-wifi-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 14px;
-  padding: 13px 14px;
-  border: 1px solid #e5e5e5;
-  border-radius: 14px;
-  background: #fff;
-}
-
-.current-wifi-card > span:nth-child(2) {
-  display: flex;
-  flex: 1;
-  min-width: 0;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.current-wifi-card small {
-  color: #888;
-  font-size: 12px;
-}
-
-.current-wifi-card b {
-  overflow: hidden;
-  color: #171717;
-  font-size: 16px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.current-wifi-card em {
-  color: #269052;
-  font-size: 12px;
-  font-style: normal;
-  font-weight: 650;
-}
-
-.current-wifi-icon {
-  position: relative;
-  flex: 0 0 auto;
-  width: 30px;
-  height: 24px;
-  border-top: 3px solid #0a84ff;
-  border-radius: 50% 50% 0 0;
-}
-
-.current-wifi-icon::before,
-.current-wifi-icon::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  border-top: 3px solid #0a84ff;
-  border-radius: 50% 50% 0 0;
-  transform: translateX(-50%);
-}
-
-.current-wifi-icon::before {
-  top: 6px;
-  width: 19px;
-  height: 12px;
-}
-
-.current-wifi-icon::after {
-  top: 14px;
-  width: 7px;
-  height: 5px;
-}
-
-.sync-password-field {
-  display: block;
-  margin-top: 14px;
-}
-
-.sync-password-field > span {
-  display: block;
-  margin-bottom: 7px;
-  color: #333;
-  font-size: 14px;
-  font-weight: 650;
-}
-
-.sync-password-field > div {
-  display: flex;
-  min-height: 50px;
-  overflow: hidden;
-  border: 1px solid #d9d9d9;
-  border-radius: 12px;
-  background: #fff;
-}
-
-.sync-password-field input {
-  flex: 1;
-  min-width: 0;
-  padding: 0 13px;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: #171717;
-  font: inherit;
-  font-size: 15px;
-}
-
-.sync-password-field button {
-  padding: 0 14px;
-  border: 0;
-  background: transparent;
-  color: #0a84ff;
-  font-size: 14px;
-  font-weight: 650;
-}
-
-.sync-password-field > small {
-  display: block;
-  margin-top: 6px;
-  color: #929292;
-  font-size: 12px;
-  line-height: 1.4;
-}
-
 .sync-transfer-sheet .primary-btn,
 .sync-transfer-sheet .secondary-btn {
   width: 100%;
@@ -9686,25 +9515,6 @@ label.prefs-row {
   margin-top: 10px;
   border-radius: 12px;
   font-size: 16px;
-}
-
-.sync-transfer-sheet .primary-btn.disabled,
-.sync-transfer-sheet .primary-btn:disabled {
-  border-color: #c8c8c8;
-  background: #c8c8c8;
-  color: #f1f1f1;
-  cursor: not-allowed;
-}
-
-.sync-cancel-button {
-  width: 100%;
-  min-height: 42px;
-  margin-top: 5px;
-  border: 0;
-  background: transparent;
-  color: #6c6c6c;
-  font-size: 15px;
-  font-weight: 600;
 }
 
 @media (prefers-reduced-motion: reduce) {

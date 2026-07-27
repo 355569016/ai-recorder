@@ -380,44 +380,99 @@ const pages = [
     group: "同步",
     title: "连接录音卡进行高速传输",
     priority: "P0",
-    goal: "在当前 Wi-Fi 不可共享或不可用时，引导手机临时加入录音卡热点完成高速传输。",
-    entry: "Wi-Fi 高速同步选择录音卡热点，或当前 Wi-Fi 配置失败后改用录音卡热点。",
+    goal: "引导手机临时加入录音卡热点，以第一版支持的方式完成高速传输。",
+    entry: "APP-HOME-01 文件首页点击“快传”。",
     fields: [["device_hotspot_ssid", "录音卡热点名称", "BLE/设备热点"], ["hotspot_join_state", "手机加入热点状态", "系统 Wi-Fi"], ["system_join_prompt", "系统加入无线局域网确认", "操作系统"], ["network_impact_tip", "联网影响提示", "本地文案"]],
-    rules: ["APP 内底部弹窗蒙层下复用 APP-HOME-01 文件首页，只负责解释连接设备热点的目的和联网影响。", "引导页中的加入无线局域网卡片仅为操作示意，其中取消和加入按钮不可点击。", "用户点击继续后才调用系统加入热点能力；系统原生风格的取消/加入确认弹窗直接覆盖在当前连接设备热点引导页上，不切换或复用固件更新页面。", "系统弹窗点击取消后返回等待确认；点击加入后关闭系统弹窗，回到高速传输引导页并依次展示连接中和连接成功。", "连接成功态展示 2 秒，随后自动返回文件首页并开始显示热点高速同步状态。", "连接热点期间手机可能暂时无法通过 Wi-Fi 上网；高速传输完成后恢复原网络。"],
+    rules: ["APP-HOME-01 点击“快传”后直接进入本页，不再展示传输方式选择。", "第一版仅支持手机临时加入录音卡热点的高速传输方案，不提供让录音卡连接手机当前 Wi-Fi 的 APP-SYNC-02 流程。", "APP 内底部弹窗蒙层下复用 APP-HOME-01 文件首页，只负责解释连接设备热点的目的和联网影响。", "引导页中的加入无线局域网卡片仅为操作示意，其中取消和加入按钮不可点击。", "用户点击继续后才调用系统加入热点能力；系统原生风格的取消/加入确认弹窗直接覆盖在当前连接设备热点引导页上，不切换或复用固件更新页面。", "系统弹窗点击取消后返回等待确认；点击加入后关闭系统弹窗，回到高速传输引导页并依次展示连接中和连接成功。", "连接成功态展示 2 秒，随后自动返回文件首页并开始显示热点高速同步状态。", "连接热点期间手机可能暂时无法通过 Wi-Fi 上网；高速传输完成后恢复原网络。"],
     states: ["等待确认", "系统加入确认", "连接中", "连接成功"],
     deps: ["BLE：启动和读取录音卡 SoftAP 会话。", "iOS / Android：临时加入设备热点能力。", "设备热点鉴权和连接状态回传。"],
-    acceptance: ["APP 引导弹窗底层为 APP-HOME-01 文件首页，并展示不可点击的系统弹窗示意、继续和取消。", "点击继续后出现独立的系统加入无线局域网确认弹窗，弹窗下方仍为当前连接设备热点引导页，不出现固件更新内容。", "系统取消返回等待确认，系统加入进入连接中；连接中和连接成功状态不展示完成或取消按钮。", "成功状态停留 2 秒后自动返回文件首页，首页同步卡标识为录音卡热点。", "右侧状态链路可独立预览等待确认、连接中和连接成功。"],
+    acceptance: ["APP-HOME-01 点击“快传”直接进入 APP-SYNC-01，不出现传输方式选择弹层。", "第一版导航、状态链路和页面流程中不出现 APP-SYNC-02。", "APP 引导弹窗底层为 APP-HOME-01 文件首页，并展示不可点击的系统弹窗示意、继续和取消。", "点击继续后出现独立的系统加入无线局域网确认弹窗，弹窗下方仍为当前连接设备热点引导页，不出现固件更新内容。", "系统取消返回等待确认，系统加入进入连接中；连接中和连接成功状态不展示完成或取消按钮。", "成功状态停留 2 秒后自动返回文件首页，首页同步卡标识为录音卡热点。", "右侧状态链路可独立预览等待确认、连接中和连接成功。"],
     prototypeLinks: [],
     prototypeActions: [["等待确认", "set-hotspot-state", "awaiting"], ["连接中", "set-hotspot-state", "connecting"], ["连接成功", "set-hotspot-state", "success"]]
-  },
-  {
-    id: "APP-SYNC-02",
-    group: "同步",
-    title: "让录音卡连接当前 Wi-Fi",
-    priority: "P0",
-    goal: "将手机当前 Wi-Fi 的密码安全配置给录音卡，使手机和录音卡在同一局域网内高速传输。",
-    entry: "Wi-Fi 高速同步优先尝试当前局域网，且录音卡尚未保存该网络配置。",
-    fields: [["current_wifi_ssid", "手机当前 Wi-Fi 名称", "系统 Wi-Fi"], ["wifi_password", "当前 Wi-Fi 密码", "用户输入"], ["sta_connect_state", "录音卡入网状态", "BLE/设备 Wi-Fi"]],
-    rules: ["底部弹窗蒙层下复用 APP-HOME-01 文件首页，不展示固件页或其他业务背景。", "页面只展示手机当前 Wi-Fi，不增加网络扫描或 Wi-Fi 选择列表。", "密码仅用于本次加密配网，不在页面明文持久化。", "点击连接后展示连接中、连接成功或密码/网络连接失败状态。", "用户点击连接后不再提供额外完成操作；连接成功态展示 2 秒，随后自动返回文件首页并开始显示局域网高速同步状态。", "连接失败可重新输入，也可改用录音卡热点；连接前取消返回文件首页。"],
-    states: ["待输入", "连接中", "连接成功", "密码错误", "网络不可用", "取消"],
-    deps: ["系统当前 Wi-Fi SSID 读取权限。", "BLE：加密发送 Wi-Fi 配置。", "设备 STA 入网、局域网发现和状态回传。"],
-    acceptance: ["弹窗底层为 APP-HOME-01 文件首页样式，并展示当前 Wi-Fi 名称、密码输入框、连接、改用录音卡热点和取消操作。", "不提供额外 Wi-Fi 选择入口。", "加载、成功和失败状态均在同一弹窗内完成。", "连接中和连接成功状态不展示完成或取消按钮。", "连接成功态停留 2 秒后自动返回文件首页，首页同步卡标识为局域网。", "连接成功后说明手机可继续使用当前 Wi-Fi 联网。"],
-    prototypeLinks: [["改用录音卡热点", "APP-SYNC-01"], ["取消", "APP-HOME-01"]]
   },
   {
     id: "APP-HOME-01",
     group: "文件",
     title: "文件首页",
     priority: "P0",
-    goal: "3 秒内让用户知道设备是否可用、同步是否进行中，并直接在首页浏览文件列表。",
+    goal: "3 秒内让用户知道设备是否可用、同步是否进行中，并直接在首页浏览全部文件。",
     entry: "登录/绑定成功后默认进入，底部文件 Tab。",
-    fields: [["current_device", "当前设备", "本地数据库/云端设备"], ["connection_state", "连接状态", "BLE 状态包"], ["battery_storage_record", "电量/存储/录音", "BLE 状态包"], ["recording_live_sync", "录音中持续同步", "BLE 分片传输/本地缓存"], ["sync_batch_id", "本次同步批次", "同步队列"], ["sync_task_count", "已完成数/本批次总数", "同步队列"], ["sync_overall_progress", "本批次整体字节进度", "同步队列"], ["sync_priority_order", "待同步任务顺序", "同步队列"], ["finish_sync_transfer", "结束录音补传", "同步队列"], ["sync_summary", "同步摘要", "本地数据库/BLE 文件列表"], ["file_list", "文件列表", "本地数据库"], ["file_source", "文件来源", "本地数据库"]],
-    rules: ["打开 App 时如果硬件正在录音，首页默认只显示设备录音中状态，不展示同步状态条。", "录音中持续同步是后端和 App 端的后台传输接收动作：App 持续接收硬件分片，先写入本地临时缓存和同步队列，但该过程不对用户展示。", "用户结束录音后，首页才展示结束录音后的同步传送状态，将录音期间尚未完成的分片继续补传、校验并合并。", "补传完成后，把本次硬件录音保存为新的文件记录，并插入文件列表顶部，状态为未转写。", "首页左上设备状态使用紧凑设备图标入口，不再使用大面积状态卡。", "当前已选择录音卡的名称、连接状态、电量和存储需要直接显示在设备入口外层，不必展开下拉即可查看。", "点击设备图标进入当前设备详情；点击设备旁下拉箭头展开添加设备和已绑定设备列表。", "蓝牙系统层面可支持手机同时连接多个 BLE 外设，但 AI 录音卡是否允许多设备并发录音/同步取决于固件连接数、带宽、同步队列和冲突处理；MVP 建议支持多设备绑定与切换，当前活跃录音/同步设备一次只选一个。", "已绑定设备列表需要展示多个设备的连接状态，支持点击切换；已连接设备显示绿色状态，断开连接设备显示灰色离线状态。", "未连接或未绑定时，通过下拉菜单提供添加设备入口，不占用大面积状态卡。", "首页只在结束录音补传、同步失败或其他需要用户关注的同步任务时显示同步状态条；录音中后台持续同步不显示。", "同步状态条压缩为单行，依次展示同步状态、当前传输方式、本批次整体进度、已完成数/总数和预计剩余时间，底部只保留 2px 整体进度线。", "外部百分比按本次同步批次全部文件的累计已传输字节除以批次总字节计算，不代表当前单个文件的进度。", "本批次存在多个任务时显示已完成数/总数，例如 3/12，并提供队列入口；仅有 1 个任务时不显示数量和队列入口。", "点击多任务状态条主体或队列入口，在当前首页打开本次同步队列；点击右侧切换入口打开传输方式选择，两者为独立点击区域。", "队列按当前同步、待同步、已完成分组展示；当前任务不可被其他任务打断，已完成任务仅在本批次内保留同步完成状态。", "本批次任务数超过 3 个时，待同步任务展示优先同步操作；点击后把该任务移动到当前任务之后，并立即更新其他待同步任务的顺序。", "单个任务完成后更新其状态和外部已完成数，自动开始队列中的下一项；本批次全部完成后外部状态变为同步完成。", "本批次完成后若产生新的同步任务，创建新的批次并清空上一批队列展示，不在新队列中显示历史同步文件。", "同步状态条不使用大卡片、阴影或第二行通知，文件列表紧接状态条显示。", "文件列表是首页下半区，不再作为单独页面；滚动到设备状态和同步摘要不可见后，文件列表标题默认吸顶。", "文件列表标题栏左侧为文件列表文字和倒三角筛选/排序入口，右侧为导入音频按钮。", "点击导入音频打开导入音频弹层，可从文件或相册调起系统选择器。", "底部中间录音按钮是全局主按钮，不是普通 Tab。"],
-    states: ["未绑定/未连接", "设备已连接", "录音中持续同步", "单任务同步中", "多任务队列同步中", "任务优先级已调整", "单个任务同步完成", "本批次同步完成", "新同步批次", "同步失败", "空文件", "加载更多"],
-    deps: ["BLE 状态包：电量、存储、录音状态。", "BLE 分片传输：录音过程中的增量音频、偏移量和校验值。", "本地数据库：文件列表、同步队列、转写状态。", "本地临时缓存：录音未结束前的已同步分片。", "云端文件：上传/删除/状态，接口待后端定义。"],
-    acceptance: ["打开 App 默认处于硬件录音场景时，首页只展示设备录音中状态，不展示同步进度模块。", "点击录音中页结束后，首页必须展示剩余内容补传和校验进度。", "同步状态条为约 40px 高的单行结构，状态、方式、整体进度、任务数量、预计时间、队列和切换入口不换行。", "多任务状态显示已完成数/总数并可打开队列；单任务状态不显示数量和队列入口。", "外部百分比和底部 2px 进度线必须与本批次累计字节进度一致。", "任务数超过 3 个时，待同步任务可以设为优先；操作后当前任务保持不变，目标任务移动到下一顺位。", "单个任务完成后已完成数增加并开始下一项；新批次开始后队列只展示新批次任务，不展示上一批历史任务。", "切换入口可打开传输方式选择。", "补传完成后，文件列表顶部必须新增本次录音文件，来源为硬件录音，状态为未转写。", "首页设备状态为紧凑图标入口，点击设备图标进入当前设备详情。", "当前已选择录音卡的名称、连接状态、电量、存储在设备入口外层可直接查看。", "点击设备状态旁下拉箭头展开添加设备和多个已绑定设备。", "已绑定设备示例至少包含两个已连接设备和一个已断开设备，点击设备行可以切换当前设备。", "导入音频和倒三角入口位于文件列表标题栏。", "导入音频弹层包含从文件里导入和从相册里导入两个系统选择入口。", "下拉/继续滚动可加载更多文件。", "录音主按钮点击前执行登录/绑定/连接检查。"],
+    fields: [["device_binding_state", "是否已添加录音卡", "本地数据库/云端设备"], ["current_device", "当前设备", "本地数据库/云端设备"], ["connection_state", "连接状态", "BLE 状态包"], ["battery_storage_record", "电量/存储/录音", "BLE 状态包"], ["recording_live_sync", "录音中持续同步", "BLE 分片传输/本地缓存"], ["sync_batch_id", "本次同步批次", "同步队列"], ["sync_task_count", "已完成数/本批次总数", "同步队列"], ["sync_overall_progress", "本批次整体字节进度", "同步队列"], ["sync_priority_order", "待同步任务顺序", "同步队列"], ["finish_sync_transfer", "结束录音补传", "同步队列"], ["file_transfer_state", "文件等待传输/正在传输/同步失败", "本地数据库/同步队列"], ["sync_retry_count", "已自动重试次数/重试限额", "同步队列/重试策略"], ["sync_summary", "同步摘要", "本地数据库/BLE 全部文件"], ["file_list", "全部文件", "本地数据库"], ["file_source", "文件来源", "本地数据库"]],
+    rules: [
+      "打开 App 时如果硬件正在录音，首页默认只显示设备录音中状态，不展示同步状态条。",
+      "录音中持续同步是后端和 App 端的后台传输接收动作：App 持续接收硬件分片，先写入本地临时缓存和同步队列，但该过程不对用户展示。",
+      "用户结束录音后，首页才展示结束录音后的同步传送状态，将录音期间尚未完成的分片继续补传、校验并合并。",
+      "结束录音后立即在全部文件顶部建立临时文件记录；文件等待传输或正在传输时保留该记录，补传完成后转为正常文件并显示未转写。",
+      "首页左上设备状态使用紧凑设备图标入口，不再使用大面积状态卡。",
+      "账号尚未添加录音卡时，设备摘要位置复用已添加状态的图标区与信息区布局：左侧使用中性的录音卡入口视觉，右侧显示“添加设备”和轻量引导，不使用贯穿整行的大描边按钮，也不展示设备名称、连接状态、电量、存储或设备下拉入口；点击整行进入 APP-DEV-01 正在搜索设备。",
+      "未添加录音卡状态不展示同步状态条、快传入口，以及正在传输或等待传输的置灰文件记录；已同步完成和导入 App 的正常文件仍可浏览。",
+      "当前已选择录音卡的名称、连接状态、电量和存储需要直接显示在设备入口外层，不必展开下拉即可查看。",
+      "点击设备图标进入当前设备详情；点击设备旁下拉箭头展开添加设备和已绑定设备列表。",
+      "蓝牙系统层面可支持手机同时连接多个 BLE 外设，但 AI 录音卡是否允许多设备并发录音/同步取决于固件连接数、带宽、同步队列和冲突处理；MVP 建议支持多设备绑定与切换，当前活跃录音/同步设备一次只选一个。",
+      "已绑定设备列表需要展示多个设备的连接状态，支持点击切换；已连接设备显示绿色状态，断开连接设备显示灰色离线状态。",
+      "未连接或未绑定时，通过下拉菜单提供添加设备入口，不占用大面积状态卡。",
+      "首页只在结束录音补传或其他需要用户关注的同步任务进行中显示同步状态条；录音中后台持续同步不显示，本批次完成后状态条消失。",
+      "同步状态条压缩为单行，依次展示同步状态、当前传输方式、本批次整体进度、已完成数/总数和预计剩余时间；蓝牙同步时末尾显示快传入口，录音卡热点同步时不显示。底部只保留 2px 整体进度线。",
+      "外部百分比按本次同步批次全部文件的累计已传输字节除以批次总字节计算，不代表当前单个文件的进度。",
+      "本批次存在多个任务时显示已完成数/总数，例如 3/12；仅有 1 个任务时不显示数量。首页不提供独立的同步队列入口或队列列表。",
+      "蓝牙同步时，点击右侧“快传”按钮直接进入 APP-SYNC-01 连接录音卡进行高速传输；切换到录音卡热点并开始高速同步后，隐藏“快传”按钮，因为当前已经处于快传状态。同步状态条主体只承载信息，不打开其他列表或弹层。",
+      "第一版不考虑 APP-SYNC-02 让录音卡连接当前 Wi-Fi 的方案，也不展示传输方式选择弹层。",
+      "正在传输与等待传输任务统一归入全部文件列表，并排列在已完成同步的正常文件之前；不再单独展示同步队列列表。",
+      "为控制原型页面信息密度，APP-HOME-01 默认只展示前 3 条等待传输文件示例；后台仍按完整待传输任务数量判断是否满足优先同步条件。",
+      "等待传输状态只显示“等待传输”，不显示队列顺位、传输方式、已传输/总文件大小或单文件进度。",
+      "当待传输任务超过 3 个时，每个等待传输文件在“等待传输”状态后显示“优先同步”操作；设为优先后，目标任务移动到当前传输任务之后，当前任务保持不变。待传输任务不超过 3 个时不显示该操作。",
+      "全部文件中的正在传输和等待传输行整体置灰，且不显示右箭头或进入详情操作；正在传输行不可点击并可显示单文件百分比，等待传输行除条件满足时的“优先同步”操作外不可点击。",
+      "同步传输失败后优先进入后台自动重试；设备恢复连接时自动续传和重试。未达到自动重试限额期间，文件维持置灰的正在重试状态，不显示失败状态或手动重试按钮；达到限额后才显示“同步失败，请重试…”和重试按钮，且不显示“录音已安全保留”等未经确认的保障文案。",
+      "同步完成文件恢复正常显示，不保留同步完成标签；按未转写、AI 已生成等后续处理状态展示。",
+      "单个任务完成后更新外部已完成数并自动开始待传输列表中的下一项；本批次全部完成后隐藏同步状态条。",
+      "本批次完成后若产生新的同步任务，创建新的批次；全部文件列表仅按当前文件状态展示，不出现上一批次的同步队列历史。",
+      "同步状态条不使用大卡片、阴影或第二行通知，全部文件紧接状态条显示。",
+      "全部文件是首页下半区，不再作为单独页面；滚动到设备状态和同步摘要不可见后，全部文件标题默认吸顶。",
+      "全部文件标题栏左侧为全部文件文字和倒三角筛选/排序入口，右侧为导入音频按钮。",
+      "每个文件行右侧不显示进入详情的箭头；正常文件通过生成、详情等明确按钮进入下一步。",
+      "点击导入音频打开导入音频弹层，可从文件或相册调起系统选择器。",
+      "底部中间录音按钮是全局主按钮，不是普通 Tab。"
+    ],
+    criticalRules: [
+      "未添加录音卡强规则：设备摘要区域沿用已添加状态的布局和尺寸，以无外框的轻量入口展示“添加设备”；不显示任何虚构设备信息、同步状态、快传入口及正在传输或等待传输的置灰文件，正常文件列表保持可浏览。",
+      "热点快传强规则：当前传输方式为录音卡热点时，首页同步状态条不显示“快传”按钮；只有蓝牙同步状态可显示该入口。",
+      "低打扰强规则：当未完成同步任务少于 2 个，并且预计剩余时间少于 3 分钟时（两个条件必须同时满足），首页不显示顶部同步状态条、整体进度和“快传”按钮；任一条件不满足时仍按正常同步状态展示。",
+      "当前没有同步任务时，首页不显示同步状态条，也不显示正在传输或等待传输的置灰文件记录；全部文件直接展示已完成同步的正常文件列表。",
+      "同步失败处理强规则：传输失败后先由系统自动重试，不立即向用户显示失败；设备重新连接后自动继续重试。只有达到自动重试限额后，文件才显示“同步失败，请重试…”和“重试”按钮。自动重试限额及退避间隔由同步重试策略配置。"
+    ],
+    states: ["未添加录音卡", "未绑定/未连接", "设备已连接", "当前无同步任务", "录音中持续同步", "单任务同步中", "多任务同步中", "文件正在传输且不可点击", "文件等待传输且不可点击", "文件列表优先同步", "同步失败自动重试", "设备重连后自动重试", "达到自动重试限额后失败可重试", "任务优先级已调整", "单个任务同步完成", "本批次同步完成", "新同步批次", "空文件", "加载更多"],
+    deps: ["BLE 状态包：电量、存储、录音状态。", "BLE 分片传输：录音过程中的增量音频、偏移量和校验值。", "本地数据库：文件列表、同步队列、转写状态。", "本地临时缓存：录音未结束前的已同步分片。", "同步重试策略：重试限额、退避间隔、设备重连触发。", "云端文件：上传/删除/状态，接口待后端定义。"],
+    acceptance: [
+      "打开 App 默认处于硬件录音场景时，首页只展示设备录音中状态，不展示同步进度模块。",
+      "点击录音中页结束后，首页必须展示剩余内容补传和校验进度，并在全部文件顶部建立对应临时文件记录。",
+      "同步状态条为约 40px 高的单行结构，状态、方式、整体进度、任务数量和预计时间不换行；蓝牙同步可显示快传入口，录音卡热点同步不显示。",
+      "多任务状态显示已完成数/总数；单任务状态不显示数量。同步状态条不提供队列入口，也不能打开独立队列列表。",
+      "外部百分比和底部 2px 进度线必须与本批次累计字节进度一致。",
+      "蓝牙同步状态下的快传按钮直接进入 APP-SYNC-01，不出现传输方式选择弹层；录音卡热点同步状态下快传按钮不可见。同步状态条主体无点击操作。",
+      "第一版页面导航、状态链路和交互流程中不出现 APP-SYNC-02。",
+      "正在传输任务和最多 3 条等待传输示例显示在全部文件列表顶部，不存在独立同步队列列表。",
+      "APP-HOME-01 原型默认只展示 3 条等待传输文件示例；当后台待传输任务总数超过 3 个时，这 3 条仍显示优先同步操作。",
+      "正在传输和等待传输文件整体置灰，不显示右箭头、详情操作或单文件进度条；正在传输文件显示“正在传输… + 单文件百分比”，等待文件只显示“等待传输”。",
+      "等待传输文件不显示队列顺位、传输方式或已传输/总文件大小。",
+      "同步传输失败且未达到自动重试限额时，不显示失败状态或重试按钮；设备重新连接后必须自动继续重试。达到自动重试限额后，文件才显示“同步失败，请重试…”和重试按钮，不显示“录音已安全保留”；点击重试后该行切换为置灰的正在重试状态。",
+      "同步完成后文件恢复正常状态，不展示同步完成标签；本批次全部完成后同步状态条消失。",
+      "当前无同步任务时，顶部同步状态、快传入口和置灰传输文件均不可见，全部文件从正常文件开始展示。",
+      "未完成同步任务少于 2 个且预计剩余时间少于 3 分钟时，顶部同步状态条及其整体进度和快传入口全部隐藏；两个条件必须同时满足。",
+      "待传输任务超过 3 个时，每个等待传输文件在状态后显示“优先同步”；操作后当前任务保持不变，目标任务移动到当前任务之后并显示“已优先”。待传输任务不超过 3 个时不显示该操作。",
+      "单个任务完成后已完成数增加并开始下一项；新批次开始后文件列表不展示上一批次的同步队列历史。",
+      "首页设备状态为紧凑图标入口，点击设备图标进入当前设备详情。",
+      "未添加录音卡时，原设备摘要区域以与已添加状态同尺寸、同分区的无外框入口显示“添加设备”；不展示设备名称、电量、存储或连接状态，点击整行进入 APP-DEV-01，且页面不显示同步状态、快传入口和置灰的正在传输/等待传输文件。",
+      "当前已选择录音卡的名称、连接状态、电量、存储在设备入口外层可直接查看。",
+      "点击设备状态旁下拉箭头展开添加设备和多个已绑定设备。",
+      "已绑定设备示例至少包含两个已连接设备和一个已断开设备，点击设备行可以切换当前设备。",
+      "标题显示为全部文件，倒三角筛选/排序入口与导入音频按钮位于同一标题栏。",
+      "正常文件通过生成、详情等明确按钮操作，所有文件行右侧不额外显示详情箭头。",
+      "导入音频弹层包含从文件里导入和从相册里导入两个系统选择入口。",
+      "下拉/继续滚动可加载更多文件。",
+      "录音主按钮点击前执行登录/绑定/连接检查。"
+    ],
     prototypeLinks: [["设备详情", "APP-DEV-03"], ["添加设备", "APP-DEV-01"]],
-    prototypeActions: [["蓝牙同步", "set-sync-transport", "ble"], ["局域网同步", "set-sync-transport", "lan"], ["录音卡热点", "set-sync-transport", "hotspot"], ["完成当前任务", "home-complete-sync"], ["单任务新批次", "home-start-single-sync-batch"], ["重置多任务队列", "home-reset-sync-batch"]]
+    prototypeActions: [["未添加录音卡", "home-show-no-device"], ["蓝牙同步", "set-sync-transport", "ble"], ["录音卡热点", "set-sync-transport", "hotspot"], ["当前无同步任务", "home-show-no-sync-tasks"], ["完成当前任务", "home-complete-sync"], ["单任务新批次", "home-start-single-sync-batch"], ["重置多任务同步", "home-reset-sync-batch"]]
   },
   {
     id: "APP-HOME-03",
@@ -1342,6 +1397,7 @@ const pages = [
 
 let currentPageId = new URLSearchParams(window.location.search).get("page") || "APP-PRD-00";
 if (currentPageId === "APP-HOME-02") currentPageId = "APP-HOME-01";
+if (currentPageId === "APP-SYNC-02") currentPageId = "APP-SYNC-01";
 let previousPageId = null;
 let fileDetailTab = "transcript";
 let recordPaused = false;
@@ -1353,7 +1409,6 @@ let askPlaudTipVisible = true;
 let deviceSnTipOpen = false;
 let homeSyncStage = "finishing";
 let homeSyncTransport = "ble";
-let homeSyncPanel = "";
 let homeSyncPriorityTaskId = "";
 let homeSyncBatchSerial = 1;
 function createDefaultHomeSyncQueue() {
@@ -1361,10 +1416,10 @@ function createDefaultHomeSyncQueue() {
     { id: "sync-01", title: "Design workshop", size: 18, transferred: 18, status: "completed" },
     { id: "sync-02", title: "Weekly planning", size: 24, transferred: 24, status: "completed" },
     { id: "sync-03", title: "Customer discovery", size: 28, transferred: 28, status: "completed" },
-    { id: "sync-04", title: "Strategy sync review", size: 32, transferred: 29.4, status: "syncing" },
-    { id: "sync-05", title: "Product stand-up", size: 20, transferred: 7, status: "pending" },
-    { id: "sync-06", title: "Launch checklist", size: 18, transferred: 5, status: "pending" },
-    { id: "sync-07", title: "Partner interview", size: 35, transferred: 0, status: "pending" },
+    { id: "sync-04", title: "周一项目复盘", size: 32, transferred: 14.7, status: "syncing" },
+    { id: "sync-05", title: "客户访谈", size: 20, transferred: 7, status: "pending" },
+    { id: "sync-06", title: "Launch checklist", size: 18, transferred: 17.3, status: "pending" },
+    { id: "sync-07", title: "Partner interview", size: 35, transferred: 2.4, status: "pending" },
     { id: "sync-08", title: "Research debrief", size: 42, transferred: 0, status: "pending" },
     { id: "sync-09", title: "Team retrospective", size: 27, transferred: 0, status: "pending" },
     { id: "sync-10", title: "Campaign review", size: 21, transferred: 0, status: "pending" },
@@ -1373,7 +1428,9 @@ function createDefaultHomeSyncQueue() {
   ];
 }
 let homeSyncQueue = createDefaultHomeSyncQueue();
+let homeFailedFileState = "failed";
 let homeDeviceMenuOpen = false;
+let homeDeviceAdded = true;
 let activeHomeDeviceId = "a1";
 let hotspotTransferState = "awaiting";
 let firmwareUpdateStep = "download";
@@ -1381,11 +1438,7 @@ let firmwareUpdateTransport = "wifi";
 let firmwareJoinPromptOpen = false;
 let firmwareUpdateTimer = null;
 let firmwareRetryAtConnection = false;
-let currentWifiTransferState = "idle";
-let currentWifiPassword = "";
-let currentWifiPasswordVisible = false;
 let syncPrototypeTimer = null;
-const currentPhoneWifiName = "Andy Home 5G";
 const boundHomeDevices = [
   { id: "a1", name: "AI Recorder A1", status: "已连接", detail: "电量 82% · 存储 12.4G", connected: true, sn: "SN-8F2A-2026", firmware: "v0.9.3", battery: "82%", storage: "68%", storageText: "12.4G", sync: "空闲", lastSync: "今天 14:22" },
   { id: "a1-pro", name: "AI Recorder A1 Pro", status: "已连接", detail: "电量 67% · 存储 8.1G", connected: true, sn: "SN-PRO-6C21", firmware: "v1.0.1", battery: "67%", storage: "44%", storageText: "8.1G", sync: "待机", lastSync: "今天 13:08" },
@@ -1503,10 +1556,7 @@ function go(id) {
   }
   clearFirmwareUpdateTimer();
   previousPageId = currentPageId;
-  currentPageId = id === "APP-HOME-02" ? "APP-HOME-01" : id;
-  if (currentPageId !== "APP-HOME-01") {
-    homeSyncPanel = "";
-  }
+  currentPageId = id === "APP-HOME-02" ? "APP-HOME-01" : id === "APP-SYNC-02" ? "APP-SYNC-01" : id;
   if (currentPageId === "APP-ME-41" && previousPageId !== "APP-ME-41") {
     changePasswordCurrent = "";
     changePasswordNew = "";
@@ -1532,11 +1582,6 @@ function go(id) {
       beginFirmwareUpdateFlow();
     }
     firmwareRetryAtConnection = false;
-  }
-  if (currentPageId === "APP-SYNC-02" && previousPageId !== "APP-SYNC-02") {
-    currentWifiTransferState = "idle";
-    currentWifiPassword = "";
-    currentWifiPasswordVisible = false;
   }
   if (currentPageId !== "APP-HOME-01") {
     homeDeviceMenuOpen = false;
@@ -1597,16 +1642,61 @@ function wave() {
 }
 
 function fileCard(file) {
+  const disabled = file.transferState === "syncing" || file.transferState === "pending";
+  const priorityAction = file.priorityAction
+    ? `<button class="file-transfer-priority ${file.priorityActive ? "active" : ""}" data-action="prioritize-home-sync-task" data-task-id="${h(file.taskId)}"${file.priorityActive ? " disabled" : ""}>${file.priorityActive ? "已优先" : "优先同步"}</button>`
+    : "";
+  const statusNode = disabled
+    ? `<div class="file-transfer-status"><span role="status" aria-live="polite">${h(file.statusText)}</span>${file.transferState === "syncing" ? '<em class="sync-state-spinner file-transfer-spinner" aria-hidden="true"></em>' : ""}${priorityAction}</div>`
+    : file.errorText
+      ? `<div class="file-card-recovery"><span>${h(file.errorText)}</span><button class="secondary-btn" ${file.actionKey ? `data-action="${h(file.actionKey)}"` : `data-go="${file.go}"`}>${h(file.action)}</button></div>`
+      : `<button class="${file.actionTone === "secondary" ? "secondary-btn" : "primary-btn"}" style="width:72px;min-height:38px" data-go="${file.go}">${h(file.action)}</button>`;
   return `
-    <div class="file-card ${file.featured ? "featured" : ""}">
+    <div class="file-card ${file.featured ? "featured" : ""} ${disabled ? `file-card-transfer-disabled ${file.transferState}` : ""}"${disabled && !file.priorityAction ? ' aria-disabled="true"' : ""}>
       <div>
         <p class="file-name">${h(file.name)}</p>
         <div class="file-meta">${h(file.meta)}</div>
-        <div class="file-tags">${chip(file.source, file.source === "硬件录音" ? "blue" : "purple")}${chip(file.state, file.tone)}</div>
+        <div class="file-tags">${chip(file.source, file.source === "硬件录音" ? "blue" : "purple")}${file.state ? chip(file.state, file.tone) : ""}</div>
       </div>
-      <button class="${file.actionTone === "secondary" ? "secondary-btn" : "primary-btn"}" style="width:72px;min-height:38px" data-go="${file.go}">${h(file.action)}</button>
+      ${statusNode}
     </div>
   `;
+}
+
+function renderHomeTransferFileCards() {
+  if (homeSyncStage !== "finishing") return "";
+  const activeTask = homeSyncQueue.find((task) => task.status === "syncing");
+  const pendingTasks = homeSyncQueue.filter((task) => task.status === "pending");
+  const showPriority = pendingTasks.length > 3;
+  const pendingMeta = [
+    "今天 09:20 · 00:28:14",
+    "今天 08:45 · 00:19:08",
+    "昨天 18:10 · 00:35:12",
+    "昨天 16:30 · 00:42:06",
+    "昨天 14:05 · 00:27:40",
+    "07-05 · 00:21:18",
+    "07-05 · 00:16:32",
+    "07-04 · 00:40:10"
+  ];
+  return [
+    activeTask ? fileCard({
+      name: activeTask.title,
+      meta: "刚刚 · 00:43:52",
+      source: "硬件录音",
+      transferState: "syncing",
+      statusText: `正在传输… ${homeSyncTaskPercent(activeTask)}%`
+    }) : "",
+    ...pendingTasks.slice(0, 3).map((task, index) => fileCard({
+      name: task.title,
+      meta: pendingMeta[index] || "待同步录音",
+      source: "硬件录音",
+      transferState: "pending",
+      statusText: "等待传输",
+      priorityAction: showPriority,
+      priorityActive: homeSyncPriorityTaskId === task.id,
+      taskId: task.id
+    }))
+  ].join("");
 }
 
 function homeSyncStats() {
@@ -1616,7 +1706,7 @@ function homeSyncStats() {
   const transferredBytes = homeSyncQueue.reduce((sum, task) => sum + Math.min(task.transferred, task.size), 0);
   const percent = totalBytes ? Math.round((transferredBytes / totalBytes) * 100) : 0;
   const remainingBytes = Math.max(0, totalBytes - transferredBytes);
-  const speed = homeSyncTransport === "lan" ? 4 : homeSyncTransport === "hotspot" ? 2 : .45;
+  const speed = homeSyncTransport === "hotspot" ? 2 : .45;
   const remainingMinutes = Math.max(1, Math.ceil((remainingBytes / speed) / 60));
   return { total, completed, totalBytes, transferredBytes, percent, remainingBytes, remainingMinutes };
 }
@@ -1625,104 +1715,41 @@ function homeSyncTaskPercent(task) {
   return task.size ? Math.round((Math.min(task.transferred, task.size) / task.size) * 100) : 0;
 }
 
-function orderedHomeSyncQueue() {
-  return [
-    ...homeSyncQueue.filter((task) => task.status === "syncing"),
-    ...homeSyncQueue.filter((task) => task.status === "pending"),
-    ...homeSyncQueue.filter((task) => task.status === "completed")
-  ];
+function shouldShowHomeSyncStatus() {
+  if (homeSyncStage !== "finishing" || !homeSyncQueue.length) return false;
+  const stats = homeSyncStats();
+  const unfinishedTaskCount = homeSyncQueue.filter((task) => task.status !== "completed").length;
+  return !(unfinishedTaskCount < 2 && stats.remainingMinutes < 3);
 }
 
 function renderHomeSyncModule(stage = homeSyncStage) {
   const transportViews = {
     ble: { label: "蓝牙", tone: "ble" },
-    lan: { label: "局域网", tone: "lan" },
     hotspot: { label: "录音卡热点", tone: "hotspot" }
   };
-  if (!homeSyncQueue.length || !["finishing", "saved"].includes(stage)) return "";
+  if (stage !== homeSyncStage || !shouldShowHomeSyncStatus()) return "";
   const stats = homeSyncStats();
   const multipleTasks = stats.total > 1;
-  const allCompleted = stats.completed === stats.total;
   const transport = transportViews[homeSyncTransport] || transportViews.ble;
-  const title = allCompleted || stage === "saved" ? "同步完成" : "同步中";
-  const remainingText = allCompleted ? "已保存到手机" : `预计 ${stats.remainingMinutes} 分钟`;
-  const mainTag = multipleTasks ? "button" : "div";
-  const mainAction = multipleTasks ? ' data-action="open-home-sync-queue" aria-label="打开本次同步队列"' : ' aria-label="当前同步任务"';
+  const title = "同步中";
+  const remainingText = `预计 ${stats.remainingMinutes} 分钟`;
   return `
-    <section class="sync-mini ${allCompleted ? "saved" : "finishing"}" aria-label="当前同步状态">
-      <${mainTag} class="sync-mini-main"${mainAction}>
+    <section class="sync-mini finishing ${homeSyncTransport === "hotspot" ? "hotspot-active" : ""}" aria-label="当前同步状态">
+      <div class="sync-mini-main" aria-label="本次同步进度">
         <strong>${h(title)}</strong>
         <i class="sync-transport-badge ${transport.tone}">${h(transport.label)}</i>
         <b>${stats.percent}%</b>
         ${multipleTasks ? `<em class="sync-mini-count">${stats.completed}/${stats.total}</em>` : ""}
         <span>${h(remainingText)}</span>
-        ${multipleTasks ? '<em class="sync-mini-queue">队列 ›</em>' : ""}
-      </${mainTag}>
-      <button class="sync-mini-switch" data-action="open-home-sync-methods">切换</button>
+      </div>
+      ${homeSyncTransport === "hotspot" ? "" : `<button class="sync-mini-switch" data-go="APP-SYNC-01">快传</button>`}
       <div class="sync-mini-progress" aria-hidden="true"><b style="width:${stats.percent}%"></b></div>
     </section>
   `;
 }
 
-function renderHomeSyncPanel() {
-  if (!homeSyncPanel) return "";
-  const transportLabels = { ble: "蓝牙", lan: "局域网", hotspot: "录音卡热点" };
-  const transport = transportLabels[homeSyncTransport] || transportLabels.ble;
-  const stats = homeSyncStats();
-  const showPriority = stats.total > 3;
-  const queueItems = orderedHomeSyncQueue();
-  const body = homeSyncPanel === "queue" ? `
-    <div class="home-sync-sheet-heading">
-      <span><small>本次同步队列 · 批次 ${homeSyncBatchSerial}</small><strong>${stats.completed}/${stats.total} 已完成 · 整体 ${stats.percent}%</strong></span>
-      <button data-action="close-home-sync-panel" aria-label="关闭">×</button>
-    </div>
-    <div class="home-sync-queue-list" aria-label="本次同步任务">
-      ${queueItems.map((task) => {
-        const taskPercent = homeSyncTaskPercent(task);
-        const stateText = task.status === "completed"
-          ? "同步完成"
-          : task.status === "syncing"
-            ? "正在同步"
-            : task.transferred > 0 ? "等待续传" : "等待同步";
-        const pendingOrder = task.status === "pending"
-          ? homeSyncQueue.filter((item) => item.status === "pending").findIndex((item) => item.id === task.id) + 1
-          : 0;
-        return `
-          <article class="home-sync-queue-item ${task.status} ${homeSyncPriorityTaskId === task.id ? "priority" : ""}" data-sync-task-id="${h(task.id)}">
-            <span>
-              <strong>${h(task.title)}</strong>
-              <small>${h(transport)} · ${task.transferred.toFixed(task.transferred % 1 ? 1 : 0)} / ${task.size} MB · ${h(stateText)}${pendingOrder ? ` · 待同步第 ${pendingOrder} 位` : ""}</small>
-            </span>
-            <div class="home-sync-queue-status">
-              <b>${taskPercent}%</b>
-              ${showPriority && task.status === "pending" ? `<button data-action="prioritize-home-sync-task" data-task-id="${h(task.id)}">${homeSyncPriorityTaskId === task.id ? "已优先" : "优先同步"}</button>` : `<em>${h(stateText)}</em>`}
-            </div>
-            <div class="home-sync-task-progress"><i style="width:${taskPercent}%"></i></div>
-          </article>
-        `;
-      }).join("")}
-    </div>
-  ` : `
-    <div class="home-sync-sheet-heading">
-      <span><small>传输方式</small><strong>切换同步方式</strong></span>
-      <button data-action="close-home-sync-panel" aria-label="关闭">×</button>
-    </div>
-    <div class="home-sync-method-list">
-      ${[["ble", "蓝牙", "低打扰，适合小文件"], ["lan", "局域网", "保持手机联网，高速传输"], ["hotspot", "录音卡热点", "网络不可用时使用"]].map(([value, label, note]) => `
-        <button class="${homeSyncTransport === value ? "active" : ""}" data-action="set-sync-transport" data-value="${value}">
-          <span><b>${label}</b><small>${note}</small></span><i>${homeSyncTransport === value ? "当前" : "切换"}</i>
-        </button>
-      `).join("")}
-    </div>
-  `;
-  return `
-    <div class="scrim subtle home-sync-scrim" data-action="close-home-sync-panel"></div>
-    <section class="bottom-sheet home-sync-sheet" role="dialog" aria-modal="true">${body}</section>
-  `;
-}
-
 function prioritizeHomeSyncTask(taskId) {
-  if (homeSyncQueue.length <= 3) return;
+  if (homeSyncQueue.filter((task) => task.status === "pending").length <= 3) return;
   const taskIndex = homeSyncQueue.findIndex((task) => task.id === taskId && task.status === "pending");
   if (taskIndex < 0) return;
   const [task] = homeSyncQueue.splice(taskIndex, 1);
@@ -1748,19 +1775,33 @@ function completeCurrentHomeSyncTask() {
 }
 
 function startSingleHomeSyncBatch() {
+  homeDeviceAdded = true;
   homeSyncBatchSerial += 1;
   homeSyncQueue = [{ id: `sync-new-${homeSyncBatchSerial}`, title: "New field interview", size: 22, transferred: 7.6, status: "syncing" }];
   homeSyncPriorityTaskId = "";
   homeSyncStage = "finishing";
-  homeSyncPanel = "";
 }
 
 function resetMultiHomeSyncBatch() {
+  homeDeviceAdded = true;
   homeSyncBatchSerial += 1;
   homeSyncQueue = createDefaultHomeSyncQueue();
   homeSyncPriorityTaskId = "";
+  homeFailedFileState = "failed";
   homeSyncStage = "finishing";
-  homeSyncPanel = "";
+}
+
+function showNoHomeSyncTasks() {
+  homeDeviceAdded = true;
+  homeSyncQueue = [];
+  homeSyncPriorityTaskId = "";
+  homeFailedFileState = "failed";
+  homeSyncStage = "idle";
+}
+
+function showNoHomeDevice() {
+  homeDeviceAdded = false;
+  homeDeviceMenuOpen = false;
 }
 
 function bottom(active = "files") {
@@ -2114,12 +2155,13 @@ function renderDeviceUnbindHelp() {
 }
 
 function renderHomeContent({ showSync = true } = {}) {
-  const savedRecordingCard = homeSyncStage === "saved"
-    ? fileCard({ featured: true, name: "Strategy sync review", meta: "刚刚 · 00:43:52 · 录音结束后已同步保存", source: "硬件录音", state: "未转写", tone: "amber", action: "生成", go: "APP-AI-01" })
+  const savedRecordingCard = homeSyncStage === "saved" || homeSyncStage === "idle"
+    ? fileCard({ featured: true, name: "周一项目复盘", meta: "刚刚 · 00:43:52", source: "硬件录音", state: "未转写", tone: "amber", action: "生成", go: "APP-AI-01" })
     : "";
   const activeDevice = boundHomeDevices.find((device) => device.id === activeHomeDeviceId) || boundHomeDevices[0];
+  const canShowDeviceSync = homeDeviceAdded && showSync;
   return `
-    <section class="home-device-switcher ${homeDeviceMenuOpen ? "open" : ""}" aria-label="设备状态">
+    ${homeDeviceAdded ? `<section class="home-device-switcher ${homeDeviceMenuOpen ? "open" : ""}" aria-label="设备状态">
       <button class="home-device-button" data-go="APP-DEV-03" aria-label="进入 AI Recorder A1 设备详情">
         <span class="home-device-online ${activeDevice.connected ? "connected" : "disconnected"}"></span>
         <span class="home-device-glyph"><i></i></span>
@@ -2150,17 +2192,25 @@ function renderHomeContent({ showSync = true } = {}) {
           `).join("")}
         </div>
       ` : ""}
-    </section>
-    ${showSync ? renderHomeSyncModule() : ""}
+    </section>` : `<section class="home-device-switcher home-device-empty" aria-label="未添加录音卡">
+      <button class="home-device-empty-action" data-go="APP-DEV-01" aria-label="添加设备，搜索并绑定新的 AI Recorder">
+        <span class="home-device-empty-visual" aria-hidden="true"><span class="home-device-glyph"><i></i></span></span>
+        <span class="home-device-empty-copy"><b>添加设备</b><small>搜索并绑定新的 AI Recorder</small></span>
+      </button>
+    </section>`}
+    ${canShowDeviceSync ? renderHomeSyncModule() : ""}
     <section class="card file-list-panel" id="homeFileList">
       <div class="card-title sticky-list-title">
-        <button class="list-title-filter" data-go="APP-FILE-03" aria-label="文件列表筛选和排序"><strong>文件列表</strong><span></span></button>
+        <button class="list-title-filter" data-go="APP-FILE-03" aria-label="全部文件筛选和排序"><strong>全部文件</strong><span></span></button>
         <button class="import-btn" data-go="APP-FILE-13">+导入音频</button>
       </div>
+      ${homeDeviceAdded ? renderHomeTransferFileCards() : ""}
       ${savedRecordingCard}
+      ${homeFailedFileState === "failed"
+        ? fileCard({ name: "产品讨论", meta: "昨天 16:40 · 00:58:20", source: "硬件录音", errorText: "同步失败，请重试…", action: "重试", actionKey: "retry-home-failed-file" })
+        : fileCard({ name: "产品讨论", meta: "昨天 16:40 · 00:58:20", source: "硬件录音", transferState: "syncing", statusText: "正在重试…" })}
       ${fileCard({ name: "Board meeting", meta: "今天 14:20 · 01:12:17 · 3 个标记", source: "硬件录音", state: "未转写", tone: "amber", action: "生成", go: "APP-AI-01" })}
       ${fileCard({ name: "Interview import", meta: "昨天 19:10 · 00:34:02", source: "导入文件", state: "AI 已生成", tone: "green", action: "详情", go: "APP-FILE-01", actionTone: "secondary" })}
-      ${fileCard({ name: "Lecture audio", meta: "07-05 · 00:58:20 · 已保留断点", source: "硬件录音", state: "同步失败", tone: "red", action: "重试", go: "APP-HOME-01", actionTone: "secondary" })}
       ${fileCard({ name: "Product review", meta: "07-04 · 00:26:44 · 2 个标记", source: "导入文件", state: "未转写", tone: "amber", action: "生成", go: "APP-AI-01" })}
       <button class="load-more-btn">继续下拉加载更多文件</button>
     </section>
@@ -2168,7 +2218,7 @@ function renderHomeContent({ showSync = true } = {}) {
 }
 
 function renderHome() {
-  return `${screen(renderHomeContent(), { title: "文件", action: "search", active: "files" })}${renderHomeSyncPanel()}`;
+  return screen(renderHomeContent(), { title: "文件", action: "search", active: "files" });
 }
 
 function renderHomeTrashToast() {
@@ -4314,19 +4364,13 @@ function renderSyncTransferBackdrop() {
   `;
 }
 
-function syncConnectionStatus(state, kind) {
+function syncConnectionStatus(state) {
   const hotspotStates = {
     awaiting: ["等待确认", "请在系统提示中选择加入", "active"],
     connecting: ["连接中", "正在加入录音卡高速传输网络…", "loading"],
     success: ["连接成功", "已连接录音卡，可开始高速传输", "success"]
   };
-  const wifiStates = {
-    idle: ["待连接", "输入当前 Wi-Fi 密码后连接", "neutral"],
-    connecting: ["连接中", "正在让录音卡加入当前 Wi-Fi…", "loading"],
-    success: ["连接成功", "录音卡已加入当前 Wi-Fi，可高速传输", "success"],
-    failed: ["连接失败", "Wi-Fi 密码不正确或当前网络不可用", "failed"]
-  };
-  const [label, message, tone] = (kind === "hotspot" ? hotspotStates : wifiStates)[state];
+  const [label, message, tone] = hotspotStates[state];
   return `
     <div class="sync-connection-status ${tone}" role="status" aria-live="polite">
       <i aria-hidden="true"></i>
@@ -4343,8 +4387,8 @@ function renderHotspotTransferContent(state) {
     <section class="firmware-sheet sync-transfer-sheet hotspot-transfer-sheet">
       <h2>连接设备热点</h2>
       <div class="sheet-line"></div>
-      <p>手机将临时连接到 AI Recorder A1 的热点，以更快传输录音文件。</p>
-      ${syncConnectionStatus(state, "hotspot")}
+      <p>手机将临时连接到 AI Recorder A1 的热点，以更快传输录音文件。请点击继续后，同意加入<strong>AI Recorder A1 无线局域网。</strong></p>
+      ${syncConnectionStatus(state)}
       ${isAwaiting ? `
         <div class="system-wifi-card sync-guide-wifi-card" aria-label="系统加入无线局域网提示示意，不可操作">
           <strong>“AI Recorder A1”想要加入无线局域网“XXXX”吗？</strong>
@@ -4384,42 +4428,6 @@ function renderHotspotTransfer() {
     `, { title: "文件", action: "search", bottom: false, compact: true });
   }
   return screen(renderHotspotTransferContent(state), { title: "文件", action: "search", bottom: false, compact: true });
-}
-
-function renderCurrentWifiTransfer() {
-  const state = currentWifiTransferState;
-  const isBusy = state === "connecting";
-  const isSuccess = state === "success";
-  const passwordType = currentWifiPasswordVisible ? "text" : "password";
-  return screen(`
-    ${renderSyncTransferBackdrop()}
-    <section class="firmware-sheet sync-transfer-sheet current-wifi-transfer-sheet">
-      <h2>让录音卡连接当前 Wi-Fi</h2>
-      <div class="sheet-line"></div>
-      <p>录音卡连接到手机当前网络后，可在不影响手机联网的情况下高速传输。</p>
-      ${syncConnectionStatus(state, "wifi")}
-      <div class="current-wifi-card">
-        <span class="current-wifi-icon" aria-hidden="true"></span>
-        <span><small>当前 Wi-Fi</small><b>${h(currentPhoneWifiName)}</b></span>
-        <em>已连接</em>
-      </div>
-      ${isSuccess || isBusy ? "" : `
-        <label class="sync-password-field">
-          <span>Wi-Fi 密码</span>
-          <div>
-            <input id="currentWifiPassword" type="${passwordType}" value="${h(currentWifiPassword)}" placeholder="请输入当前 Wi-Fi 密码" autocomplete="off" ${isBusy ? "disabled" : ""}>
-            <button type="button" data-action="toggle-current-wifi-password" ${isBusy ? "disabled" : ""}>${currentWifiPasswordVisible ? "隐藏" : "显示"}</button>
-          </div>
-          <small>密码仅用于本次加密配网，不会显示或保存为明文。</small>
-        </label>
-      `}
-      ${isSuccess || isBusy ? "" : `<button id="currentWifiConnectButton" class="primary-btn ${currentWifiPassword.trim() ? "" : "disabled"}" data-action="connect-current-wifi" ${currentWifiPassword.trim() ? "" : "disabled"}>${state === "failed" ? "重新连接" : "连接"}</button>`}
-      ${isSuccess || isBusy ? "" : `
-        <button class="secondary-btn" data-go="APP-SYNC-01">改用录音卡热点</button>
-        <button class="sync-cancel-button" data-go="APP-HOME-01">取消</button>
-      `}
-    </section>
-  `, { title: "文件", action: "search", bottom: false, compact: true });
 }
 
 function renderPrivacy(aiAuthorized = true) {
@@ -4514,7 +4522,6 @@ const renderers = {
   "APP-DEV-09": renderFirmwareConnectionFailed,
   "APP-DEV-10": renderDeviceRemoveConfirmSheet,
   "APP-SYNC-01": renderHotspotTransfer,
-  "APP-SYNC-02": renderCurrentWifiTransfer,
   "APP-HOME-01": renderHome,
   "APP-HOME-03": renderHomeTrashToast,
   "APP-FILE-02": renderSearch,
@@ -4599,7 +4606,7 @@ function renderNav() {
 }
 
 function renderFlow() {
-  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-07", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-DEV-05", "APP-HOME-01", "APP-SYNC-02", "APP-SYNC-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-02", "APP-ME-16", "APP-ME-26", "APP-ME-27", "APP-ME-28", "APP-ME-29", "APP-ME-30", "APP-ME-31", "APP-ME-32", "APP-ME-33", "APP-ME-34", "APP-ME-35", "APP-ME-36", "APP-ME-37", "APP-ME-38", "APP-ME-40", "APP-ME-39", "APP-ME-17", "APP-ME-18", "APP-ME-41", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-23", "APP-ME-10", "APP-ME-11", "APP-ME-12", "APP-DEV-03", "APP-DEV-10", "APP-ME-04", "APP-ME-24", "APP-ME-25", "APP-DEV-06", "APP-DEV-07", "APP-DEV-08", "APP-DEV-09"];
+  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-07", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-DEV-05", "APP-HOME-01", "APP-SYNC-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-02", "APP-ME-16", "APP-ME-26", "APP-ME-27", "APP-ME-28", "APP-ME-29", "APP-ME-30", "APP-ME-31", "APP-ME-32", "APP-ME-33", "APP-ME-34", "APP-ME-35", "APP-ME-36", "APP-ME-37", "APP-ME-38", "APP-ME-40", "APP-ME-39", "APP-ME-17", "APP-ME-18", "APP-ME-41", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-23", "APP-ME-10", "APP-ME-11", "APP-ME-12", "APP-DEV-03", "APP-DEV-10", "APP-ME-04", "APP-ME-24", "APP-ME-25", "APP-DEV-06", "APP-DEV-07", "APP-DEV-08", "APP-DEV-09"];
   document.getElementById("flowStrip").innerHTML = flow.map((id, index) => {
     const page = pageById(id);
     return `<button class="${id === currentPageId ? "active" : ""}" data-go="${id}">${index + 1}. ${h(page.title)}</button>`;
@@ -4614,7 +4621,9 @@ function renderPrototypeLinks(page) {
     <span>状态链路</span>
     ${links.map(([label, id]) => `<button data-go="${h(id)}">${h(label)}</button>`).join("")}
     ${actions.map(([label, action, value]) => {
-      const active = (action === "set-sync-transport" && value === homeSyncTransport)
+      const active = (action === "set-sync-transport" && homeSyncStage !== "idle" && value === homeSyncTransport)
+        || (action === "home-show-no-device" && !homeDeviceAdded)
+        || (action === "home-show-no-sync-tasks" && homeDeviceAdded && homeSyncStage === "idle")
         || (action === "set-hotspot-state" && value === (hotspotTransferState === "systemPrompt" ? "awaiting" : hotspotTransferState));
       return `<button class="${active ? "active" : ""}" data-action="${h(action)}"${value ? ` data-value="${h(value)}"` : ""}>${h(label)}</button>`;
     }).join("")}
@@ -4633,7 +4642,7 @@ function renderSpec(page) {
         ${page.fields.map(([field, desc, source]) => `<tr><td><code>${h(field)}</code></td><td>${h(desc)}</td><td>${h(source)}</td></tr>`).join("")}
       </tbody></table>
     </section>
-    <section class="spec-section"><h3>交互规则</h3><ul>${page.walkthroughNote ? `<li class="walkthrough-note">${h(page.walkthroughNote)}</li>` : ""}${page.rules.map((item) => `<li>${h(item)}</li>`).join("")}</ul></section>
+    <section class="spec-section"><h3>交互规则</h3><ul>${page.walkthroughNote ? `<li class="walkthrough-note">${h(page.walkthroughNote)}</li>` : ""}${(page.criticalRules || []).map((item) => `<li class="spec-critical-rule">${h(item)}</li>`).join("")}${page.rules.map((item) => `<li>${h(item)}</li>`).join("")}</ul></section>
     <section class="spec-section"><h3>页面状态</h3><ul>${page.states.map((item) => `<li>${h(item)}</li>`).join("")}</ul></section>
     <section class="spec-section"><h3>接口 / 能力依赖</h3><ul>${page.deps.map((item) => `<li>${h(item)}</li>`).join("")}</ul></section>
     <section class="spec-section"><h3>验收点</h3><ul>${page.acceptance.map((item) => `<li>${h(item)}</li>`).join("")}</ul></section>
@@ -5208,38 +5217,9 @@ document.addEventListener("click", (event) => {
     render();
     return;
   }
-  if (action && action.dataset.action === "toggle-current-wifi-password") {
-    currentWifiPassword = document.getElementById("currentWifiPassword")?.value || currentWifiPassword;
-    currentWifiPasswordVisible = !currentWifiPasswordVisible;
-    render();
-    requestAnimationFrame(() => document.getElementById("currentWifiPassword")?.focus());
-    return;
-  }
-  if (action && action.dataset.action === "connect-current-wifi") {
-    currentWifiPassword = document.getElementById("currentWifiPassword")?.value || currentWifiPassword;
-    if (!currentWifiPassword.trim()) return;
-    currentWifiTransferState = "connecting";
-    render();
-    syncPrototypeTimer = window.setTimeout(() => {
-      syncPrototypeTimer = null;
-      if (currentPageId !== "APP-SYNC-02") return;
-      currentWifiTransferState = currentWifiPassword.trim().length >= 8 ? "success" : "failed";
-      render();
-      if (currentWifiTransferState === "success") {
-        syncPrototypeTimer = window.setTimeout(() => {
-          syncPrototypeTimer = null;
-          if (currentPageId !== "APP-SYNC-02" || currentWifiTransferState !== "success") return;
-          startSingleHomeSyncBatch();
-          homeSyncTransport = "lan";
-          go("APP-HOME-01");
-        }, 2000);
-      }
-    }, 900);
-    return;
-  }
   if (action && action.dataset.action === "set-sync-transport") {
+    homeDeviceAdded = true;
     homeSyncTransport = action.dataset.value || "ble";
-    homeSyncPanel = "";
     render();
     return;
   }
@@ -5319,29 +5299,28 @@ document.addEventListener("click", (event) => {
     render();
     return;
   }
+  if (action && action.dataset.action === "home-show-no-sync-tasks") {
+    showNoHomeSyncTasks();
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "home-show-no-device") {
+    showNoHomeDevice();
+    render();
+    return;
+  }
   if (action && action.dataset.action === "home-reset-sync-demo") {
     homeSyncStage = "recording";
     render();
     return;
   }
-  if (action && action.dataset.action === "open-home-sync-queue") {
-    if (homeSyncQueue.length <= 1) return;
-    homeSyncPanel = "queue";
+  if (action && action.dataset.action === "retry-home-failed-file") {
+    homeFailedFileState = "retrying";
     render();
     return;
   }
   if (action && action.dataset.action === "prioritize-home-sync-task") {
     prioritizeHomeSyncTask(action.dataset.taskId || "");
-    render();
-    return;
-  }
-  if (action && action.dataset.action === "open-home-sync-methods") {
-    homeSyncPanel = "methods";
-    render();
-    return;
-  }
-  if (action && action.dataset.action === "close-home-sync-panel") {
-    homeSyncPanel = "";
     render();
     return;
   }
@@ -5351,6 +5330,7 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (action && action.dataset.action === "select-home-device") {
+    homeDeviceAdded = true;
     activeHomeDeviceId = action.dataset.deviceId || activeHomeDeviceId;
     homeDeviceMenuOpen = false;
     render();
@@ -5667,15 +5647,6 @@ document.addEventListener("input", (event) => {
     if (button) {
       button.disabled = !canConfirm;
       button.classList.toggle("disabled", !canConfirm);
-    }
-  }
-  if (event.target.id === "currentWifiPassword") {
-    currentWifiPassword = event.target.value;
-    const connectButton = document.getElementById("currentWifiConnectButton");
-    if (connectButton) {
-      const hasPassword = Boolean(currentWifiPassword.trim());
-      connectButton.disabled = !hasPassword;
-      connectButton.classList.toggle("disabled", !hasPassword);
     }
   }
   if (event.target.id === "deletePassword") {
