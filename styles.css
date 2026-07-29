@@ -6853,49 +6853,6 @@ button {
   padding-bottom: 24px;
 }
 
-.system-wifi-card {
-  margin: 22px auto 26px;
-  max-width: 280px;
-  padding: 22px 18px 18px;
-  border-radius: 24px;
-  background: rgba(255, 255, 255, .86);
-  box-shadow: 0 18px 44px rgba(0, 0, 0, .12);
-  text-align: left;
-}
-
-.system-wifi-card strong {
-  display: block;
-  font-size: 17px;
-  line-height: 1.35;
-}
-
-.system-wifi-card div {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  margin-top: 22px;
-}
-
-.system-wifi-card span,
-.system-wifi-card b {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 48px;
-  border-radius: 999px;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.system-wifi-card span {
-  background: #e7e7e7;
-}
-
-.system-wifi-card b {
-  background: #0a84ff;
-  color: #fff;
-}
-
 .firmware-steps {
   position: absolute;
   left: 0;
@@ -9301,8 +9258,16 @@ label.prefs-row {
   pointer-events: none;
 }
 
-.sync-transfer-home-bg + .sync-transfer-sheet {
+.sync-transfer-home-bg ~ .sync-transfer-sheet {
   z-index: 2;
+}
+
+.sync-transfer-guide-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: rgba(0, 0, 0, .12);
+  pointer-events: none;
 }
 
 .sync-transfer-sheet {
@@ -9407,17 +9372,138 @@ label.prefs-row {
   to { transform: rotate(360deg); }
 }
 
-.sync-guide-wifi-card {
-  margin: 16px auto;
-  max-width: 100%;
-  padding: 18px 16px 14px;
-  border: 1px solid rgba(0, 0, 0, .05);
-  background: #fff;
-  pointer-events: none;
+.connection-guide-sheet {
+  max-height: calc(100% - 48px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 24px 22px max(22px, calc(16px + env(safe-area-inset-bottom)));
+  border-radius: 20px 20px 0 0;
 }
 
-.sync-guide-wifi-card div {
-  margin-top: 16px;
+.connection-guide-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 34px;
+  margin: 0 auto 22px;
+  color: #a0a0a0;
+}
+
+.connection-guide-steps span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.connection-guide-steps b {
+  display: grid;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 50%;
+  background: #d0d0d0;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.connection-guide-steps em {
+  color: inherit;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.connection-guide-steps .current {
+  color: #111;
+}
+
+.connection-guide-steps .current b {
+  background: #111;
+}
+
+.connection-guide-steps > i {
+  flex: 0 1 38px;
+  height: 1px;
+  background: #d2d2d2;
+}
+
+.connection-guide-sheet h2,
+.sync-transfer-sheet.connection-guide-sheet h2 {
+  margin: 0 0 14px;
+  color: #111;
+  font-size: 26px;
+  font-weight: 650;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.connection-guide-sheet > p.connection-guide-copy,
+.sync-transfer-sheet.connection-guide-sheet > p.connection-guide-copy {
+  margin: 0 auto;
+  max-width: 330px;
+  color: #606060;
+  font-size: 15px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.connection-guide-copy strong {
+  color: #0a84ff;
+  font-weight: 650;
+}
+
+.connection-guide-art {
+  display: block;
+  width: 100%;
+  max-width: 330px;
+  height: 132px;
+  margin: 14px auto;
+  object-fit: contain;
+}
+
+.connection-guide-sheet > p.connection-guide-trust,
+.sync-transfer-sheet.connection-guide-sheet > p.connection-guide-trust {
+  margin: 0 0 12px;
+  padding: 11px 13px;
+  border-radius: 12px;
+  background: #f5f5f5;
+  color: #626262;
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.connection-guide-sheet .primary-btn,
+.connection-guide-sheet .secondary-btn {
+  width: 100%;
+  min-height: 52px;
+  margin-top: 10px;
+  border-radius: 12px;
+  font-size: 16px;
+}
+
+.connection-guide-sheet .connection-guide-cancel {
+  min-height: 42px;
+  border-color: transparent;
+  background: transparent;
+}
+
+.connection-guide-sheet > p.caption {
+  margin: 4px 0 0;
+  color: #888;
+  font-size: 11px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.firmware-connection-guide .connection-guide-art {
+  height: 112px;
 }
 
 .sync-native-system-background {

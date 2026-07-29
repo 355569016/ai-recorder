@@ -42,6 +42,54 @@ patches made since previous QA pass:
 
 final result: passed
 
+## 2026-07-29 update: APP-SYNC-01 and APP-DEV-07 connection guide simplification
+
+- Source visual truth: `design-reference-connection-guide-option-1.png`.
+- Shared explanatory asset: `connection-guide-art.png`.
+- Browser-rendered APP-SYNC-01 screenshot: `implementation-app-sync-01-connection-guide.jpg`.
+- Browser-rendered APP-DEV-07 screenshot: `implementation-app-dev-07-connection-guide.jpg`.
+- APP-SYNC-01 full comparison: `design-qa-app-sync-01-comparison.png`.
+- APP-DEV-07 adapted comparison: `design-qa-app-dev-07-comparison.png`.
+- Initial APP-SYNC-01 comparison before the backdrop fix: `design-qa-app-sync-01-before-scrim-comparison.png`.
+- Viewport and density: source and both implementation captures are 390 × 844 pixels at 390 × 844 CSS px, deviceScaleFactor 1. The comparison images place two native-size captures side by side on an 804 × 844 canvas.
+- States: APP-SYNC-01 connection guide and system confirmation; APP-DEV-07 firmware connection guide, APP-DEV-08 download/connect handoff.
+
+## Comparison history
+
+- Initial [P2] finding: APP-SYNC-01's file-home backdrop remained too bright, so the bottom explanatory sheet did not separate from the inactive content as clearly as the selected visual.
+- Fix: added a non-interactive 12% black `sync-transfer-guide-scrim` beneath the sheet while preserving the existing file-home backdrop and all pointer behavior.
+- Post-fix evidence: `design-qa-app-sync-01-comparison.png` shows the inactive file surface subdued, with the sheet hierarchy aligned to the selected visual. No P0, P1, or P2 mismatch remains.
+
+## Required fidelity surfaces
+
+- Fonts and typography: the 26px/650 title, 15px explanatory copy, blue `「加入」` emphasis, 14px two-step labels, and 16px button labels preserve the selected hierarchy without clipping or unintended wrapping.
+- Spacing and layout rhythm: the sheet, step cue, title, body, illustration, trust note, and actions fit within the native 390 × 844 phone viewport. Both pages keep the same structural rhythm while using page-specific second steps and copy.
+- Colors and visual tokens: black primary action, white sheet, warm grey supporting copy, light grey trust note, and restrained system blue match the selected visual and the existing prototype tokens. The post-fix backdrop provides sufficient modal separation.
+- Image quality and asset fidelity: `connection-guide-art.png` is a dedicated 768 × 256 raster asset derived from the selected direction. It remains sharp at the rendered size and does not resemble an interactive system dialog.
+- Copy and content: both pages use `连接设备开启高速传输`. APP-SYNC-01 names录音文件 and `系统确认`; APP-DEV-07 names固件包 and `更新固件`. Neither guide displays `等待确认`, a simulated Wi-Fi dialog, or an SSID.
+
+## Full-view and focused comparison evidence
+
+- The native-size APP-SYNC-01 comparison confirms the selected two-step hierarchy, centered title/copy, non-interactive device-to-phone illustration, trust note, black primary action, and text-only secondary action.
+- The APP-DEV-07 comparison confirms that only the visual structure is shared: the background, step label, purpose copy, primary action, secondary action, and continuation behavior remain firmware-specific.
+- No separate focused crop was required because all step labels, app-specific copy, trust copy, and button labels are readable at native size in the 804 × 844 comparison images.
+
+## Interaction and accessibility evidence
+
+- APP-SYNC-01 initially contains zero system dialogs and no visible `等待确认` state. `继续并连接` opens exactly one system dialog; system cancel returns to the guide; system join advances through `连接中` and `连接成功` before returning to the file page.
+- APP-SYNC-01 contains录音文件 copy and no固件包 copy.
+- APP-DEV-07 `继续更新` enters APP-DEV-08 with `下载固件包` active and zero system dialogs. After the existing three-second download step, `连接到 AI Recorder A1` becomes active and the system join dialog appears. Cancel keeps the connection step and exposes exactly one `重新连接` action.
+- APP-DEV-07 contains固件包 copy and no录音文件 copy.
+- The primary buttons retain at least 52px height, the illustration has meaningful alt text, and the two-step cue has a complete accessible label.
+- Browser console inspection found zero errors or warnings during both flows.
+
+## Final findings
+
+- No actionable P0, P1, or P2 issue remains.
+- P3 follow-up only: the implementation omits the decorative sheet handle and shield mark from the generated mock; this keeps the surface from implying drag behavior and does not change comprehension or trust.
+
+final result: passed
+
 ## 2026-07-27 update: APP-HOME-01 priority sync merged into all files
 
 - Source visual truth: `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-07fdfa01-daa7-40dc-8780-2a143b457c09.png`.
@@ -776,5 +824,20 @@ final result: passed
 ## Findings
 
 - No actionable P0, P1, or P2 issue remains for the hotspot fast-transfer state.
+
+final result: passed
+
+## 2026-07-29 final handoff: connection guide pages
+
+- Source visual truth: `design-reference-connection-guide-option-1.png` (390 × 844).
+- Implementations: `implementation-app-sync-01-connection-guide.jpg` and `implementation-app-dev-07-connection-guide.jpg` (each 390 × 844 CSS px and image pixels, deviceScaleFactor 1).
+- Full-view comparison evidence: `design-qa-app-sync-01-comparison.png` and `design-qa-app-dev-07-comparison.png` (804 × 844).
+- Focused comparison: not required because the complete native-size comparisons keep every step label, app-specific sentence, trust note, and action label readable.
+- States reviewed: APP-SYNC-01 guide, system confirmation, connecting, success, and return; APP-DEV-07 guide plus APP-DEV-08 download, connection confirmation, cancel, and reconnect.
+- Comparison history: the initial P2 backdrop-separation issue in `design-qa-app-sync-01-before-scrim-comparison.png` was fixed with the non-interactive 12% guide scrim; the post-fix comparison has no remaining P0, P1, or P2 issue.
+- Required surfaces passed: typography and wrapping, spacing and viewport fit, colors and modal separation, dedicated raster illustration quality, and page-specific copy/content.
+- Interaction boundary passed: APP-SYNC-01 contains录音文件 copy and opens system confirmation directly; APP-DEV-07 contains固件包 copy, enters download first, and opens system confirmation only at its existing connection step.
+- Browser console: zero errors or warnings.
+- Remaining P3 only: decorative handle and shield mark from the generated mock are omitted; this does not affect comprehension, trust, or interaction.
 
 final result: passed

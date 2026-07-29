@@ -337,15 +337,15 @@ const pages = [
   {
     id: "APP-DEV-07",
     group: "设备",
-    title: "连接设备热点",
+    title: "连接设备开启高速传输",
     priority: "P1",
     goal: "在支持 Wi-Fi 固件更新时，引导手机连接设备热点以传输固件包。",
     entry: "固件更新提示点击立即更新且设备支持 Wi-Fi 热点更新。",
-    fields: [["hotspot_ssid", "设备热点", "设备广播"], ["update_transport", "更新方式", "硬件能力"], ["system_join_preview", "系统加入弹窗示意", "本地演示"]],
-    rules: ["如果硬件不支持 Wi-Fi 更新，本页不展示，直接使用蓝牙更新。", "页面中的取消和加入仅为系统操作示意，不可点击。", "点击继续后直接进入 APP-DEV-08 固件更新中页，从下载固件包开始演示，不在本页弹出系统加入确认。", "实际系统加入热点弹窗在 APP-DEV-08 的连接到 AI Recorder A1 步骤出现。"],
+    fields: [["hotspot_ssid", "设备热点", "设备广播"], ["update_transport", "更新方式", "硬件能力"], ["system_join_instruction", "系统加入操作说明", "本地文案"]],
+    rules: ["如果硬件不支持 Wi-Fi 更新，本页不展示，直接使用蓝牙更新。", "页面只说明连接设备热点的目的、网络影响和后续操作，不展示可点击感强的系统弹窗示意。", "点击继续更新后直接进入 APP-DEV-08 固件更新中页，从下载固件包开始演示，不在本页弹出系统加入确认。", "实际系统加入热点弹窗仍在 APP-DEV-08 的连接到 AI Recorder A1 步骤出现。"],
     states: ["等待继续", "进入固件更新", "取消更新"],
     deps: ["iOS / Android Wi-Fi 热点连接能力。", "硬件热点协议待确认。"],
-    acceptance: ["页面解释手机将连接 AI Recorder A1 热点完成更新，示意卡不可操作。", "点击继续直接进入 APP-DEV-08 并显示下载固件包步骤，不弹出加入热点确认。", "页面取消返回设备详情。"]
+    acceptance: ["页面使用两步说明解释手机将连接 AI Recorder A1 热点传输固件包，并提示系统弹窗出现后选择加入。", "页面不展示模拟系统弹窗，也不展示等待确认状态卡。", "点击继续更新直接进入 APP-DEV-08 并显示下载固件包步骤，不弹出加入热点确认。", "页面取消返回设备详情。"]
   },
   {
     id: "APP-DEV-08",
@@ -378,17 +378,17 @@ const pages = [
   {
     id: "APP-SYNC-01",
     group: "同步",
-    title: "连接录音卡进行高速传输",
+    title: "连接设备开启高速传输",
     priority: "P0",
     goal: "引导手机临时加入录音卡热点，以第一版支持的方式完成高速传输。",
     entry: "APP-HOME-01 文件首页点击“快传”。",
     fields: [["device_hotspot_ssid", "录音卡热点名称", "BLE/设备热点"], ["hotspot_join_state", "手机加入热点状态", "系统 Wi-Fi"], ["system_join_prompt", "系统加入无线局域网确认", "操作系统"], ["network_impact_tip", "联网影响提示", "本地文案"]],
-    rules: ["APP-HOME-01 点击“快传”后直接进入本页，不再展示传输方式选择。", "第一版仅支持手机临时加入录音卡热点的高速传输方案，不提供让录音卡连接手机当前 Wi-Fi 的 APP-SYNC-02 流程。", "APP 内底部弹窗蒙层下复用 APP-HOME-01 文件首页，只负责解释连接设备热点的目的和联网影响。", "引导页中的加入无线局域网卡片仅为操作示意，其中取消和加入按钮不可点击。", "用户点击继续后才调用系统加入热点能力；系统原生风格的取消/加入确认弹窗直接覆盖在当前连接设备热点引导页上，不切换或复用固件更新页面。", "系统弹窗点击取消后返回等待确认；点击加入后关闭系统弹窗，回到高速传输引导页并依次展示连接中和连接成功。", "连接成功态展示 2 秒，随后自动返回文件首页并开始显示热点高速同步状态。", "连接热点期间手机可能暂时无法通过 Wi-Fi 上网；高速传输完成后恢复原网络。"],
-    states: ["等待确认", "系统加入确认", "连接中", "连接成功"],
+    rules: ["APP-HOME-01 点击“快传”后直接进入本页，不再展示传输方式选择。", "第一版仅支持手机临时加入录音卡热点的高速传输方案，不提供让录音卡连接手机当前 Wi-Fi 的 APP-SYNC-02 流程。", "APP 内底部弹窗蒙层下复用 APP-HOME-01 文件首页，只负责解释连接设备热点的目的、下一步系统操作和联网影响。", "连接前说明页不展示模拟系统弹窗或等待确认状态卡，只提示系统弹窗出现后选择加入。", "用户点击继续并连接后才调用系统加入热点能力；系统原生风格的取消/加入确认弹窗直接覆盖在当前连接设备引导页上，不切换或复用固件更新页面。", "系统弹窗点击取消后返回连接前说明；点击加入后关闭系统弹窗，回到高速传输引导页并依次展示连接中和连接成功。", "连接成功态展示 2 秒，随后自动返回文件首页并开始显示热点高速同步状态。", "连接热点期间手机可能暂时无法通过 Wi-Fi 上网；传输结束后恢复原网络。"],
+    states: ["连接前说明", "系统加入确认", "连接中", "连接成功"],
     deps: ["BLE：启动和读取录音卡 SoftAP 会话。", "iOS / Android：临时加入设备热点能力。", "设备热点鉴权和连接状态回传。"],
-    acceptance: ["APP-HOME-01 点击“快传”直接进入 APP-SYNC-01，不出现传输方式选择弹层。", "第一版导航、状态链路和页面流程中不出现 APP-SYNC-02。", "APP 引导弹窗底层为 APP-HOME-01 文件首页，并展示不可点击的系统弹窗示意、继续和取消。", "点击继续后出现独立的系统加入无线局域网确认弹窗，弹窗下方仍为当前连接设备热点引导页，不出现固件更新内容。", "系统取消返回等待确认，系统加入进入连接中；连接中和连接成功状态不展示完成或取消按钮。", "成功状态停留 2 秒后自动返回文件首页，首页同步卡标识为录音卡热点。", "右侧状态链路可独立预览等待确认、连接中和连接成功。"],
+    acceptance: ["APP-HOME-01 点击“快传”直接进入 APP-SYNC-01，不出现传输方式选择弹层。", "第一版导航、状态链路和页面流程中不出现 APP-SYNC-02。", "APP 引导弹窗底层为 APP-HOME-01 文件首页，并使用两步说明提示下一步在系统弹窗中选择加入。", "连接前说明不展示模拟系统弹窗或等待确认状态卡，只保留继续并连接和暂不使用。", "点击继续并连接后出现独立的系统加入无线局域网确认弹窗，弹窗下方仍为当前录音文件传输引导页，不出现固件更新内容。", "系统取消返回连接前说明，系统加入进入连接中；连接中和连接成功状态不展示完成或取消按钮。", "成功状态停留 2 秒后自动返回文件首页，首页同步卡标识为录音卡热点。", "右侧状态链路可独立预览连接前说明、连接中和连接成功。"],
     prototypeLinks: [],
-    prototypeActions: [["等待确认", "set-hotspot-state", "awaiting"], ["连接中", "set-hotspot-state", "connecting"], ["连接成功", "set-hotspot-state", "success"]]
+    prototypeActions: [["连接前说明", "set-hotspot-state", "awaiting"], ["连接中", "set-hotspot-state", "connecting"], ["连接成功", "set-hotspot-state", "success"]]
   },
   {
     id: "APP-HOME-01",
@@ -4267,6 +4267,24 @@ function renderFirmwareUpdateSheet() {
   `, { title: " ", back: "APP-DEV-03", bottom: false, compact: true });
 }
 
+function renderConnectionGuideSteps(nextLabel) {
+  return `
+    <div class="connection-guide-steps" aria-label="第 1 步，了解连接；第 2 步，${h(nextLabel)}">
+      <span class="current"><b>1</b><em>了解连接</em></span>
+      <i aria-hidden="true"></i>
+      <span><b>2</b><em>${h(nextLabel)}</em></span>
+    </div>
+  `;
+}
+
+function renderConnectionGuideArt(alt) {
+  return `<img class="connection-guide-art" src="connection-guide-art.png" alt="${h(alt)}">`;
+}
+
+function renderConnectionGuideTrust(copy) {
+  return `<p class="connection-guide-trust">${h(copy)}</p>`;
+}
+
 function renderFirmwareHotspotContent() {
   return `
     <section class="firmware-page dimmed">
@@ -4274,17 +4292,14 @@ function renderFirmwareHotspotContent() {
       <p>本次更新可能需要几分钟。</p>
       ${firmwareArt("hotspot-preview")}
     </section>
-    <section class="firmware-sheet hotspot-sheet">
-      <h2>连接设备热点</h2>
-      <div class="sheet-line"></div>
-      <p>接下来，手机将连接到 AI Recorder A1 的热点以完成更新。</p>
-      <p>当出现系统弹窗时，选择加入即可。</p>
-      <div class="system-wifi-card">
-        <strong>“AI Recorder A1”想要加入无线局域网“XXXX”吗?</strong>
-        <div><span>取消</span><b>加入</b></div>
-      </div>
-      <button class="primary-btn" data-go="APP-DEV-08">继续</button>
-      <button class="secondary-btn" data-go="APP-DEV-03">取消</button>
+    <section class="firmware-sheet hotspot-sheet connection-guide-sheet firmware-connection-guide">
+      ${renderConnectionGuideSteps("更新固件")}
+      <h2>连接设备开启高速传输</h2>
+      <p class="connection-guide-copy">手机会临时连接 AI Recorder A1 的高速传输网络，以更快传输固件包。继续后将先下载固件包；当系统弹窗出现时，请点<strong>「加入」</strong>。</p>
+      ${renderConnectionGuideArt("AI Recorder A1 与手机建立本地高速连接的示意图")}
+      ${renderConnectionGuideTrust("仅用于传输固件包，完成后恢复原网络")}
+      <button class="primary-btn" data-go="APP-DEV-08">继续更新</button>
+      <button class="secondary-btn connection-guide-cancel" data-go="APP-DEV-03">取消</button>
       <p class="caption">若硬件不支持 Wi-Fi 更新，则默认使用蓝牙更新并直接进入更新中。</p>
     </section>
   `;
@@ -4366,7 +4381,6 @@ function renderSyncTransferBackdrop() {
 
 function syncConnectionStatus(state) {
   const hotspotStates = {
-    awaiting: ["等待确认", "请在系统提示中选择加入", "active"],
     connecting: ["连接中", "正在加入录音卡高速传输网络…", "loading"],
     success: ["连接成功", "已连接录音卡，可开始高速传输", "success"]
   };
@@ -4384,28 +4398,25 @@ function renderHotspotTransferContent(state) {
   const isAwaiting = state === "awaiting";
   return `
     ${renderSyncTransferBackdrop()}
-    <section class="firmware-sheet sync-transfer-sheet hotspot-transfer-sheet">
-      <h2>连接设备热点</h2>
-      <div class="sheet-line"></div>
-      <p>手机将临时连接到 AI Recorder A1 的热点，以更快传输录音文件。请点击继续后，同意加入<strong>AI Recorder A1 无线局域网。</strong></p>
-      ${syncConnectionStatus(state)}
+    <div class="sync-transfer-guide-scrim" aria-hidden="true"></div>
+    <section class="firmware-sheet sync-transfer-sheet hotspot-transfer-sheet ${isAwaiting ? "connection-guide-sheet" : ""}">
       ${isAwaiting ? `
-        <div class="system-wifi-card sync-guide-wifi-card" aria-label="系统加入无线局域网提示示意，不可操作">
-          <strong>“AI Recorder A1”想要加入无线局域网“XXXX”吗？</strong>
-          <div aria-hidden="true">
-            <span>取消</span>
-            <b>加入</b>
-          </div>
+        ${renderConnectionGuideSteps("系统确认")}
+        <h2>连接设备开启高速传输</h2>
+        <p class="connection-guide-copy">手机会临时连接 AI Recorder A1 的高速传输网络。下一步系统弹窗出现后，请点<strong>「加入」</strong>。</p>
+        ${renderConnectionGuideArt("AI Recorder A1 与手机建立本地高速连接的示意图")}
+        ${renderConnectionGuideTrust("仅用于传输录音文件，完成后恢复原网络")}
+        <button class="primary-btn" data-action="open-hotspot-join-prompt">继续并连接</button>
+        <button class="secondary-btn connection-guide-cancel" data-go="APP-HOME-01">暂不使用</button>
+      ` : `
+        <h2>连接设备开启高速传输</h2>
+        <p>手机正在连接 AI Recorder A1 的高速传输网络，用于传输录音文件。</p>
+        ${syncConnectionStatus(state)}
+        <div class="sync-network-tip">
+          <i aria-hidden="true">!</i>
+          <span>连接期间可能暂时无法通过 Wi-Fi 上网；传输结束后将断开设备网络，并尝试恢复原网络。</span>
         </div>
-      ` : ""}
-      <div class="sync-network-tip">
-        <i aria-hidden="true">!</i>
-        <span>传输期间可能暂时无法通过 Wi-Fi 上网；传输完成后将恢复原网络。</span>
-      </div>
-      ${isAwaiting ? `
-        <button class="primary-btn" data-action="open-hotspot-join-prompt">继续</button>
-        <button class="secondary-btn" data-go="APP-HOME-01">取消</button>
-      ` : ""}
+      `}
     </section>
   `;
 }
