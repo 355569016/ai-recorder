@@ -2171,15 +2171,38 @@ button {
 .file-card {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
-  padding: 14px 0;
   border-bottom: 1px solid #f1eee8;
+}
+
+.file-card-main {
+  width: 100%;
+  min-height: 92px;
+  display: block;
+  padding: 14px 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.file-card-main:active {
+  background: #f7f6f3;
+}
+
+.file-card-main:focus-visible {
+  outline: 2px solid #1778e6;
+  outline-offset: 2px;
 }
 
 .file-card.featured {
   margin: 4px -8px 4px;
-  padding: 14px 8px;
+  padding: 0 8px;
   border: 1px solid #d8f0dc;
   border-radius: 12px;
   background: #f7fff8;
@@ -2190,6 +2213,8 @@ button {
 }
 
 .file-card-transfer-disabled {
+  min-height: 92px;
+  padding: 14px 0;
   color: #aaa;
   cursor: default;
   user-select: none;
@@ -2216,6 +2241,104 @@ button {
   white-space: nowrap;
 }
 
+.file-transfer-status-wrap {
+  position: relative;
+  z-index: 9;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.file-transfer-status-action {
+  min-width: 44px;
+  min-height: 44px;
+  margin: -10px -8px -10px 0;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #a2a2a2;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.file-transfer-status-action:active,
+.file-transfer-status-action[aria-expanded="true"] {
+  background: #f4f6f8;
+  color: #666;
+}
+
+.file-transfer-status-action:focus-visible {
+  outline: 2px solid #1778e6;
+  outline-offset: 1px;
+}
+
+.file-transfer-status-action.prioritized {
+  color: #1778e6;
+}
+
+.file-priority-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: -2px;
+  z-index: 11;
+  width: 208px;
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border: 1px solid #e6e1d8;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .98);
+  color: #171717;
+  text-align: left;
+  box-shadow: 0 12px 30px rgba(31, 35, 40, .16);
+}
+
+.file-priority-popover strong {
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.file-priority-popover span {
+  color: #8a8a8a;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.file-priority-popover button {
+  min-height: 44px;
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  border-top: 1px solid #eeeae3;
+  background: transparent;
+  color: #1778e6;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 750;
+  text-align: left;
+  cursor: pointer;
+}
+
+.file-priority-popover button:focus-visible {
+  outline: 2px solid #1778e6;
+  outline-offset: 2px;
+}
+
+.home-priority-dismiss {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  border: 0;
+  background: transparent;
+  cursor: default;
+}
+
 .file-transfer-spinner {
   width: 14px;
   height: 14px;
@@ -2223,53 +2346,46 @@ button {
   border-top-color: #999;
 }
 
-.file-transfer-priority {
-  min-height: 26px;
-  padding: 0 9px;
-  border: 1px solid #d5e5f8;
-  border-radius: 999px;
-  background: #fff;
-  color: #1778e6;
-  font-size: 10px;
-  font-weight: 850;
+.file-card-recovery {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--red);
+  font: inherit;
+  white-space: nowrap;
   cursor: pointer;
-  user-select: auto;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.file-transfer-priority:active {
+.file-card-has-recovery {
+  min-height: 92px;
+  padding: 14px 0;
+}
+
+.file-card-recovery > span,
+.file-card-recovery > strong,
+.file-card-recovery > b {
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.file-card-recovery > b {
+  font-weight: 600;
+}
+
+.file-card-recovery:active {
   opacity: .58;
 }
 
-.file-transfer-priority:focus-visible {
-  outline: 2px solid #1778e6;
-  outline-offset: 2px;
-}
-
-.file-transfer-priority.active,
-.file-transfer-priority:disabled {
-  border-color: #cfe5ff;
-  background: #eef6ff;
-  color: #1778e6;
-  opacity: 1;
-  cursor: default;
-}
-
-.file-card-recovery {
-  display: grid;
-  justify-items: end;
-  gap: 8px;
-}
-
-.file-card-recovery > span {
-  color: var(--red);
-  font-size: 11px;
-  font-weight: 750;
-  white-space: nowrap;
-}
-
-.file-card-recovery > button {
-  width: 72px;
-  min-height: 38px;
+.file-card-recovery:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 
 .file-name {
@@ -9698,6 +9814,50 @@ label.prefs-row {
   box-shadow: 0 0 0 5px rgba(54, 161, 93, .12);
 }
 
+.home-priority-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 104px;
+  z-index: 12;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border: 1px solid #d7e7fb;
+  border-radius: 12px;
+  background: rgba(245, 249, 255, .98);
+  color: #185ea8;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.35;
+  white-space: nowrap;
+  box-shadow: 0 10px 28px rgba(23, 120, 230, .14);
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: home-priority-toast-lifecycle 1.8s ease both;
+}
+
+@keyframes home-priority-toast-lifecycle {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 5px);
+  }
+
+  12%,
+  82% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, 3px);
+  }
+}
+
 @keyframes hotspot-success-lifecycle {
   0% {
     opacity: 0;
@@ -9719,7 +9879,8 @@ label.prefs-row {
   }
 
   .sync-state-spinner,
-  .hotspot-success-toast {
+  .hotspot-success-toast,
+  .home-priority-toast {
     animation: none;
   }
 }

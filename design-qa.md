@@ -42,6 +42,106 @@ patches made since previous QA pass:
 
 final result: passed
 
+## 2026-07-29 update: APP-HOME-01 low-frequency priority sync
+
+- Source visual truth: `design-reference-home-file-list-quiet-actions.png` (390 × 844 px), the approved quiet-list base with no persistent right-side action column.
+- Approved-current-state audit capture: `/Users/andyma/.codex/visualizations/2026/07/29/019fadb5-1a31-7433-aadd-e37f4298e9df/priority-sync-current.png` (319 × 966 px). The user approved restoring priority management through the waiting-status interaction rather than a persistent button.
+- Browser-rendered popover: `implementation-home-priority-popover.jpg` (390 × 844 px).
+- Browser-rendered success state: `implementation-home-priority-success.jpg` (390 × 844 px).
+- Full board evidence: `implementation-home-priority-popover-board.png` and `implementation-home-priority-success-board.png`.
+- Full-view comparison evidence: `design-qa-home-priority-popover-comparison.png` and `design-qa-home-priority-success-comparison.png` (each 780 × 844 px).
+- Requirement evidence: `implementation-prd-priority-note-board.png`; the rebuilt PRD preview exposes the red APP-HOME-01 interaction adjustment.
+- Browser viewport: 1440 × 1200 CSS px, deviceScaleFactor 1. The phone content measured 390 × 844 CSS px and was captured at the same pixel dimensions.
+- State: APP-HOME-01 multi-task sync with one active file and three visible waiting files; waiting status opened, later task prioritized, and transient success feedback shown.
+
+### Full-view and focused comparison
+
+- The left side of each comparison retains the approved quiet-list hierarchy: no persistent priority button, muted transfer status, full-width normal rows, and only the failure recovery action remaining visible.
+- The right side adds only the approved transient layers. The 208 px anchored popover overlays the list without reserving space, and the bottom toast remains above the navigation without moving page content.
+- The source reference is a scrolled single-waiting-row state while the implementation evidence intentionally shows the multi-task state needed to exercise priority ordering. Component scale, row typography, semantic status placement, and 390 × 844 phone geometry remain normalized; the differing task count is product-state evidence rather than visual drift.
+- No additional focused crop was required because the equal-size comparisons keep the waiting status, popover action, `已优先` state, toast, and bottom navigation readable.
+
+### Comparison history
+
+- Initial [P2] accessibility finding: the popover action measured 36 px high and keyboard activation/focus transfer was not yet verified.
+- Fix: increased the action to 44 px, added explicit Enter/Space handling, moved keyboard focus to `设为优先同步`, preserved the menu while its action owns focus, and added Esc close with focus restoration.
+- Post-fix browser evidence: the action measured exactly 44 px; Enter opened the popover and focused the action; Esc closed it and returned focus to the originating waiting-status control.
+- No actionable P0, P1, or P2 issue remains.
+
+### Required fidelity surfaces
+
+- Fonts and typography: reused the prototype system sans-serif stack, muted 12 px waiting state, 13 px popover hierarchy, and single-line 13 px success toast without truncation.
+- Spacing and layout rhythm: the status trigger has a 44 × 44 px minimum target; the 208 px popover uses a 14 px radius and existing list alignment. Row offsets relative to the list remained unchanged before and after opening; the observed outer-page scroll was browser automation scroll, not component layout shift.
+- Colors and visual tokens: the popover keeps the existing white/neutral surface and divider tokens; the action and `已优先` state use the existing blue token; the toast uses a restrained blue confirmation surface rather than a new persistent button style.
+- Image quality and asset fidelity: no new raster or decorative asset was required. Existing mobile chrome, device entry, search icon, and bottom navigation remain unchanged.
+- Copy and content: `当前已是下一项`, `设为优先同步`, `已优先`, and `已设为优先，将在当前文件后传输` render exactly as approved. Double-click is intentionally not implemented.
+- Accessibility and motion: waiting states are semantic buttons with explicit labels and `aria-expanded`; click, long-press/context-menu, Enter, and Space reach the same popover; Esc restores focus; the success message uses `role="status"` and `aria-live="polite"`; reduced-motion mode disables toast animation.
+
+### Primary interactions tested
+
+- Clicking the first waiting task opened `当前已是下一项 / 当前文件完成后将自动传输` with no redundant priority action.
+- Clicking a later waiting task opened the compact popover with queue-ahead count, estimated start time, and exactly one `设为优先同步` action.
+- Context-menu/right-click, used as the desktop equivalent of mobile long-press, opened the same popover for the selected waiting task.
+- Confirming priority moved `Launch checklist` immediately behind the active file, changed its state to `已优先`, closed the popover, and showed `已设为优先，将在当前文件后传输`.
+- The popover auto-dismissed after the 4-second idle lifecycle; outside dismissal and keyboard Esc are also implemented.
+- The interaction run returned zero application warnings or errors. A final browser-session reload emitted a generic `MutationObserver.observe` error after the validated interactions; `app.js` and generated `index.html` contain no `MutationObserver` or `.observe()` usage, so this is classified as browser tooling noise rather than an application runtime failure.
+- The rebuilt PRD preview contains the red requirement note and the APP-HOME-01 right specification panel renders the same interaction adjustment in red.
+
+### Findings
+
+- No actionable P0, P1, or P2 issue remains.
+- No P3 follow-up is required for this scoped queue-management restoration.
+
+final result: passed
+
+## 2026-07-29 update: APP-HOME-01 quiet file-list actions
+
+- Source visual truth: `/Users/andyma/.codex/generated_images/019fadb5-1a31-7433-aadd-e37f4298e9df/exec-3a2c2bea-e40d-42ce-80ec-e962d289c47f.png` (852 × 1846 px), confirmed single design direction.
+- Normalized source: `design-reference-home-file-list-quiet-actions.png` (390 × 844 px).
+- Browser-rendered implementation: `implementation-home-file-list-quiet-actions.jpg` (390 × 844 px).
+- Full board evidence: `implementation-home-file-list-quiet-actions-board.png` (1440 × 1131 px).
+- Side-by-side comparison evidence: `design-qa-home-file-list-quiet-actions-comparison.png` (780 × 844 px).
+- Browser viewport: 1440 × 1200 CSS px, deviceScaleFactor 1. The phone content measured 390 × 844 CSS px and was captured at the same pixel dimensions.
+- State: APP-HOME-01 file list scrolled to one waiting-transfer row, one retryable sync-failure row, two untranscribed normal rows, and one AI-generated normal row.
+
+### Full-view comparison
+
+- The selected design and implementation use the same quiet-list hierarchy: normal rows have no trailing action column, transfer state is muted text, and the only visible row-level action is the red inline `同步失败 · 重试` recovery control.
+- Source/type/status chips and separator rhythm remain aligned with the existing prototype design system.
+- The implementation preserves template-owned mobile status information and omits the selected mock's detached grey `硬件录音` chip beneath the filter because it is not attached to a file record or product state.
+
+### Focused comparison
+
+- A separate crop was not required: at 390 × 844, the complete side-by-side image keeps the file names, metadata, source/status chips, waiting state, failure action, and bottom navigation readable.
+
+### Comparison history
+
+- No actionable P0, P1, or P2 mismatch was found in the first normalized comparison, so no visual-fix iteration was required.
+
+### Required fidelity surfaces
+
+- Fonts and typography: retained the existing system sans-serif family, file-name hierarchy, muted metadata, compact chips, and 12 px semantic recovery copy without wrapping or truncation.
+- Spacing and layout rhythm: normal rows use the full width with a 92 px minimum target; separators, list padding, title bar, import action, and bottom navigation remain visually stable.
+- Colors and visual tokens: neutral rows use the existing black/grey hierarchy, source and state chips keep their semantic blue/purple/green/amber colors, and failure uses the existing red token without a button container.
+- Image quality and asset fidelity: no new runtime image asset was needed; the change is limited to app-owned list content and preserves existing mobile chrome and icons.
+- Copy and content: normal rows no longer display `生成`, `详情`, or `优先同步`; the failure action reads `同步失败 · 重试`; all file names, metadata, sources, and processing states remain present.
+
+### Primary interactions tested
+
+- The home file list rendered three normal whole-row buttons, one retry control, zero priority controls, and zero legacy `生成`/`详情`/`优先同步` row buttons in the reviewed state.
+- Clicking `Board meeting` opened APP-FILE-10 `文件详情为空`, where exactly one generate entry remains available.
+- Clicking `Interview import` opened APP-FILE-01 `文件详情`, with five AI content sections and the note-question entry present.
+- Clicking `同步失败 · 重试` removed the recovery control and changed the row to the disabled `正在重试…` state.
+- Waiting-transfer and active-transfer rows remain non-clickable and expose status text only.
+- Browser console inspection returned zero warnings or errors.
+
+### Findings
+
+- No actionable P0, P1, or P2 issue remains.
+- No P3 follow-up is required for this scoped list-action simplification.
+
+final result: passed
+
 ## 2026-07-29 update: APP-SYNC-01 bottom floating success toast
 
 - Source visual truth: `/Users/andyma/.codex/generated_images/019fadb5-1a31-7433-aadd-e37f4298e9df/exec-a07f763c-a832-41e9-8645-5ecec26a29fb.png` (853 × 1844 px), selected direction 1.

@@ -418,29 +418,31 @@ const pages = [
       "蓝牙同步时，点击右侧“快传”按钮直接进入 APP-SYNC-01 连接录音卡进行高速传输；切换到录音卡热点并开始高速同步后，隐藏“快传”按钮，因为当前已经处于快传状态。同步状态条主体只承载信息，不打开其他列表或弹层。",
       "第一版不考虑 APP-SYNC-02 让录音卡连接当前 Wi-Fi 的方案，也不展示传输方式选择弹层。",
       "正在传输与等待传输任务统一归入全部文件列表，并排列在已完成同步的正常文件之前；不再单独展示同步队列列表。",
-      "为控制原型页面信息密度，APP-HOME-01 默认只展示前 3 条等待传输文件示例；后台仍按完整待传输任务数量判断是否满足优先同步条件。",
+      "为控制原型页面信息密度，APP-HOME-01 默认只展示前 3 条等待传输文件示例；后台仍保留完整待传输任务并按同步策略自动排序。",
       "等待传输状态只显示“等待传输”，不显示队列顺位、传输方式、已传输/总文件大小或单文件进度。",
-      "当待传输任务超过 3 个时，每个等待传输文件在“等待传输”状态后显示“优先同步”操作；设为优先后，目标任务移动到当前传输任务之后，当前任务保持不变。待传输任务不超过 3 个时不显示该操作。",
-      "全部文件中的正在传输和等待传输行整体置灰，且不显示右箭头或进入详情操作；正在传输行不可点击并可显示单文件百分比，等待传输行除条件满足时的“优先同步”操作外不可点击。",
-      "同步传输失败后优先进入后台自动重试；设备恢复连接时自动续传和重试。未达到自动重试限额期间，文件维持置灰的正在重试状态，不显示失败状态或手动重试按钮；达到限额后才显示“同步失败，请重试…”和重试按钮，且不显示“录音已安全保留”等未经确认的保障文案。",
+      "等待传输任务不展示常驻“优先同步”按钮；点击或长按“等待传输”状态打开轻量顺序浮层，可将非下一项任务设为优先。",
+      "全部文件中的正在传输和等待传输行整体置灰，且不显示右箭头或进入详情操作；正在传输行不可点击并可显示单文件百分比，等待传输行仅状态区域可点击或长按。",
+      "同步传输失败后优先进入后台自动重试；设备恢复连接时自动续传和重试。未达到自动重试限额期间，文件维持置灰的正在重试状态，不显示失败状态或手动重试按钮；达到限额后才显示轻量“同步失败 · 重试”操作，且不显示“录音已安全保留”等未经确认的保障文案。",
       "同步完成文件恢复正常显示，不保留同步完成标签；按未转写、AI 已生成等后续处理状态展示。",
       "单个任务完成后更新外部已完成数并自动开始待传输列表中的下一项；本批次全部完成后隐藏同步状态条。",
       "本批次完成后若产生新的同步任务，创建新的批次；全部文件列表仅按当前文件状态展示，不出现上一批次的同步队列历史。",
       "同步状态条不使用大卡片、阴影或第二行通知，全部文件紧接状态条显示。",
       "全部文件是首页下半区，不再作为单独页面；滚动到设备状态和同步摘要不可见后，全部文件标题默认吸顶。",
       "全部文件标题栏左侧为全部文件文字和倒三角筛选/排序入口，右侧为导入音频按钮。",
-      "每个文件行右侧不显示进入详情的箭头；正常文件通过生成、详情等明确按钮进入下一步。",
+      "正常文件行不显示“生成”“详情”或“优先同步”等右侧按钮，整行作为进入文件详情的点击区域；未转写文件进入 APP-FILE-10 后再执行生成，AI 已生成文件进入 APP-FILE-01。",
+      "只有达到自动重试限额的同步失败文件在右侧保留轻量“同步失败 · 重试”操作，其他状态不占用独立操作列。",
       "点击导入音频打开导入音频弹层，可从文件或相册调起系统选择器。",
       "底部中间录音按钮是全局主按钮，不是普通 Tab。"
     ],
     criticalRules: [
+      "交互调整：等待传输行不恢复右侧常驻按钮；点击或长按“等待传输”状态打开轻量浮层，确认后状态改为“已优先”，并以底部 Toast 提示“已设为优先，将在当前文件后传输”。",
       "未添加录音卡强规则：设备摘要区域沿用已添加状态的布局和尺寸，以无外框的轻量入口展示“添加设备”；不显示任何虚构设备信息、同步状态、快传入口及正在传输或等待传输的置灰文件，正常文件列表保持可浏览。",
       "热点快传强规则：当前传输方式为录音卡热点时，首页同步状态条不显示“快传”按钮；只有蓝牙同步状态可显示该入口。",
       "低打扰强规则：当未完成同步任务少于 2 个，并且预计剩余时间少于 3 分钟时（两个条件必须同时满足），首页不显示顶部同步状态条、整体进度和“快传”按钮；任一条件不满足时仍按正常同步状态展示。",
       "当前没有同步任务时，首页不显示同步状态条，也不显示正在传输或等待传输的置灰文件记录；全部文件直接展示已完成同步的正常文件列表。",
-      "同步失败处理强规则：传输失败后先由系统自动重试，不立即向用户显示失败；设备重新连接后自动继续重试。只有达到自动重试限额后，文件才显示“同步失败，请重试…”和“重试”按钮。自动重试限额及退避间隔由同步重试策略配置。"
+      "同步失败处理强规则：传输失败后先由系统自动重试，不立即向用户显示失败；设备重新连接后自动继续重试。只有达到自动重试限额后，文件才显示轻量“同步失败 · 重试”操作。自动重试限额及退避间隔由同步重试策略配置。"
     ],
-    states: ["未添加录音卡", "未绑定/未连接", "设备已连接", "当前无同步任务", "录音中持续同步", "单任务同步中", "多任务同步中", "文件正在传输且不可点击", "文件等待传输且不可点击", "文件列表优先同步", "同步失败自动重试", "设备重连后自动重试", "达到自动重试限额后失败可重试", "任务优先级已调整", "单个任务同步完成", "本批次同步完成", "新同步批次", "空文件", "加载更多"],
+    states: ["未添加录音卡", "未绑定/未连接", "设备已连接", "当前无同步任务", "录音中持续同步", "单任务同步中", "多任务同步中", "文件正在传输且不可点击", "文件等待传输状态可操作", "已优先", "同步失败自动重试", "设备重连后自动重试", "达到自动重试限额后失败可重试", "单个任务同步完成", "本批次同步完成", "新同步批次", "空文件", "加载更多"],
     deps: ["BLE 状态包：电量、存储、录音状态。", "BLE 分片传输：录音过程中的增量音频、偏移量和校验值。", "本地数据库：文件列表、同步队列、转写状态。", "本地临时缓存：录音未结束前的已同步分片。", "同步重试策略：重试限额、退避间隔、设备重连触发。", "云端文件：上传/删除/状态，接口待后端定义。"],
     acceptance: [
       "打开 App 默认处于硬件录音场景时，首页只展示设备录音中状态，不展示同步进度模块。",
@@ -451,14 +453,15 @@ const pages = [
       "蓝牙同步状态下的快传按钮直接进入 APP-SYNC-01，不出现传输方式选择弹层；录音卡热点同步状态下快传按钮不可见。同步状态条主体无点击操作。",
       "第一版页面导航、状态链路和交互流程中不出现 APP-SYNC-02。",
       "正在传输任务和最多 3 条等待传输示例显示在全部文件列表顶部，不存在独立同步队列列表。",
-      "APP-HOME-01 原型默认只展示 3 条等待传输文件示例；当后台待传输任务总数超过 3 个时，这 3 条仍显示优先同步操作。",
+      "APP-HOME-01 原型默认只展示 3 条等待传输文件示例；等待行不展示常驻优先同步按钮，后台仍保留完整任务队列。",
       "正在传输和等待传输文件整体置灰，不显示右箭头、详情操作或单文件进度条；正在传输文件显示“正在传输… + 单文件百分比”，等待文件只显示“等待传输”。",
       "等待传输文件不显示队列顺位、传输方式或已传输/总文件大小。",
-      "同步传输失败且未达到自动重试限额时，不显示失败状态或重试按钮；设备重新连接后必须自动继续重试。达到自动重试限额后，文件才显示“同步失败，请重试…”和重试按钮，不显示“录音已安全保留”；点击重试后该行切换为置灰的正在重试状态。",
+      "同步传输失败且未达到自动重试限额时，不显示失败状态或重试按钮；设备重新连接后必须自动继续重试。达到自动重试限额后，文件才显示轻量“同步失败 · 重试”，不显示“录音已安全保留”；点击重试后该行切换为置灰的正在重试状态。",
       "同步完成后文件恢复正常状态，不展示同步完成标签；本批次全部完成后同步状态条消失。",
       "当前无同步任务时，顶部同步状态、快传入口和置灰传输文件均不可见，全部文件从正常文件开始展示。",
       "未完成同步任务少于 2 个且预计剩余时间少于 3 分钟时，顶部同步状态条及其整体进度和快传入口全部隐藏；两个条件必须同时满足。",
-      "待传输任务超过 3 个时，每个等待传输文件在状态后显示“优先同步”；操作后当前任务保持不变，目标任务移动到当前任务之后并显示“已优先”。待传输任务不超过 3 个时不显示该操作。",
+      "等待传输文件默认只显示“等待传输”，不显示“优先同步”或其他右侧按钮；点击或长按状态打开同一轻量浮层，非下一项可设为优先，当前下一项只提示“当前已是下一项”。",
+      "设置优先后，目标任务移动到当前传输文件之后，状态改为“已优先”，底部 Toast 短暂提示“已设为优先，将在当前文件后传输”；浮层不推动列表布局并可点击空白处或等待 4 秒关闭。",
       "单个任务完成后已完成数增加并开始下一项；新批次开始后文件列表不展示上一批次的同步队列历史。",
       "首页设备状态为紧凑图标入口，点击设备图标进入当前设备详情。",
       "未添加录音卡时，原设备摘要区域以与已添加状态同尺寸、同分区的无外框入口显示“添加设备”；不展示设备名称、电量、存储或连接状态，点击整行进入 APP-DEV-01，且页面不显示同步状态、快传入口和置灰的正在传输/等待传输文件。",
@@ -466,7 +469,8 @@ const pages = [
       "点击设备状态旁下拉箭头展开添加设备和多个已绑定设备。",
       "已绑定设备示例至少包含两个已连接设备和一个已断开设备，点击设备行可以切换当前设备。",
       "标题显示为全部文件，倒三角筛选/排序入口与导入音频按钮位于同一标题栏。",
-      "正常文件通过生成、详情等明确按钮操作，所有文件行右侧不额外显示详情箭头。",
+      "正常文件行不显示生成、详情或右箭头，整行点击进入对应详情状态；未转写文件进入 APP-FILE-10 并保留详情页内生成入口，AI 已生成文件进入 APP-FILE-01。",
+      "仅达到自动重试限额的同步失败行显示轻量“同步失败 · 重试”，点击后进入正在重试状态。",
       "导入音频弹层包含从文件里导入和从相册里导入两个系统选择入口。",
       "下拉/继续滚动可加载更多文件。",
       "录音主按钮点击前执行登录/绑定/连接检查。"
@@ -1409,7 +1413,6 @@ let askPlaudTipVisible = true;
 let deviceSnTipOpen = false;
 let homeSyncStage = "finishing";
 let homeSyncTransport = "ble";
-let homeSyncPriorityTaskId = "";
 let homeSyncBatchSerial = 1;
 function createDefaultHomeSyncQueue() {
   return [
@@ -1435,6 +1438,11 @@ let activeHomeDeviceId = "a1";
 let hotspotTransferState = "awaiting";
 let homeHotspotSuccessNotice = false;
 let homeHotspotSuccessNoticeTimer = null;
+let homePriorityMenuTaskId = "";
+let homePriorityMenuTimer = null;
+let homePriorityNotice = "";
+let homePriorityNoticeTimer = null;
+let homePriorityLongPressTimer = null;
 let firmwareUpdateStep = "download";
 let firmwareUpdateTransport = "wifi";
 let firmwareJoinPromptOpen = false;
@@ -1592,6 +1600,9 @@ function go(id) {
   }
   if (currentPageId !== "APP-HOME-01") {
     homeDeviceMenuOpen = false;
+    homePriorityMenuTaskId = "";
+    clearHomePriorityMenuTimer();
+    clearHomePriorityLongPressTimer();
   }
   if (!["APP-DEV-02", "APP-DEV-04", "APP-DEV-05"].includes(currentPageId)) {
     deviceSnTipOpen = false;
@@ -1650,22 +1661,28 @@ function wave() {
 
 function fileCard(file) {
   const disabled = file.transferState === "syncing" || file.transferState === "pending";
-  const priorityAction = file.priorityAction
-    ? `<button class="file-transfer-priority ${file.priorityActive ? "active" : ""}" data-action="prioritize-home-sync-task" data-task-id="${h(file.taskId)}"${file.priorityActive ? " disabled" : ""}>${file.priorityActive ? "已优先" : "优先同步"}</button>`
-    : "";
   const statusNode = disabled
-    ? `<div class="file-transfer-status"><span role="status" aria-live="polite">${h(file.statusText)}</span>${file.transferState === "syncing" ? '<em class="sync-state-spinner file-transfer-spinner" aria-hidden="true"></em>' : ""}${priorityAction}</div>`
+    ? file.transferState === "pending" && file.taskId
+      ? `<div class="file-transfer-status-wrap">
+          <button class="file-transfer-status file-transfer-status-action ${file.isPriority ? "prioritized" : ""}" data-action="open-home-priority-menu" data-task-id="${h(file.taskId)}" aria-haspopup="dialog" aria-expanded="${homePriorityMenuTaskId === file.taskId ? "true" : "false"}" aria-label="${h(file.name)}，${file.isPriority ? "已优先" : "等待传输"}，点击查看传输顺序操作">
+            <span role="status" aria-live="polite">${h(file.isPriority ? "已优先" : file.statusText)}</span>
+          </button>
+          ${homePriorityMenuTaskId === file.taskId ? renderHomePriorityPopover(file.taskId) : ""}
+        </div>`
+      : `<div class="file-transfer-status"><span role="status" aria-live="polite">${h(file.statusText)}</span>${file.transferState === "syncing" ? '<em class="sync-state-spinner file-transfer-spinner" aria-hidden="true"></em>' : ""}</div>`
     : file.errorText
-      ? `<div class="file-card-recovery"><span>${h(file.errorText)}</span><button class="secondary-btn" ${file.actionKey ? `data-action="${h(file.actionKey)}"` : `data-go="${file.go}"`}>${h(file.action)}</button></div>`
-      : `<button class="${file.actionTone === "secondary" ? "secondary-btn" : "primary-btn"}" style="width:72px;min-height:38px" data-go="${file.go}">${h(file.action)}</button>`;
+      ? `<button class="file-card-recovery" ${file.actionKey ? `data-action="${h(file.actionKey)}"` : `data-go="${file.go}"`} aria-label="${h(file.errorText)}，${h(file.action)}"><span>${h(file.errorText)}</span><b aria-hidden="true">·</b><strong>${h(file.action)}</strong></button>`
+      : "";
+  const content = `
+    <div>
+      <p class="file-name">${h(file.name)}</p>
+      <div class="file-meta">${h(file.meta)}</div>
+      <div class="file-tags">${chip(file.source, file.source === "硬件录音" ? "blue" : "purple")}${file.state ? chip(file.state, file.tone) : ""}</div>
+    </div>
+  `;
   return `
-    <div class="file-card ${file.featured ? "featured" : ""} ${disabled ? `file-card-transfer-disabled ${file.transferState}` : ""}"${disabled && !file.priorityAction ? ' aria-disabled="true"' : ""}>
-      <div>
-        <p class="file-name">${h(file.name)}</p>
-        <div class="file-meta">${h(file.meta)}</div>
-        <div class="file-tags">${chip(file.source, file.source === "硬件录音" ? "blue" : "purple")}${file.state ? chip(file.state, file.tone) : ""}</div>
-      </div>
-      ${statusNode}
+    <div class="file-card ${file.featured ? "featured" : ""} ${disabled ? `file-card-transfer-disabled ${file.transferState}` : ""} ${file.errorText ? "file-card-has-recovery" : ""}"${file.transferState === "syncing" ? ' aria-disabled="true"' : ""}>
+      ${disabled || file.errorText ? `${content}${statusNode}` : `<button class="file-card-main" data-go="${h(file.go)}" aria-label="打开${h(file.name)}详情">${content}</button>`}
     </div>
   `;
 }
@@ -1674,7 +1691,6 @@ function renderHomeTransferFileCards() {
   if (homeSyncStage !== "finishing") return "";
   const activeTask = homeSyncQueue.find((task) => task.status === "syncing");
   const pendingTasks = homeSyncQueue.filter((task) => task.status === "pending");
-  const showPriority = pendingTasks.length > 3;
   const pendingMeta = [
     "今天 09:20 · 00:28:14",
     "今天 08:45 · 00:19:08",
@@ -1699,11 +1715,91 @@ function renderHomeTransferFileCards() {
       source: "硬件录音",
       transferState: "pending",
       statusText: "等待传输",
-      priorityAction: showPriority,
-      priorityActive: homeSyncPriorityTaskId === task.id,
-      taskId: task.id
+      taskId: task.id,
+      isPriority: Boolean(task.priority)
     }))
   ].join("");
+}
+
+function clearHomePriorityMenuTimer() {
+  if (!homePriorityMenuTimer) return;
+  window.clearTimeout(homePriorityMenuTimer);
+  homePriorityMenuTimer = null;
+}
+
+function clearHomePriorityLongPressTimer() {
+  if (!homePriorityLongPressTimer) return;
+  window.clearTimeout(homePriorityLongPressTimer);
+  homePriorityLongPressTimer = null;
+}
+
+function openHomePriorityMenu(taskId, focusAction = false) {
+  const task = homeSyncQueue.find((item) => item.id === taskId && item.status === "pending");
+  if (!task || currentPageId !== "APP-HOME-01") return;
+  clearHomePriorityMenuTimer();
+  homePriorityMenuTaskId = taskId;
+  render();
+  if (focusAction) {
+    requestAnimationFrame(() => {
+      const menuAction = document.querySelector(`.file-priority-popover [data-action="confirm-home-priority"]`);
+      const trigger = document.querySelector(`[data-action="open-home-priority-menu"][data-task-id="${taskId}"]`);
+      (menuAction || trigger)?.focus();
+    });
+  }
+  homePriorityMenuTimer = window.setTimeout(() => {
+    homePriorityMenuTimer = null;
+    if (homePriorityMenuTaskId !== taskId) return;
+    const menu = document.querySelector(".file-priority-popover");
+    if (menu?.contains(document.activeElement)) return;
+    homePriorityMenuTaskId = "";
+    if (currentPageId === "APP-HOME-01") render();
+  }, 4000);
+}
+
+function closeHomePriorityMenu() {
+  clearHomePriorityMenuTimer();
+  homePriorityMenuTaskId = "";
+}
+
+function renderHomePriorityPopover(taskId) {
+  const task = homeSyncQueue.find((item) => item.id === taskId && item.status === "pending");
+  if (!task) return "";
+  const pendingTasks = homeSyncQueue.filter((item) => item.status === "pending");
+  const pendingIndex = pendingTasks.findIndex((item) => item.id === taskId);
+  const isNext = pendingIndex === 0;
+  const filesAhead = Math.max(1, pendingIndex + (homeSyncQueue.some((item) => item.status === "syncing") ? 1 : 0));
+  const estimatedMinutes = Math.max(1, filesAhead * (homeSyncTransport === "hotspot" ? 1 : 2));
+  return `
+    <section class="file-priority-popover" role="dialog" aria-label="调整传输顺序">
+      <strong>${isNext ? "当前已是下一项" : `前面还有 ${filesAhead} 个文件`}</strong>
+      <span>${isNext ? "当前文件完成后将自动传输" : `预计约 ${estimatedMinutes} 分钟后开始`}</span>
+      ${isNext ? "" : `<button data-action="confirm-home-priority" data-task-id="${h(taskId)}">设为优先同步</button>`}
+    </section>
+  `;
+}
+
+function setHomePriorityTask(taskId) {
+  const taskIndex = homeSyncQueue.findIndex((item) => item.id === taskId && item.status === "pending");
+  if (taskIndex < 0) return false;
+  const pendingTasks = homeSyncQueue.filter((item) => item.status === "pending");
+  if (pendingTasks[0]?.id === taskId) return false;
+  const [task] = homeSyncQueue.splice(taskIndex, 1);
+  homeSyncQueue.forEach((item) => {
+    item.priority = false;
+  });
+  task.priority = true;
+  const activeIndex = homeSyncQueue.findIndex((item) => item.status === "syncing");
+  const insertIndex = activeIndex >= 0 ? activeIndex + 1 : homeSyncQueue.findIndex((item) => item.status === "pending");
+  homeSyncQueue.splice(insertIndex >= 0 ? insertIndex : homeSyncQueue.length, 0, task);
+  closeHomePriorityMenu();
+  homePriorityNotice = "已设为优先，将在当前文件后传输";
+  if (homePriorityNoticeTimer) window.clearTimeout(homePriorityNoticeTimer);
+  homePriorityNoticeTimer = window.setTimeout(() => {
+    homePriorityNoticeTimer = null;
+    homePriorityNotice = "";
+    if (currentPageId === "APP-HOME-01") render();
+  }, 1800);
+  return true;
 }
 
 function homeSyncStats() {
@@ -1755,53 +1851,42 @@ function renderHomeSyncModule(stage = homeSyncStage) {
   `;
 }
 
-function prioritizeHomeSyncTask(taskId) {
-  if (homeSyncQueue.filter((task) => task.status === "pending").length <= 3) return;
-  const taskIndex = homeSyncQueue.findIndex((task) => task.id === taskId && task.status === "pending");
-  if (taskIndex < 0) return;
-  const [task] = homeSyncQueue.splice(taskIndex, 1);
-  const activeIndex = homeSyncQueue.findIndex((item) => item.status === "syncing");
-  homeSyncQueue.splice(activeIndex >= 0 ? activeIndex + 1 : 0, 0, task);
-  homeSyncPriorityTaskId = task.id;
-}
-
 function completeCurrentHomeSyncTask() {
   const activeTask = homeSyncQueue.find((task) => task.status === "syncing");
   if (!activeTask) return;
   activeTask.status = "completed";
   activeTask.transferred = activeTask.size;
-  if (homeSyncPriorityTaskId === activeTask.id) homeSyncPriorityTaskId = "";
   const nextTask = homeSyncQueue.find((task) => task.status === "pending");
   if (nextTask) {
     nextTask.status = "syncing";
+    nextTask.priority = false;
     homeSyncStage = "finishing";
   } else {
     homeSyncStage = "saved";
-    homeSyncPriorityTaskId = "";
   }
 }
 
 function startSingleHomeSyncBatch() {
+  closeHomePriorityMenu();
   homeDeviceAdded = true;
   homeSyncBatchSerial += 1;
   homeSyncQueue = [{ id: `sync-new-${homeSyncBatchSerial}`, title: "New field interview", size: 22, transferred: 7.6, status: "syncing" }];
-  homeSyncPriorityTaskId = "";
   homeSyncStage = "finishing";
 }
 
 function resetMultiHomeSyncBatch() {
+  closeHomePriorityMenu();
   homeDeviceAdded = true;
   homeSyncBatchSerial += 1;
   homeSyncQueue = createDefaultHomeSyncQueue();
-  homeSyncPriorityTaskId = "";
   homeFailedFileState = "failed";
   homeSyncStage = "finishing";
 }
 
 function showNoHomeSyncTasks() {
+  closeHomePriorityMenu();
   homeDeviceAdded = true;
   homeSyncQueue = [];
-  homeSyncPriorityTaskId = "";
   homeFailedFileState = "failed";
   homeSyncStage = "idle";
 }
@@ -1809,6 +1894,7 @@ function showNoHomeSyncTasks() {
 function showNoHomeDevice() {
   homeDeviceAdded = false;
   homeDeviceMenuOpen = false;
+  closeHomePriorityMenu();
 }
 
 function bottom(active = "files") {
@@ -2163,7 +2249,7 @@ function renderDeviceUnbindHelp() {
 
 function renderHomeContent({ showSync = true } = {}) {
   const savedRecordingCard = homeSyncStage === "saved" || homeSyncStage === "idle"
-    ? fileCard({ featured: true, name: "周一项目复盘", meta: "刚刚 · 00:43:52", source: "硬件录音", state: "未转写", tone: "amber", action: "生成", go: "APP-AI-01" })
+    ? fileCard({ featured: true, name: "周一项目复盘", meta: "刚刚 · 00:43:52", source: "硬件录音", state: "未转写", tone: "amber", go: "APP-FILE-10" })
     : "";
   const activeDevice = boundHomeDevices.find((device) => device.id === activeHomeDeviceId) || boundHomeDevices[0];
   const canShowDeviceSync = homeDeviceAdded && showSync;
@@ -2214,11 +2300,11 @@ function renderHomeContent({ showSync = true } = {}) {
       ${homeDeviceAdded ? renderHomeTransferFileCards() : ""}
       ${savedRecordingCard}
       ${homeFailedFileState === "failed"
-        ? fileCard({ name: "产品讨论", meta: "昨天 16:40 · 00:58:20", source: "硬件录音", errorText: "同步失败，请重试…", action: "重试", actionKey: "retry-home-failed-file" })
+        ? fileCard({ name: "产品讨论", meta: "昨天 16:40 · 00:58:20", source: "硬件录音", errorText: "同步失败", action: "重试", actionKey: "retry-home-failed-file" })
         : fileCard({ name: "产品讨论", meta: "昨天 16:40 · 00:58:20", source: "硬件录音", transferState: "syncing", statusText: "正在重试…" })}
-      ${fileCard({ name: "Board meeting", meta: "今天 14:20 · 01:12:17 · 3 个标记", source: "硬件录音", state: "未转写", tone: "amber", action: "生成", go: "APP-AI-01" })}
-      ${fileCard({ name: "Interview import", meta: "昨天 19:10 · 00:34:02", source: "导入文件", state: "AI 已生成", tone: "green", action: "详情", go: "APP-FILE-01", actionTone: "secondary" })}
-      ${fileCard({ name: "Product review", meta: "07-04 · 00:26:44 · 2 个标记", source: "导入文件", state: "未转写", tone: "amber", action: "生成", go: "APP-AI-01" })}
+      ${fileCard({ name: "Board meeting", meta: "今天 14:20 · 01:12:17 · 3 个标记", source: "硬件录音", state: "未转写", tone: "amber", go: "APP-FILE-10" })}
+      ${fileCard({ name: "Interview import", meta: "昨天 19:10 · 00:34:02", source: "导入文件", state: "AI 已生成", tone: "green", go: "APP-FILE-01" })}
+      ${fileCard({ name: "Product review", meta: "07-04 · 00:26:44 · 2 个标记", source: "导入文件", state: "未转写", tone: "amber", go: "APP-FILE-10" })}
       <button class="load-more-btn">继续下拉加载更多文件</button>
     </section>
   `;
@@ -2233,8 +2319,17 @@ function renderHotspotSuccessToast() {
   `;
 }
 
+function renderHomePriorityToast() {
+  if (!homePriorityNotice) return "";
+  return `
+    <div class="home-priority-toast" role="status" aria-live="polite">
+      <span>${h(homePriorityNotice)}</span>
+    </div>
+  `;
+}
+
 function renderHome() {
-  return `${screen(renderHomeContent(), { title: "文件", action: "search", active: "files" })}${homeHotspotSuccessNotice ? renderHotspotSuccessToast() : ""}`;
+  return `${screen(renderHomeContent(), { title: "文件", action: "search", active: "files" })}${homePriorityMenuTaskId ? '<button class="home-priority-dismiss" data-action="close-home-priority-menu" aria-label="关闭传输顺序操作"></button>' : ""}${homeHotspotSuccessNotice ? renderHotspotSuccessToast() : ""}${renderHomePriorityToast()}`;
 }
 
 function renderHomeTrashToast() {
@@ -5347,9 +5442,17 @@ document.addEventListener("click", (event) => {
     render();
     return;
   }
-  if (action && action.dataset.action === "prioritize-home-sync-task") {
-    prioritizeHomeSyncTask(action.dataset.taskId || "");
+  if (action && action.dataset.action === "open-home-priority-menu") {
+    openHomePriorityMenu(action.dataset.taskId || "", event.detail === 0);
+    return;
+  }
+  if (action && action.dataset.action === "close-home-priority-menu") {
+    closeHomePriorityMenu();
     render();
+    return;
+  }
+  if (action && action.dataset.action === "confirm-home-priority") {
+    if (setHomePriorityTask(action.dataset.taskId || "")) render();
     return;
   }
   if (action && action.dataset.action === "toggle-home-device-menu") {
@@ -5551,6 +5654,45 @@ document.addEventListener("click", (event) => {
   }
   const link = event.target.closest("[data-go]");
   if (link) go(link.dataset.go);
+});
+
+document.addEventListener("pointerdown", (event) => {
+  const priorityTrigger = event.target.closest("[data-action='open-home-priority-menu']");
+  if (!priorityTrigger) return;
+  clearHomePriorityLongPressTimer();
+  const taskId = priorityTrigger.dataset.taskId || "";
+  homePriorityLongPressTimer = window.setTimeout(() => {
+    homePriorityLongPressTimer = null;
+    openHomePriorityMenu(taskId);
+  }, 500);
+});
+
+["pointerup", "pointercancel", "pointermove"].forEach((eventName) => {
+  document.addEventListener(eventName, clearHomePriorityLongPressTimer);
+});
+
+document.addEventListener("contextmenu", (event) => {
+  const priorityTrigger = event.target.closest("[data-action='open-home-priority-menu']");
+  if (!priorityTrigger) return;
+  event.preventDefault();
+  clearHomePriorityLongPressTimer();
+  openHomePriorityMenu(priorityTrigger.dataset.taskId || "");
+});
+
+document.addEventListener("keydown", (event) => {
+  const priorityTrigger = event.target.closest?.("[data-action='open-home-priority-menu']");
+  if (priorityTrigger && ["Enter", " ", "Spacebar"].includes(event.key)) {
+    event.preventDefault();
+    openHomePriorityMenu(priorityTrigger.dataset.taskId || "", true);
+    return;
+  }
+  if (event.key !== "Escape" || !homePriorityMenuTaskId) return;
+  const taskId = homePriorityMenuTaskId;
+  closeHomePriorityMenu();
+  render();
+  requestAnimationFrame(() => {
+    document.querySelector(`[data-action="open-home-priority-menu"][data-task-id="${taskId}"]`)?.focus();
+  });
 });
 
 document.addEventListener("input", (event) => {
