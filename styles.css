@@ -9603,12 +9603,123 @@ label.prefs-row {
   font-size: 16px;
 }
 
+.hotspot-connecting-sheet {
+  max-height: none;
+  overflow: visible;
+  padding: 24px 22px max(26px, calc(18px + env(safe-area-inset-bottom)));
+  text-align: center;
+}
+
+.hotspot-connecting-sheet .sheet-grabber {
+  width: 32px;
+  height: 5px;
+  margin: -12px auto 16px;
+}
+
+.hotspot-connecting-sheet .hotspot-connecting-spinner {
+  display: block;
+  width: 30px;
+  height: 30px;
+  margin: 0 auto 14px;
+  border-width: 3px;
+}
+
+.sync-transfer-sheet.hotspot-connecting-sheet h2 {
+  margin: 0;
+  color: #111;
+  font-size: 20px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.sync-transfer-sheet.hotspot-connecting-sheet > p {
+  margin: 4px 0 14px;
+  color: #777;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.hotspot-connecting-cancel {
+  min-width: 88px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 0;
+  background: transparent;
+  color: #111;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hotspot-connecting-cancel:active {
+  opacity: .56;
+}
+
+.hotspot-connecting-cancel:focus-visible {
+  outline: 2px solid #111;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.hotspot-success-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 104px;
+  z-index: 7;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  min-height: 46px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border: 1px solid #d4eadb;
+  border-radius: 12px;
+  background: rgba(242, 250, 245, .98);
+  color: #1a4d2c;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.35;
+  white-space: nowrap;
+  box-shadow: 0 10px 28px rgba(33, 96, 55, .14);
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: hotspot-success-lifecycle 1.5s ease both;
+}
+
+.hotspot-success-toast i {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #36a15d;
+  box-shadow: 0 0 0 5px rgba(54, 161, 93, .12);
+}
+
+@keyframes hotspot-success-lifecycle {
+  0% {
+    opacity: 0;
+  }
+
+  12%,
+  82% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .settings-week-heatmap-scroll {
     scroll-behavior: auto;
   }
 
-  .sync-state-spinner {
+  .sync-state-spinner,
+  .hotspot-success-toast {
     animation: none;
   }
 }

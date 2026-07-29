@@ -42,6 +42,82 @@ patches made since previous QA pass:
 
 final result: passed
 
+## 2026-07-29 update: APP-SYNC-01 bottom floating success toast
+
+- Source visual truth: `/Users/andyma/.codex/generated_images/019fadb5-1a31-7433-aadd-e37f4298e9df/exec-a07f763c-a832-41e9-8645-5ecec26a29fb.png` (853 × 1844 px), selected direction 1.
+- Browser-rendered implementation screenshot: `/Users/andyma/.codex/visualizations/2026/07/29/019fadb5-1a31-7433-aadd-e37f4298e9df/implementation-app-sync-01-bottom-toast-fullpage-2x.png` (2880 × 2400 px).
+- Focused source/implementation comparison: `/Users/andyma/.codex/visualizations/2026/07/29/019fadb5-1a31-7433-aadd-e37f4298e9df/design-qa-app-sync-01-bottom-toast-focused-comparison.png`.
+- Browser viewport override: 2880 × 2400 px. The prototype phone measured 390 × 844 CSS px; the focused comparison normalizes the selected reference and implementation toast region to equal visual size.
+- State: APP-SYNC-01 successful hotspot connection, immediate return to APP-HOME-01, active recording-file transfer, and transient success toast.
+
+### Comparison history
+
+- Earlier implementation placed the success notice inside `.screen-content`, which reserved vertical space and moved the device summary and file list while the notice was present.
+- Fix: render the notice as a sibling overlay of the screen and bottom navigation, then anchor it to the phone viewport with `position: absolute`, `left: 50%`, and `bottom: 104px`.
+- Post-fix geometry evidence: while the toast was visible, the device summary was at y=258.492 px and the file list at y=346.492 px. After the 1.5-second notice was removed, both values were unchanged; measured layout shift was 0 px for both regions.
+- No actionable P0, P1, or P2 finding remains.
+
+### Required fidelity surfaces
+
+- Fonts and typography: retained the existing system font stack, 14 px success label, 650 weight, single-line copy, and exact text `已连接，开始高速传输`.
+- Spacing and layout rhythm: the 46 px toast is centered above the 86 px bottom navigation with a 104 px bottom offset. The app title, recorder device row, file-list heading, and transfer rows remain in their original positions.
+- Colors and visual tokens: retained the restrained mint surface, green status dot, semantic green text, light border, and existing success shadow.
+- Image quality and asset fidelity: no new runtime asset was added; the implementation reuses the prototype's existing UI and status-dot language.
+- Copy and content: APP-SYNC-01 continues to use recording-file transfer language. APP-DEV-07 firmware copy and behavior were not changed.
+- Accessibility and motion: the toast keeps `role="status"` and `aria-live="polite"`, does not take focus, uses `pointer-events: none`, fades in and out within the existing 1.5-second lifecycle, and disables animation under reduced motion.
+
+### Primary interactions tested
+
+- `继续并连接` opens the system join confirmation.
+- System `加入` shows the lightweight connecting state, then returns to APP-HOME-01 with active file-transfer progress.
+- The success toast appears above the bottom navigation, does not intercept input, and is removed after 1.5 seconds.
+- Device summary and file-list y positions remain identical before and after toast removal.
+- Browser console check returned zero warnings or errors.
+
+### Follow-up polish
+
+- No P3 visual follow-up is required for this scoped change.
+
+final result: passed
+
+## 2026-07-29 update: APP-SYNC-01 lightweight connecting and immediate transfer handoff
+
+- Source visual truth: `/Users/andyma/.codex/visualizations/2026/07/29/019fadb5-1a31-7433-aadd-e37f4298e9df/app-sync-01-status-direction-1.png` (1694 × 929 px).
+- Implementation screenshots: `/Users/andyma/.codex/visualizations/2026/07/29/019fadb5-1a31-7433-aadd-e37f4298e9df/implementation-app-sync-01-option1-connecting-final-v2.jpg` and `/Users/andyma/.codex/visualizations/2026/07/29/019fadb5-1a31-7433-aadd-e37f4298e9df/implementation-app-sync-01-option1-success-final-v2.jpg` (each normalized to 390 × 844 px).
+- Browser viewport override: 2880 × 2400 physical px; the app phone measured 390 × 844 CSS px at the browser's 2× density. Captures were cropped from the 780 × 1688 physical-pixel phone frame and normalized to 390 × 844.
+- States: lightweight connecting bottom sheet; immediate return to APP-HOME-01 with success notice and active file-transfer progress.
+- Full-view and focused comparison evidence: `/Users/andyma/.codex/visualizations/2026/07/29/019fadb5-1a31-7433-aadd-e37f4298e9df/design-qa-app-sync-01-option1-comparison-final.jpg`. The top row is the normalized selected design; the bottom row is the normalized implementation. Per-state crops keep the connecting copy, success notice, device row, and transfer progress readable.
+
+### Comparison history
+
+- Initial [P2] spacing/layout finding: the first success notice capture overlaid the recorder device row. Fix: moved the notice into the home content flow so the recorder row remains fully readable. Post-fix evidence: `implementation-app-sync-01-option1-success-final-v2.jpg`.
+- Initial [P2] shape/affordance finding: the connecting sheet omitted the selected design's grabber. Fix: reused the prototype's existing `.sheet-grabber` component with APP-SYNC-01-specific sizing. Post-fix evidence: `implementation-app-sync-01-option1-connecting-final-v2.jpg`.
+- No actionable P0, P1, or P2 finding remains in the final comparison.
+
+### Required fidelity surfaces
+
+- Fonts and typography: retained the prototype's system sans-serif family and existing title/body weights; `正在连接录音卡…`, `通常只需几秒`, `取消`, and the success notice remain readable without wrapping.
+- Spacing and layout rhythm: the connecting sheet is materially shorter than the former full explanation state; the spinner, grabber, copy, and 44 px cancel target have clear vertical separation. The success notice sits above, rather than over, the recorder row.
+- Colors and visual tokens: retained the existing blue loading token and restrained green success token; background dimming preserves the selected design's hierarchy.
+- Image quality and asset fidelity: no new raster asset was required. Existing recorder and phone UI assets remain intact; no placeholder or generated art was introduced into the coded screen.
+- Copy and content: APP-SYNC-01 continues to use recording-file language and the guide trust copy `仅用于传输录音文件，完成后恢复原网络`; APP-DEV-07 firmware copy and flow were not changed.
+- Accessibility and motion: connecting and success feedback use live status semantics; cancel remains a keyboard-focusable 44 px control; reduced-motion mode disables spinner and success-entry animation.
+
+### Primary interactions tested
+
+- `继续并连接` opens exactly one system join dialog.
+- System `取消` returns to the connection guide.
+- System `加入` shows the lightweight connecting sheet.
+- Connecting `取消` clears the pending transition and returns to APP-HOME-01 without a success notice.
+- Successful connection returns directly to APP-HOME-01; the success notice appears, disappears after 1.5 seconds, and file-transfer progress remains visible.
+- No independent success sheet appears. Browser console verification found zero errors or warnings.
+
+### Follow-up polish
+
+- [P3] The selected visual uses a check icon in the success notice; the implementation intentionally keeps the prototype's existing green status-dot language for icon-system consistency.
+
+final result: passed
+
 ## 2026-07-29 update: APP-SYNC-01 and APP-DEV-07 connection guide simplification
 
 - Source visual truth: `design-reference-connection-guide-option-1.png`.

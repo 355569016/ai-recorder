@@ -319,12 +319,12 @@ const pages = [
     goal: "引导手机临时加入录音卡热点，以第一版支持的方式完成高速传输。",
     entry: "APP-HOME-01 文件首页点击“快传”。",
     fields: [["device_hotspot_ssid", "录音卡热点名称", "BLE/设备热点"], ["hotspot_join_state", "手机加入热点状态", "系统 Wi-Fi"], ["system_join_prompt", "系统加入无线局域网确认", "操作系统"], ["network_impact_tip", "联网影响提示", "本地文案"]],
-    rules: ["APP-HOME-01 点击“快传”后直接进入本页，不再展示传输方式选择。", "第一版仅支持手机临时加入录音卡热点的高速传输方案，不提供让录音卡连接手机当前 Wi-Fi 的 APP-SYNC-02 流程。", "APP 内底部弹窗蒙层下复用 APP-HOME-01 文件首页，只负责解释连接设备热点的目的、下一步系统操作和联网影响。", "连接前说明页不展示模拟系统弹窗或等待确认状态卡，只提示系统弹窗出现后选择加入。", "用户点击继续并连接后才调用系统加入热点能力；系统原生风格的取消/加入确认弹窗直接覆盖在当前连接设备引导页上，不切换或复用固件更新页面。", "系统弹窗点击取消后返回连接前说明；点击加入后关闭系统弹窗，回到高速传输引导页并依次展示连接中和连接成功。", "连接成功态展示 2 秒，随后自动返回文件首页并开始显示热点高速同步状态。", "连接热点期间手机可能暂时无法通过 Wi-Fi 上网；传输结束后恢复原网络。"],
-    states: ["连接前说明", "系统加入确认", "连接中", "连接成功"],
+    rules: ["APP-HOME-01 点击“快传”后直接进入本页，不再展示传输方式选择。", "第一版仅支持手机临时加入录音卡热点的高速传输方案，不提供让录音卡连接手机当前 Wi-Fi 的 APP-SYNC-02 流程。", "APP 内底部弹窗蒙层下复用 APP-HOME-01 文件首页，只负责解释连接设备热点的目的、下一步系统操作和联网影响。", "连接前说明页不展示模拟系统弹窗或等待确认状态卡，只提示系统弹窗出现后选择加入。", "用户点击继续并连接后才调用系统加入热点能力；系统原生风格的取消/加入确认弹窗直接覆盖在当前连接设备引导页上，不切换或复用固件更新页面。", "系统弹窗点击取消后返回连接前说明；点击加入后关闭系统弹窗，并以轻量底部反馈展示正在连接。", "连接中仅展示加载反馈、通常只需几秒和取消操作；取消后中止本次高速连接并返回文件首页。", "连接成功后立即返回文件首页，以“已连接，开始高速传输”短提示和文件传输进度承接，不展示独立成功页或额外等待。", "连接热点期间手机可能暂时无法通过 Wi-Fi 上网；传输结束后恢复原网络。"],
+    states: ["连接前说明", "系统加入确认", "连接中（轻量底部反馈）", "连接成功并开始传输（首页提示）"],
     deps: ["BLE：启动和读取录音卡 SoftAP 会话。", "iOS / Android：临时加入设备热点能力。", "设备热点鉴权和连接状态回传。"],
-    acceptance: ["APP-HOME-01 点击“快传”直接进入 APP-SYNC-01，不出现传输方式选择弹层。", "第一版导航、状态链路和页面流程中不出现 APP-SYNC-02。", "APP 引导弹窗底层为 APP-HOME-01 文件首页，并使用两步说明提示下一步在系统弹窗中选择加入。", "连接前说明不展示模拟系统弹窗或等待确认状态卡，只保留继续并连接和暂不使用。", "点击继续并连接后出现独立的系统加入无线局域网确认弹窗，弹窗下方仍为当前录音文件传输引导页，不出现固件更新内容。", "系统取消返回连接前说明，系统加入进入连接中；连接中和连接成功状态不展示完成或取消按钮。", "成功状态停留 2 秒后自动返回文件首页，首页同步卡标识为录音卡热点。", "右侧状态链路可独立预览连接前说明、连接中和连接成功。"],
+    acceptance: ["APP-HOME-01 点击“快传”直接进入 APP-SYNC-01，不出现传输方式选择弹层。", "第一版导航、状态链路和页面流程中不出现 APP-SYNC-02。", "APP 引导弹窗底层为 APP-HOME-01 文件首页，并使用两步说明提示下一步在系统弹窗中选择加入。", "连接前说明不展示模拟系统弹窗或等待确认状态卡，只保留继续并连接和暂不使用。", "点击继续并连接后出现独立的系统加入无线局域网确认弹窗，弹窗下方仍为当前录音文件传输引导页，不出现固件更新内容。", "系统取消返回连接前说明；系统加入后展示轻量连接中底部反馈，包含正在连接、通常只需几秒和取消操作。", "连接成功后立即进入文件首页，不展示独立成功页；首页短提示为“已连接，开始高速传输”，文件列表显示正在传输及进度。", "右侧状态链路可独立预览连接前说明、连接中和成功后开始传输。"],
     prototypeLinks: [],
-    prototypeActions: [["连接前说明", "set-hotspot-state", "awaiting"], ["连接中", "set-hotspot-state", "connecting"], ["连接成功", "set-hotspot-state", "success"]]
+    prototypeActions: [["连接前说明", "set-hotspot-state", "awaiting"], ["连接中", "set-hotspot-state", "connecting"], ["开始传输", "set-hotspot-state", "success"]]
   },
   {
     id: "APP-HOME-01",
@@ -1369,6 +1369,8 @@ let homeDeviceMenuOpen = false;
 let homeDeviceAdded = true;
 let activeHomeDeviceId = "a1";
 let hotspotTransferState = "awaiting";
+let homeHotspotSuccessNotice = false;
+let homeHotspotSuccessNoticeTimer = null;
 let firmwareUpdateStep = "download";
 let firmwareUpdateTransport = "wifi";
 let firmwareJoinPromptOpen = false;
@@ -1506,6 +1508,11 @@ function go(id) {
   }
   if (currentPageId === "APP-SYNC-01" && previousPageId !== "APP-SYNC-01") {
     hotspotTransferState = "awaiting";
+    homeHotspotSuccessNotice = false;
+    if (homeHotspotSuccessNoticeTimer) {
+      window.clearTimeout(homeHotspotSuccessNoticeTimer);
+      homeHotspotSuccessNoticeTimer = null;
+    }
   }
   if (currentPageId === "APP-DEV-07" && previousPageId !== "APP-DEV-07") {
     firmwareUpdateTransport = "wifi";
@@ -2153,8 +2160,17 @@ function renderHomeContent({ showSync = true } = {}) {
   `;
 }
 
+function renderHotspotSuccessToast() {
+  return `
+    <div class="hotspot-success-toast" role="status" aria-live="polite">
+      <i aria-hidden="true"></i>
+      <span>已连接，开始高速传输</span>
+    </div>
+  `;
+}
+
 function renderHome() {
-  return screen(renderHomeContent(), { title: "文件", action: "search", active: "files" });
+  return `${screen(renderHomeContent(), { title: "文件", action: "search", active: "files" })}${homeHotspotSuccessNotice ? renderHotspotSuccessToast() : ""}`;
 }
 
 function renderHomeTrashToast() {
@@ -4315,27 +4331,12 @@ function renderSyncTransferBackdrop() {
   `;
 }
 
-function syncConnectionStatus(state) {
-  const hotspotStates = {
-    connecting: ["连接中", "正在加入录音卡高速传输网络…", "loading"],
-    success: ["连接成功", "已连接录音卡，可开始高速传输", "success"]
-  };
-  const [label, message, tone] = hotspotStates[state];
-  return `
-    <div class="sync-connection-status ${tone}" role="status" aria-live="polite">
-      <i aria-hidden="true"></i>
-      <span><b>${h(label)}</b><small>${h(message)}</small></span>
-      ${state === "connecting" ? '<em class="sync-state-spinner" aria-hidden="true"></em>' : ""}
-    </div>
-  `;
-}
-
 function renderHotspotTransferContent(state) {
   const isAwaiting = state === "awaiting";
   return `
     ${renderSyncTransferBackdrop()}
     <div class="sync-transfer-guide-scrim" aria-hidden="true"></div>
-    <section class="firmware-sheet sync-transfer-sheet hotspot-transfer-sheet ${isAwaiting ? "connection-guide-sheet" : ""}">
+    <section class="firmware-sheet sync-transfer-sheet hotspot-transfer-sheet ${isAwaiting ? "connection-guide-sheet" : "hotspot-connecting-sheet"}"${isAwaiting ? "" : ' role="status" aria-live="polite"'}>
       ${isAwaiting ? `
         ${renderConnectionGuideSteps("系统确认")}
         <h2>连接设备开启高速传输</h2>
@@ -4345,13 +4346,11 @@ function renderHotspotTransferContent(state) {
         <button class="primary-btn" data-action="open-hotspot-join-prompt">继续并连接</button>
         <button class="secondary-btn connection-guide-cancel" data-go="APP-HOME-01">暂不使用</button>
       ` : `
-        <h2>连接设备开启高速传输</h2>
-        <p>手机正在连接 AI Recorder A1 的高速传输网络，用于传输录音文件。</p>
-        ${syncConnectionStatus(state)}
-        <div class="sync-network-tip">
-          <i aria-hidden="true">!</i>
-          <span>连接期间可能暂时无法通过 Wi-Fi 上网；传输结束后将断开设备网络，并尝试恢复原网络。</span>
-        </div>
+        <div class="sheet-grabber" aria-hidden="true"></div>
+        <em class="sync-state-spinner hotspot-connecting-spinner" aria-hidden="true"></em>
+        <h2>正在连接录音卡…</h2>
+        <p>通常只需几秒</p>
+        <button class="hotspot-connecting-cancel" data-action="cancel-hotspot-connecting">取消</button>
       `}
     </section>
   `;
@@ -4359,6 +4358,9 @@ function renderHotspotTransferContent(state) {
 
 function renderHotspotTransfer() {
   const state = hotspotTransferState;
+  if (state === "success") {
+    return `${screen(renderHomeContent(), { title: "文件", action: "search", active: "files" })}${renderHotspotSuccessToast()}`;
+  }
   if (state === "systemPrompt") {
     return screen(`
       <div class="sync-native-system-background dimmed" aria-hidden="true">
@@ -5137,6 +5139,15 @@ document.addEventListener("click", (event) => {
     render();
     return;
   }
+  if (action && action.dataset.action === "cancel-hotspot-connecting") {
+    if (syncPrototypeTimer) {
+      window.clearTimeout(syncPrototypeTimer);
+      syncPrototypeTimer = null;
+    }
+    hotspotTransferState = "awaiting";
+    go("APP-HOME-01");
+    return;
+  }
   if (action && action.dataset.action === "confirm-hotspot-join") {
     hotspotTransferState = "connecting";
     render();
@@ -5144,14 +5155,16 @@ document.addEventListener("click", (event) => {
       syncPrototypeTimer = null;
       if (currentPageId !== "APP-SYNC-01") return;
       hotspotTransferState = "success";
-      render();
-      syncPrototypeTimer = window.setTimeout(() => {
-        syncPrototypeTimer = null;
-        if (currentPageId !== "APP-SYNC-01" || hotspotTransferState !== "success") return;
-        startSingleHomeSyncBatch();
-        homeSyncTransport = "hotspot";
-        go("APP-HOME-01");
-      }, 2000);
+      startSingleHomeSyncBatch();
+      homeSyncTransport = "hotspot";
+      homeHotspotSuccessNotice = true;
+      go("APP-HOME-01");
+      if (homeHotspotSuccessNoticeTimer) window.clearTimeout(homeHotspotSuccessNoticeTimer);
+      homeHotspotSuccessNoticeTimer = window.setTimeout(() => {
+        homeHotspotSuccessNoticeTimer = null;
+        homeHotspotSuccessNotice = false;
+        if (currentPageId === "APP-HOME-01") render();
+      }, 1500);
     }, 900);
     return;
   }
@@ -5161,6 +5174,10 @@ document.addEventListener("click", (event) => {
       syncPrototypeTimer = null;
     }
     hotspotTransferState = action.dataset.value || "awaiting";
+    if (hotspotTransferState === "success") {
+      startSingleHomeSyncBatch();
+      homeSyncTransport = "hotspot";
+    }
     render();
     return;
   }
