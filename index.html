@@ -78,7 +78,7 @@ let recordingMarkSerial = recordingBaseMarks.length;
 let recordingExpandedMarkIds = new Set();
 let recordingNotice = "";
 let recordingNoticeTimer = null;
-let fileDetailActiveTab = "markers";
+let fileDetailActiveTab = "outline";
 let fileDetailAudioSeconds = 0;
 let fileDetailAudioPlaying = false;
 let fileDetailMarkerEditor = null;
@@ -658,10 +658,10 @@ const pages = [
     goal: "集中播放音频、查看并原位编辑录音标记、转写内容和智能总结，同时查看大纲、待办事项和思维导图。",
     entry: "文件列表点击文件、同步完成通知、任务完成通知。",
     fields: [["display_title", "展示标题", "文件名/云端同步数据/AI 摘要"], ["title_source", "标题来源", "本地数据库/云端/AI"], ["ai_tags", "AI 标签", "AI 会议总结"], ["audio_progress", "播放进度", "本地播放器"], ["skip_silence_enabled", "跳过空白片段", "播放器设置"], ["playback_rate", "播放倍速", "播放器设置"], ["ai_sections", "AI 内容结构", "AI 模板"], ["marker_list", "文件标记列表", "录音标记/本地数据库"], ["marker_anchor_map", "标记锚点映射", "录音标记/播放时间戳"], ["marker_generation_role", "标记生成作用", "AI 生成任务快照"], ["note_question", "笔记提问", "AI 问答"], ["share_state", "分享状态", "云端分享"]],
-    rules: ["开启同步云端时，标题优先根据云端同步数据提炼。", "未开启同步云端时，标题默认使用文件名称。", "生成 AI 会议摘要后，标题根据 AI 会议内容重新提炼总结。", "生成 AI 会议总结后，根据会议内容提取关键标签。", "播放器进度条支持点击和拖动调整音频进度。", "播放器控制区包含音频设置、快退 15 秒、播放、快进 15 秒、倍速，不展示额外方向箭头。", "播放器下方将标记作为一级内容页签，与大纲、智能总结、文字记录、待办事项和思维导图并列。", "录音中产生的文字、时间和照片标记在录音结束后完整继承到文件详情，不能依赖转写或 AI 生成状态。", "录音结束后不再允许新增标记，只能维护录音过程中已经产生的标记。", "点击标记时间或播放图标定位到对应音频时间并开始播放。", "点击标记文本、照片说明、文字记录或智能总结时，原文字直接出现光标并唤起系统键盘；不打开弹窗、新页面，不增加边框、下划线、取消或保存按钮。", "智能总结和文字记录使用系统键盘上方的轻量格式工具栏，至少包含标题/正文、列表、对齐、引用、撤销和重做；普通标记与照片说明保持纯文本键盘，不展示格式工具栏。", "编辑内容实时记录，输入框失焦、收起键盘或切换页签时自动保存。", "照片可打开和删除；标记时间与来源保持只读。", "生成 AI 内容时读取当时的标记快照作为辅助笔记；生成后继续编辑标记不会静默改写既有 AI 内容，重新生成时再读取最新标记。", "页面底部固定展示对此笔记提问输入框。", "右上角分享按钮打开分享弹窗，三个点打开更多操作浮层。"],
+    rules: ["开启同步云端时，标题优先根据云端同步数据提炼。", "未开启同步云端时，标题默认使用文件名称。", "生成 AI 会议摘要后，标题根据 AI 会议内容重新提炼总结。", "生成 AI 会议总结后，根据会议内容提取关键标签。", "播放器进度条支持点击和拖动调整音频进度。", "播放器控制区包含音频设置、快退 15 秒、播放、快进 15 秒、倍速，不展示额外方向箭头。", "播放器下方的大纲、智能总结、文字记录、标记、待办事项和思维导图为同一长页的内容锚点导航，不切换页面或替换内容；点击仅定位，滚动时自动关联高亮当前阅读区。", "录音中产生的文字、时间和照片标记在录音结束后完整继承到文件详情，不能依赖转写或 AI 生成状态。", "录音结束后不再允许新增标记，只能维护录音过程中已经产生的标记。", "点击标记时间或播放图标定位到对应音频时间并开始播放。", "点击标记文本、照片说明、文字记录或智能总结时，原文字直接出现光标并唤起系统键盘；不打开弹窗、新页面，不增加边框、下划线、取消或保存按钮。", "智能总结和文字记录使用系统键盘上方的轻量格式工具栏，至少包含标题/正文、列表、对齐、引用、撤销和重做；普通标记与照片说明保持纯文本键盘，不展示格式工具栏。", "编辑内容实时记录，输入框失焦、收起键盘或跳转其他内容锚点时自动保存。", "照片可打开和删除；标记时间与来源保持只读。", "生成 AI 内容时读取当时的标记快照作为辅助笔记；生成后继续编辑标记不会静默改写既有 AI 内容，重新生成时再读取最新标记。", "页面底部固定展示对此笔记提问输入框。", "右上角分享按钮打开分享弹窗，三个点打开更多操作浮层。"],
     states: ["标记页签", "标记原位编辑", "转写原位编辑", "总结原位编辑", "照片预览", "未生成 AI 摘要", "AI 已生成", "音频设置", "倍速选择", "分享", "更多操作", "文件损坏", "删除确认"],
     deps: ["本地播放器：进度、跳转、快退快进、倍速。", "音频分析：静音/无声片段识别。", "转写服务：文字记录和时间戳。", "本地数据库：录音标记、备注、照片附件。", "AI 服务：标题、标签、大纲、总结、待办、思维导图、笔记问答。", "云端分享：分享链接和权限。"],
-    acceptance: ["播放器下方必须有大纲、智能总结、文字记录、标记、待办事项、思维导图一级页签。", "录音期间的全部标记在已生成文件详情中完整展示，并标注已用于本次生成、可继续编辑。", "录音结束后的文件详情不得出现新增标记入口。", "点击标记时间定位音频；点击标记内容、文字记录和智能总结均在原文字位置直接输入，仅显示光标和系统键盘，不出现独立窗口或显式保存操作。", "总结和转写编辑时格式栏可切换标题、列表、对齐和引用；标记编辑时不显示格式栏。", "失焦、收起键盘或切换页签后内容自动保存。", "照片可查看或删除，时间与来源只读。", "思维导图按卡片预览呈现。", "音频设置和倍速按钮能打开对应弹窗。", "底部有对此笔记提问输入框。", "标题和标签规则在字段与交互说明中明确。"],
+    acceptance: ["播放器下方必须有大纲、智能总结、文字记录、标记、待办事项、思维导图的横向锚点导航，六个内容区在同一长页连续展示。", "点击导航项仅平滑定位；向下滚动时当前阅读内容区自动高亮，且当前项保持可见。", "录音期间的全部标记在已生成文件详情中完整展示，并标注已用于本次生成、可继续编辑。", "录音结束后的文件详情不得出现新增标记入口。", "点击标记时间定位音频；点击标记内容、文字记录和智能总结均在原文字位置直接输入，仅显示光标和系统键盘，不出现独立窗口或显式保存操作。", "总结和转写编辑时格式栏可切换标题、列表、对齐和引用；标记编辑时不显示格式栏。", "失焦、收起键盘或跳转其他内容锚点后内容自动保存。", "照片可查看或删除，时间与来源只读。", "思维导图按卡片预览呈现。", "音频设置和倍速按钮能打开对应弹窗。", "底部有对此笔记提问输入框。", "标题和标签规则在字段与交互说明中明确。"],
     prototypeLinks: [["文件详情已转写", "APP-FILE-01"], ["文件详情为空", "APP-FILE-10"]]
   },
   {
@@ -1674,7 +1674,7 @@ function go(id) {
     fileDetailNotice = "";
   }
   if (currentPageId === "APP-FILE-01" && previousPageId !== "APP-FILE-01") {
-    fileDetailActiveTab = "markers";
+    fileDetailActiveTab = "outline";
   }
   if (currentPageId === "APP-FILE-10" && previousPageId !== "APP-FILE-10") {
     fileDetailActiveTab = "markers";
@@ -3324,16 +3324,32 @@ function renderFileDetailTabs(state = "generated") {
     ? [["大纲", "outline"], ["智能总结", "summary"], ["文字记录", "transcript"], ["标记", "markers"], ["待办事项", "todos"], ["思维导图", "mindmap"]]
     : [["标记", "markers"], ["总结", "summary"]];
   return `
-    <nav class="file-detail-tabs" aria-label="文件详情内容">
+    <nav class="file-detail-tabs" aria-label="文件详情内容锚点导航">
       ${tabs.map(([label, value]) => `<button class="${fileDetailActiveTab === value ? "active" : ""}" data-action="file-detail-set-tab" data-value="${value}">${h(label)}</button>`).join("")}
     </nav>
   `;
 }
 
+function renderFileDetailUntranscribedSummary() {
+  return `
+    <section class="untranscribed-summary" aria-label="未转写总结">
+      <span class="untranscribed-summary-icon" aria-hidden="true"></span>
+      <h2>未转写总结</h2>
+      <p>完成转写并生成后，将在这里展示录音总结。</p>
+      <p>已保存的 ${recordingMarks.length} 条标记会作为生成辅助笔记。</p>
+    </section>
+  `;
+}
+
 function renderFileDetail() {
-  const activeTab = ["outline", "summary", "transcript", "markers", "todos", "mindmap"].includes(fileDetailActiveTab) ? fileDetailActiveTab : "markers";
+  const activeTab = ["outline", "summary", "transcript", "markers", "todos", "mindmap"].includes(fileDetailActiveTab) ? fileDetailActiveTab : "outline";
   fileDetailActiveTab = activeTab;
   const contentEditing = Boolean(fileDetailContentEditor);
+  const editingSection = fileDetailContentEditor?.kind === "summary"
+    ? "summary"
+    : fileDetailContentEditor?.kind === "transcript"
+      ? "transcript"
+      : "";
   return `
     <div class="statusbar detail-statusbar"><span>9:41</span><span>5G</span><span>82%</span></div>
     <main class="file-detail-page ${fileDetailMarkerEditor || contentEditing ? "is-editing" : ""} ${contentEditing ? "is-rich-editing" : ""}">
@@ -3348,17 +3364,17 @@ function renderFileDetail() {
       ${renderFileDetailPlayer("00:43:52")}
       ${renderFileDetailTabs("generated")}
 
-      ${activeTab === "markers" ? renderFileDetailMarkers("generated") : ""}
-      ${activeTab === "outline" ? `<section class="ai-section outline-section" id="detail-outline">
+      <div class="file-detail-sections" aria-label="文件详情内容">
+      <section class="file-detail-section ai-section outline-section" data-detail-section="outline" id="detail-outline">
         <div class="section-head">
           <h2>大纲</h2>
           <span class="feedback-icons">♡ ♡</span>
         </div>
         <div class="outline-row"><a href="#">0:00:02</a><span>会议内容与图片关联问题</span></div>
         <div class="outline-row"><a href="#">0:00:59</a><span>拍摄与标注未处理的困扰</span></div>
-      </section>` : ""}
+      </section>
 
-      ${activeTab === "summary" ? `<section class="ai-section" id="detail-summary">
+      <section class="file-detail-section ai-section ${editingSection === "summary" ? "is-editing-section" : ""}" data-detail-section="summary" id="detail-summary">
         <h2>智能总结</h2>
         <h3>录音信息</h3>
         <ul class="summary-list">
@@ -3369,15 +3385,19 @@ function renderFileDetail() {
         </ul>
         <h3>录音总结</h3>
         ${renderFileDetailEditableContent("summary", fileDetailContent.summary, { label: "录音总结", rows: 6 })}
-      </section>` : ""}
+      </section>
 
-      ${activeTab === "transcript" ? `<section class="ai-section" id="detail-transcript">
+      <section class="file-detail-section ai-section ${editingSection === "transcript" ? "is-editing-section" : ""}" data-detail-section="transcript" id="detail-transcript">
         <h2>文字记录</h2>
         <div class="transcript-line"><b>00:03</b>${renderFileDetailEditableContent("transcript", fileDetailContent.transcript[0], { key: "transcript-0", label: "00:03 转写内容", rows: 4 })}</div>
         <div class="transcript-line"><b>01:18</b>${renderFileDetailEditableContent("transcript", fileDetailContent.transcript[1], { key: "transcript-1", label: "01:18 转写内容", rows: 4 })}</div>
-      </section>` : ""}
+      </section>
 
-      ${activeTab === "todos" ? `<section class="ai-section" id="detail-todos">
+      <section class="file-detail-section ai-section" data-detail-section="markers" id="detail-markers">
+        ${renderFileDetailMarkers("generated")}
+      </section>
+
+      <section class="file-detail-section ai-section" data-detail-section="todos" id="detail-todos">
         <h2>待办事项</h2>
         <div class="quote-block">
           <p>1. 明确拼团营销工具 MVP 的上线范围和验收口径，避免标准商城和积分商城规则相互影响。</p>
@@ -3389,9 +3409,9 @@ function renderFileDetail() {
           <li>整理积分商城拼团规则与异常状态。</li>
           <li>补充大商品库项目启动前的依赖清单。</li>
         </ul>
-      </section>` : ""}
+      </section>
 
-      ${activeTab === "mindmap" ? `<section class="ai-section mindmap-section" id="detail-mindmap">
+      <section class="file-detail-section ai-section mindmap-section" data-detail-section="mindmap" id="detail-mindmap">
         <p class="template-line">使用模板：<a href="#">会议总结</a></p>
         <div class="mindmap-card">
           <div class="mindmap-head"><h2>思维导图</h2><button aria-label="展开思维导图">↗</button></div>
@@ -3413,7 +3433,8 @@ function renderFileDetail() {
           <button>♡ 满意</button>
           <button>♡ 不满意</button>
         </div>
-      </section>` : ""}
+      </section>
+      </div>
     </main>
     ${contentEditing ? "" : `<div class="note-question-bar" data-action="open-ask-plaud"><span>Beta</span><input placeholder="对此笔记提问" aria-label="对此笔记提问" readonly></div>`}
     ${renderAskPlaudSheet()}
@@ -3439,11 +3460,7 @@ function renderFileDetailEmpty() {
       </div>
       ${renderFileDetailPlayer("00:43:52")}
       ${renderFileDetailTabs("pending")}
-      ${activeTab === "markers" ? renderFileDetailMarkers("pending") : `<section class="empty-note-state">
-        <div class="empty-note-icon"></div>
-        <h2>可生成笔记</h2>
-        <p>生成后将在此处显示总结，并参考已保存的 ${recordingMarks.length} 条标记。</p>
-      </section>`}
+      ${activeTab === "markers" ? renderFileDetailMarkers("pending") : renderFileDetailUntranscribedSummary()}
     </main>
     <div class="empty-generate-bar">
       <button class="primary-btn" data-go="APP-AI-01">生成</button>
@@ -5467,6 +5484,46 @@ function render() {
   renderFlow();
   renderPrototypeLinks(page);
   renderSpec(page);
+  if (page.id === "APP-FILE-01") setupFileDetailSectionSpy();
+}
+
+function setFileDetailActiveSection(value) {
+  if (!["outline", "summary", "transcript", "markers", "todos", "mindmap"].includes(value) || fileDetailActiveTab === value) return;
+  fileDetailActiveTab = value;
+  const nav = document.querySelector(".file-detail-tabs");
+  const activeButton = nav?.querySelector(`[data-value="${value}"]`);
+  nav?.querySelectorAll("button").forEach((button) => {
+    button.classList.toggle("active", button.dataset.value === value);
+  });
+  activeButton?.scrollIntoView({ behavior: "auto", block: "nearest", inline: "center" });
+}
+
+function setupFileDetailSectionSpy() {
+  const scroller = document.querySelector(".file-detail-page");
+  const sections = [...document.querySelectorAll("[data-detail-section]")];
+  if (!scroller || !sections.length) return;
+  const update = () => {
+    const containerTop = scroller.getBoundingClientRect().top;
+    const targetLine = containerTop + 132;
+    let active = sections[0];
+    sections.forEach((section) => {
+      if (section.getBoundingClientRect().top <= targetLine) active = section;
+    });
+    setFileDetailActiveSection(active.dataset.detailSection);
+  };
+  scroller.addEventListener("scroll", update, { passive: true });
+  requestAnimationFrame(update);
+}
+
+function scrollFileDetailToSection(target, behavior = "smooth") {
+  const scroller = document.querySelector(".file-detail-page");
+  const section = document.querySelector(`[data-detail-section="${target}"]`);
+  if (!scroller || !section) return false;
+  const navHeight = document.querySelector(".file-detail-tabs")?.offsetHeight || 54;
+  const nextTop = Math.max(0, scroller.scrollTop + section.getBoundingClientRect().top - scroller.getBoundingClientRect().top - navHeight - 10);
+  if (typeof scroller.scrollTo === "function") scroller.scrollTo({ top: nextTop, behavior });
+  else scroller.scrollTop = nextTop;
+  return true;
 }
 
 document.addEventListener("click", (event) => {
@@ -5903,8 +5960,13 @@ document.addEventListener("click", (event) => {
   if (action && action.dataset.action === "file-detail-set-tab") {
     persistFileDetailMarkerEdit();
     persistFileDetailContentEdit();
-    fileDetailActiveTab = action.dataset.value || "markers";
-    render();
+    const target = action.dataset.value || "outline";
+    setFileDetailActiveSection(target);
+    if (currentPageId !== "APP-FILE-01") {
+      render();
+      return;
+    }
+    scrollFileDetailToSection(target);
     return;
   }
   if (action && action.dataset.action === "file-detail-open-format-panel") {
@@ -6034,8 +6096,12 @@ document.addEventListener("click", (event) => {
     fileDetailEditHistory = [draft];
     fileDetailEditRedo = [];
     fileDetailContentEditor = { key, kind, draft };
+    if (currentPageId === "APP-FILE-01") fileDetailActiveTab = kind;
     render();
-    focusFileDetailEditor("fileDetailContentInput");
+    requestAnimationFrame(() => {
+      if (currentPageId === "APP-FILE-01") scrollFileDetailToSection(kind, "auto");
+      focusFileDetailEditor("fileDetailContentInput");
+    });
     return;
   }
   if (action && action.dataset.action === "file-detail-open-photo") {
