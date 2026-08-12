@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AI录音卡 App 原型与页面效果说明 v3.0</title>
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles.css?v=rec04-markers-v2">
 </head>
 <body>
   <aside class="sidebar">
@@ -63,12 +63,53 @@ window.onerror = function(message, source, lineno, colno, error) {
   </script>
   <script>
 const waveHeights = [18, 30, 22, 54, 34, 70, 44, 58, 28, 48, 20, 62, 32, 42, 24, 56, 36, 66];
+const recordingPhotoAsset = "./assets/recording-marker-notes.png";
 const recordingBaseMarks = [
-  { time: "00:12:08", type: "mark", text: "重点标记 #1 · 硬件短按" },
-  { time: "00:27:46", type: "photo", text: "照片标记 #2 · 手机拍照" }
+  { id: "recording-mark-device", time: "00:12:08", type: "mark", text: "重点标记", source: "录音卡" },
+  { id: "recording-mark-photo", time: "00:27:46", type: "photo", text: "", caption: "", captionSource: "", source: "APP", photo: recordingPhotoAsset },
+  { id: "recording-mark-text", time: "00:30:51", type: "input", text: "客户希望首版支持离线转写", source: "APP" }
 ];
-let recordingMarks = [...recordingBaseMarks];
+let recordingMarks = recordingBaseMarks.map((mark) => ({ ...mark }));
 let recordingCameraPrompt = false;
+let recordingCameraOpen = false;
+let recordingPhotoViewerId = "";
+let recordingEditor = null;
+let recordingMarkSerial = recordingBaseMarks.length;
+let recordingExpandedMarkIds = new Set();
+let recordingNotice = "";
+let recordingNoticeTimer = null;
+let fileDetailActiveTab = "markers";
+let fileDetailAudioSeconds = 0;
+let fileDetailAudioPlaying = false;
+let fileDetailMarkerEditor = null;
+let fileDetailContentEditor = null;
+let fileDetailFormatPanel = "main";
+let fileDetailFormatState = {
+  block: "body",
+  bold: false,
+  italic: false,
+  underline: false,
+  strike: false,
+  code: false,
+  list: "none",
+  indent: 0,
+  quote: false
+};
+let fileDetailContentFormats = {};
+let fileDetailEditHistory = [];
+let fileDetailEditRedo = [];
+let fileDetailDockInteraction = false;
+let fileDetailContent = {
+  summary: "本次会议围绕拼团营销工具的需求评审展开，重点确认了功能范围、简化方案、标准商城与积分商城的拼团功能 MVP，以及后续大商品库项目的启动安排。",
+  transcript: [
+    "我们先确认这次评审的目标，主要聚焦拼团营销工具的 MVP 范围。",
+    "图片、标注和商品关联需要先做最小可用链路，复杂规则放到下一版。"
+  ]
+};
+let fileDetailPhotoViewerId = "";
+let fileDetailGeneratingInitialized = false;
+let fileDetailNotice = "";
+let fileDetailNoticeTimer = null;
 let sharePermissionState = {
   recording: false,
   transcript: false,
@@ -602,24 +643,25 @@ const pages = [
     priority: "P0",
     goal: "明确证明硬件正在录音，并支持标记、暂停、继续和结束。",
     entry: "硬件开始录音成功后。",
-    fields: [["record_duration", "录音时长", "BLE 状态包/本地计时"], ["record_state", "录音状态", "BLE 状态包"], ["live_sync_offset", "已同步偏移量", "BLE 分片传输"], ["pending_sync_size", "待补传大小", "同步队列"], ["battery_level", "电量", "BLE 状态包"], ["storage_remaining", "存储", "BLE 状态包"], ["marker_list", "标记时间轴", "BLE 标记包/本地数据库"], ["marker_assets", "标记附件", "备注/手机拍照"], ["disconnect_timer_mode", "断连计时模式", "本地时钟"]],
-    rules: ["暂停后停留录音中页。", "录音过程中 App 持续从硬件接收音频分片，实时更新首页同步队列，但正式文件需等结束录音和补传完成后生成。", "结束录音后回到文件首页，在首页展示同步传送中状态；完成 CRC/时长/标记校验后新增到文件列表。", "录音面板底部常驻输入、拍照、标记三个核心辅助功能按钮。", "点击输入时，在标记时间轴追加备注标记，记录当前录音时间戳和用户输入内容；原型中以示例备注模拟。", "点击标记时，在标记时间轴追加重点标记，记录当前录音时间戳和标记类型。", "点击拍照时，先唤起系统相机；拍照完成后在标记时间轴追加照片标记，记录当前录音时间戳和照片附件。", "用户点击添加标记或拍照标记时，必须记录当前录音时间戳、标记类型、备注或照片附件，并随音频分片一起进入同步队列。", "录音标记必须在文件详情中形成锚点映射，例如在文字记录 05:12 对应文字右侧内嵌当时拍摄的照片或备注。", "蓝牙断连时硬件仍在本地录音，App 波形图置灰，计时器继续以手机本地时钟模拟增长。", "蓝牙断连期间显示轻微呼吸红点和文案：蓝牙已断开，硬件仍安全录音中，靠近后自动恢复同步。", "蓝牙恢复后根据硬件录音状态包校准本地模拟计时、同步偏移量和标记时间戳。"],
-    states: ["录音中", "暂停中", "录音中持续同步", "结束录音补传中", "同步完成返回首页", "设备断连但仍录音", "本地模拟计时", "蓝牙恢复同步", "低电量", "存储不足"],
-    deps: ["BLE 命令包：暂停、继续、结束、添加标记。", "BLE 状态包：录音状态、电量、存储。", "BLE 分片传输：实时音频片段、偏移量、校验值。", "本地数据库：标记时间戳、备注、照片附件。", "同步队列：结束录音后的待补传片段。", "文件详情：文字记录锚点映射。"],
-    acceptance: ["计时、连接、电量、存储、标记和结束按钮清晰可见。", "点击暂停后按钮变为继续。", "录音中必须表达持续同步正在进行。", "底部输入、拍照、标记三个按钮常驻可见。", "点击输入、标记后，标记时间轴分别追加备注标记和重点标记。", "点击拍照后必须表达唤起相机，并在标记时间轴追加照片标记。", "点击结束后必须回到文件首页并展示同步传送中状态，而不是直接静默生成文件。", "补传完成后首页文件列表必须新增本次录音。", "录音中的备注标记和拍照标记必须能在文件详情文字记录中按时间戳定位展示。", "蓝牙断连时界面必须置灰波形、持续模拟计时并给出安全录音提示。"]
+    prototypeActions: [["默认", "reset-recording-demo"], ["输入态", "start-recording-input"], ["相机", "open-recording-camera"], ["AI 照片说明", "simulate-recording-photo-ai"]],
+    fields: [["record_duration", "录音时长", "BLE 状态包/本地计时"], ["record_state", "录音状态", "BLE 状态包"], ["live_sync_offset", "已同步偏移量", "BLE 分片传输"], ["pending_sync_size", "待补传大小", "同步队列"], ["battery_level", "电量", "BLE 状态包"], ["storage_remaining", "存储", "BLE 状态包"], ["marker_list", "标记记录", "BLE 标记包/本地数据库"], ["marker_type", "标记类型", "输入/拍照/时间标记"], ["marker_source", "标记来源", "APP/录音卡"], ["marker_text", "标记文本", "用户输入/默认标记文本"], ["marker_assets", "标记附件", "系统相机/本地照片"], ["marker_photo_caption", "照片说明", "用户输入/AI 图片识别"], ["marker_caption_source", "照片说明来源", "empty/user/ai"], ["disconnect_timer_mode", "断连计时模式", "本地时钟"]],
+    rules: ["暂停后停留录音中页。", "录音过程中 App 持续从硬件接收音频分片，实时更新首页同步队列，但正式文件需等结束录音和补传完成后生成。", "结束录音后回到文件首页，在首页展示同步传送中状态；完成 CRC/时长/标记校验后新增到文件列表。", "未进入编辑状态时，录音面板底部常驻输入、拍照、标记三个核心辅助功能按钮；键盘输入状态隐藏该功能栏，只展示文本编辑栏和系统键盘。", "点击输入先进入键盘输入状态；点击完成后才新增输入标记，并记录当前录音时间戳、来源 APP 与文本内容。", "点击标记立即新增时间标记，默认记录当前录音时间、来源 APP 与默认文本重点标记；录音卡短按标记记录来源录音卡。", "普通标记直接展示文本，不显示右侧箭头；仅文本超长时折叠并提供展开/收起。", "点击输入标记或时间标记文本进入编辑；时间与来源为只读锚点，时间标记支持删除文本但保留时间锚点。", "点击拍照先唤起系统相机；拍照完成后新增照片标记，记录当前录音时间、来源 APP 和照片附件。", "照片标记展示可点击的小图预览，点击照片打开大图；右上角删除图标删除整条照片标记。", "照片下方说明默认空，点击可编辑；转写完成后若说明仍为空且用户未编辑，AI 可结合图片与录音内容生成说明，用户编辑内容不得被 AI 自动覆盖。", "用户点击添加标记或拍照标记时，必须记录当前录音时间戳、标记类型、来源、备注或照片附件，并随音频分片一起进入同步队列。", "录音标记必须在文件详情中形成锚点映射，例如在文字记录 05:12 对应文字右侧内嵌当时拍摄的照片或备注。", "蓝牙断连时硬件仍在本地录音，App 波形图置灰，计时器继续以手机本地时钟模拟增长。", "蓝牙断连期间显示轻微呼吸红点和文案：蓝牙已断开，硬件仍安全录音中，靠近后自动恢复同步。", "蓝牙恢复后根据硬件录音状态包校准本地模拟计时、同步偏移量和标记时间戳。"],
+    states: ["录音中", "暂停中", "输入标记键盘态", "编辑标记键盘态", "系统相机态", "照片标记已插入", "照片大图预览", "照片说明为空", "AI 生成照片说明", "标记文本已删除", "设备断连但仍录音", "本地模拟计时", "蓝牙恢复同步", "低电量", "存储不足"],
+    deps: ["BLE 命令包：暂停、继续、结束、添加标记。", "BLE 状态包：录音状态、电量、存储。", "BLE 分片传输：实时音频片段、偏移量、校验值。", "系统相机与照片访问权限。", "本地数据库：标记时间戳、类型、来源、文本、照片附件和照片说明。", "AI 图片识别：转写后结合照片与录音内容生成说明，接口待定义。", "同步队列：结束录音后的待补传片段。", "文件详情：文字记录锚点映射。"],
+    acceptance: ["计时、连接、电量、存储、标记和结束按钮清晰可见。", "点击暂停后按钮变为继续。", "未编辑时底部输入、拍照、标记三个按钮常驻可见；键盘态不得重复展示这三个页面功能按钮。", "点击输入进入可实际输入的键盘状态；点击完成后新增包含时间、来源 APP 与输入内容的标记，取消不新增。", "点击标记立即新增时间标记，并展示时间、来源 APP 和默认文本。", "录音卡标记展示来源录音卡；所有普通标记不显示右侧箭头，超长文本才出现展开/收起。", "点击输入标记和时间标记可编辑文本；时间标记可删除文本但保留时间与来源。", "点击拍照必须先表达唤起相机，拍照完成后插入带缩略图、时间和来源 APP 的照片标记。", "照片缩略图可打开大图，右上角删除图标可删除照片标记。", "照片说明默认空且可点击编辑；AI 说明只在转写完成且用户未编辑时生成，不覆盖用户内容。", "点击结束后必须回到文件首页并展示同步传送中状态，而不是直接静默生成文件。", "补传完成后首页文件列表必须新增本次录音。", "录音中的文字、时间和拍照标记必须能在文件详情文字记录中按时间戳定位展示。", "蓝牙断连时界面必须置灰波形、持续模拟计时并给出安全录音提示。"]
   },
   {
     id: "APP-FILE-01",
     group: "文件",
     title: "文件详情",
     priority: "P0",
-    goal: "集中播放音频、查看 AI 转录后的大纲、智能总结、文字记录、待办事项和思维导图。",
+    goal: "集中播放音频、查看并原位编辑录音标记、转写内容和智能总结，同时查看大纲、待办事项和思维导图。",
     entry: "文件列表点击文件、同步完成通知、任务完成通知。",
-    fields: [["display_title", "展示标题", "文件名/云端同步数据/AI 摘要"], ["title_source", "标题来源", "本地数据库/云端/AI"], ["ai_tags", "AI 标签", "AI 会议总结"], ["audio_progress", "播放进度", "本地播放器"], ["skip_silence_enabled", "跳过空白片段", "播放器设置"], ["playback_rate", "播放倍速", "播放器设置"], ["ai_sections", "AI 内容结构", "AI 模板"], ["marker_anchor_map", "标记锚点映射", "录音标记/转写时间戳"], ["note_question", "笔记提问", "AI 问答"], ["share_state", "分享状态", "云端分享"]],
-    rules: ["开启同步云端时，标题优先根据云端同步数据提炼。", "未开启同步云端时，标题默认使用文件名称。", "生成 AI 会议摘要后，标题根据 AI 会议内容重新提炼总结。", "生成 AI 会议总结后，根据会议内容提取关键标签。", "播放器进度条支持点击和拖动调整音频进度。", "播放器控制区包含音频设置、快退 15 秒、播放、快进 15 秒、倍速，不展示额外方向箭头。", "录音中产生的备注标记和拍照标记必须根据时间戳映射到文字记录时间轴。", "在文字记录对应时间点右侧内嵌用户当时拍摄的照片或备注，形成可回溯锚点。", "播放器下方快速定位标签根据 AI 模板结构展示，点击后定位到对应内容区域。", "页面底部固定展示对此笔记提问输入框。", "右上角分享按钮打开分享弹窗，三个点打开更多操作浮层。"],
-    states: ["未生成 AI 摘要", "AI 已生成", "音频设置", "倍速选择", "分享", "更多操作", "文件损坏", "删除确认"],
+    fields: [["display_title", "展示标题", "文件名/云端同步数据/AI 摘要"], ["title_source", "标题来源", "本地数据库/云端/AI"], ["ai_tags", "AI 标签", "AI 会议总结"], ["audio_progress", "播放进度", "本地播放器"], ["skip_silence_enabled", "跳过空白片段", "播放器设置"], ["playback_rate", "播放倍速", "播放器设置"], ["ai_sections", "AI 内容结构", "AI 模板"], ["marker_list", "文件标记列表", "录音标记/本地数据库"], ["marker_anchor_map", "标记锚点映射", "录音标记/播放时间戳"], ["marker_generation_role", "标记生成作用", "AI 生成任务快照"], ["note_question", "笔记提问", "AI 问答"], ["share_state", "分享状态", "云端分享"]],
+    rules: ["开启同步云端时，标题优先根据云端同步数据提炼。", "未开启同步云端时，标题默认使用文件名称。", "生成 AI 会议摘要后，标题根据 AI 会议内容重新提炼总结。", "生成 AI 会议总结后，根据会议内容提取关键标签。", "播放器进度条支持点击和拖动调整音频进度。", "播放器控制区包含音频设置、快退 15 秒、播放、快进 15 秒、倍速，不展示额外方向箭头。", "播放器下方将标记作为一级内容页签，与大纲、智能总结、文字记录、待办事项和思维导图并列。", "录音中产生的文字、时间和照片标记在录音结束后完整继承到文件详情，不能依赖转写或 AI 生成状态。", "录音结束后不再允许新增标记，只能维护录音过程中已经产生的标记。", "点击标记时间或播放图标定位到对应音频时间并开始播放。", "点击标记文本、照片说明、文字记录或智能总结时，原文字直接出现光标并唤起系统键盘；不打开弹窗、新页面，不增加边框、下划线、取消或保存按钮。", "智能总结和文字记录使用系统键盘上方的轻量格式工具栏，至少包含标题/正文、列表、对齐、引用、撤销和重做；普通标记与照片说明保持纯文本键盘，不展示格式工具栏。", "编辑内容实时记录，输入框失焦、收起键盘或切换页签时自动保存。", "照片可打开和删除；标记时间与来源保持只读。", "生成 AI 内容时读取当时的标记快照作为辅助笔记；生成后继续编辑标记不会静默改写既有 AI 内容，重新生成时再读取最新标记。", "页面底部固定展示对此笔记提问输入框。", "右上角分享按钮打开分享弹窗，三个点打开更多操作浮层。"],
+    states: ["标记页签", "标记原位编辑", "转写原位编辑", "总结原位编辑", "照片预览", "未生成 AI 摘要", "AI 已生成", "音频设置", "倍速选择", "分享", "更多操作", "文件损坏", "删除确认"],
     deps: ["本地播放器：进度、跳转、快退快进、倍速。", "音频分析：静音/无声片段识别。", "转写服务：文字记录和时间戳。", "本地数据库：录音标记、备注、照片附件。", "AI 服务：标题、标签、大纲、总结、待办、思维导图、笔记问答。", "云端分享：分享链接和权限。"],
-    acceptance: ["播放器下方必须有大纲、智能总结、文字记录、待办事项、思维导图快速定位标签。", "思维导图按卡片预览呈现。", "音频设置和倍速按钮能打开对应弹窗。", "底部有对此笔记提问输入框。", "标题和标签规则在字段与交互说明中明确。", "录音中创建的备注标记和拍照标记必须在文字记录中按时间戳展示锚点内容。"],
+    acceptance: ["播放器下方必须有大纲、智能总结、文字记录、标记、待办事项、思维导图一级页签。", "录音期间的全部标记在已生成文件详情中完整展示，并标注已用于本次生成、可继续编辑。", "录音结束后的文件详情不得出现新增标记入口。", "点击标记时间定位音频；点击标记内容、文字记录和智能总结均在原文字位置直接输入，仅显示光标和系统键盘，不出现独立窗口或显式保存操作。", "总结和转写编辑时格式栏可切换标题、列表、对齐和引用；标记编辑时不显示格式栏。", "失焦、收起键盘或切换页签后内容自动保存。", "照片可查看或删除，时间与来源只读。", "思维导图按卡片预览呈现。", "音频设置和倍速按钮能打开对应弹窗。", "底部有对此笔记提问输入框。", "标题和标签规则在字段与交互说明中明确。"],
     prototypeLinks: [["文件详情已转写", "APP-FILE-01"], ["文件详情为空", "APP-FILE-10"]]
   },
   {
@@ -629,11 +671,11 @@ const pages = [
     priority: "P0",
     goal: "展示音频已存在但尚未生成 AI 笔记时的文件详情空状态。",
     entry: "文件列表点击未生成 AI 摘要的文件、转写/总结尚未生成完成。",
-    fields: [["display_title", "展示标题", "文件名/云端同步数据"], ["audio_progress", "播放进度", "本地播放器"], ["generation_state", "生成状态", "AI 服务"], ["estimated_audio_duration", "音频时长", "本地播放器"]],
-    rules: ["空状态保留标题、创建时间、音频播放器和右上角操作。", "标签区仅显示添加标签入口。", "内容区显示可生成笔记提示，底部固定生成主按钮。", "点击生成先进入生成方式与用量确认弹层。"],
-    states: ["未生成 AI 摘要", "可生成笔记", "生成中", "生成失败"],
+    fields: [["display_title", "展示标题", "文件名/云端同步数据"], ["audio_progress", "播放进度", "本地播放器"], ["marker_list", "录音标记列表", "本地数据库"], ["marker_generation_role", "生成辅助笔记", "AI 生成任务快照"], ["generation_state", "生成状态", "AI 服务"], ["estimated_audio_duration", "音频时长", "本地播放器"]],
+    rules: ["空状态保留标题、音频播放器和右上角操作。", "未生成状态以标记作为默认一级页签，完整展示录音期间的标记；录音结束后不允许新增标记，只能原位编辑已有文字或照片说明、查看照片和删除照片。", "总结页签显示可生成笔记提示，底部固定生成主按钮。", "生成按钮文案只显示生成；点击后进入生成方式与用量确认弹层，并在确认时冻结本次标记快照。"],
+    states: ["标记页签", "总结空状态", "标记原位编辑", "未生成 AI 摘要", "可生成笔记", "生成中", "生成失败"],
     deps: ["本地播放器。", "AI 服务：生成入口和状态。", "用量服务：生成前确认。"],
-    acceptance: ["空详情展示未生成笔记状态。", "空状态不展示已转写内容和笔记提问框。", "底部生成按钮清晰可见。"],
+    acceptance: ["空详情显示标记/总结两个页签；默认展示已保存标记，并说明生成时将作为辅助笔记。", "标记可定位播放和原位编辑，但不得新增。", "总结空状态不展示已转写内容和笔记提问框。", "底部按钮只显示生成。"],
     prototypeLinks: [["文件详情已转写", "APP-FILE-01"], ["文件详情为空", "APP-FILE-10"], ["生成方式选择", "APP-AI-01"], ["生成中", "APP-FILE-15"]]
   },
   {
@@ -643,11 +685,11 @@ const pages = [
     priority: "P0",
     goal: "展示 AI 笔记生成中的文件详情状态，告知用户可离开页面且不会影响生成进度。",
     entry: "生成方式与用量确认点击立即生成。",
-    fields: [["display_title", "展示标题", "文件名/云端同步数据"], ["audio_progress", "播放进度", "本地播放器"], ["generation_state", "生成状态", "AI 服务"], ["generation_hint", "生成提示", "本地文案"]],
-    rules: ["生成中页面保留文件详情顶部信息和播放器。", "内容区显示骨架占位和生成中提示。", "生成完成后直接进入文件详情已转写状态。", "离开页面不影响生成进度。"],
-    states: ["生成中", "生成完成", "生成失败"],
-    deps: ["AI 服务：生成状态轮询或推送。", "本地任务状态：离开页面后继续跟踪。"],
-    acceptance: ["文件列表和文件详情为空点击生成都先进入生成方式与用量确认。", "生成中页面样式参考提供的生成中截图。", "完成状态进入文件详情页，不再停留在生成确认页。"],
+    fields: [["display_title", "展示标题", "文件名/云端同步数据"], ["audio_progress", "播放进度", "本地播放器"], ["marker_list", "录音标记列表", "本地数据库"], ["generation_marker_snapshot", "本次生成标记快照", "AI 生成任务"], ["generation_state", "生成状态", "AI 服务"], ["generation_hint", "生成提示", "本地文案"]],
+    rules: ["生成中页面保留同一文件详情顶部、播放器以及标记/总结两个页签。", "默认打开总结页签，显示骨架占位和生成中提示；切换标记仍可查看、定位并原位编辑已有标记，但不能新增。", "本次任务使用确认生成时冻结的标记快照；生成中修改的已有标记仅用于下次生成。", "生成完成后直接进入文件详情已转写状态。", "离开页面不影响生成进度。"],
+    states: ["总结生成中", "标记页签", "编辑标记", "生成完成", "生成失败"],
+    deps: ["AI 服务：生成状态轮询或推送。", "本地任务状态：离开页面后继续跟踪。", "本地标记数据库与生成快照。"],
+    acceptance: ["文件列表和文件详情为空点击生成都先进入生成方式与用量确认。", "生成中页结构与未生成页连续，默认打开总结并可切回标记维护。", "标记页明确说明本次生成已读取、后续修改用于下次生成。", "完成状态进入文件详情页，不再停留在生成确认页。"],
     prototypeLinks: [["生成完成", "APP-FILE-01"], ["文件详情为空", "APP-FILE-10"]]
   },
   {
@@ -1617,6 +1659,28 @@ function go(id) {
     termSheetMode = "";
     termEditorIndex = null;
     termSheetError = "";
+  }
+  if (currentPageId !== "APP-REC-04") {
+    recordingEditor = null;
+    recordingCameraOpen = false;
+    recordingPhotoViewerId = "";
+    recordingCameraPrompt = false;
+    recordingNotice = "";
+  }
+  if (!["APP-FILE-01", "APP-FILE-10", "APP-FILE-15"].includes(currentPageId)) {
+    fileDetailMarkerEditor = null;
+    fileDetailContentEditor = null;
+    fileDetailPhotoViewerId = "";
+    fileDetailNotice = "";
+  }
+  if (currentPageId === "APP-FILE-01" && previousPageId !== "APP-FILE-01") {
+    fileDetailActiveTab = "markers";
+  }
+  if (currentPageId === "APP-FILE-10" && previousPageId !== "APP-FILE-10") {
+    fileDetailActiveTab = "markers";
+  }
+  if (currentPageId === "APP-FILE-15" && previousPageId !== "APP-FILE-15") {
+    fileDetailGeneratingInitialized = false;
   }
   render();
 }
@@ -2588,28 +2652,205 @@ function renderScene() {
 
 function nextRecordingMarkTime() {
   const offset = Math.max(0, recordingMarks.length - recordingBaseMarks.length);
-  return `00:${String(38 + offset).padStart(2, "0")}:${String(12 + offset * 7).padStart(2, "0")}`;
+  const totalSeconds = (30 * 60) + 51 + (offset * 13);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `00:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function nextRecordingMarkId() {
+  recordingMarkSerial += 1;
+  return `recording-mark-${recordingMarkSerial}`;
+}
+
+function showRecordingNotice(message) {
+  recordingNotice = message;
+  if (recordingNoticeTimer) window.clearTimeout(recordingNoticeTimer);
+  recordingNoticeTimer = window.setTimeout(() => {
+    recordingNoticeTimer = null;
+    recordingNotice = "";
+    if (currentPageId === "APP-REC-04") render();
+  }, 1600);
+}
+
+function openRecordingEditor(mode, markId = "") {
+  const mark = recordingMarks.find((item) => item.id === markId);
+  const draft = mode === "new-input"
+    ? ""
+    : mode === "photo-caption"
+      ? mark?.caption || ""
+      : mark?.text || "";
+  recordingEditor = {
+    mode,
+    markId,
+    draft,
+    time: mark?.time || nextRecordingMarkTime()
+  };
+  recordingCameraPrompt = false;
+}
+
+function closeRecordingEditor() {
+  recordingEditor = null;
+}
+
+function completeRecordingEditor() {
+  if (!recordingEditor) return false;
+  const draft = String(recordingEditor.draft || "").trim();
+  if (recordingEditor.mode !== "photo-caption" && !draft) {
+    showRecordingNotice("请输入标记内容");
+    return false;
+  }
+  if (recordingEditor.mode === "new-input") {
+    recordingMarks = [
+      ...recordingMarks,
+      { id: nextRecordingMarkId(), time: recordingEditor.time, type: "input", text: draft, source: "APP" }
+    ];
+    showRecordingNotice("已添加输入标记");
+  } else if (recordingEditor.mode === "photo-caption") {
+    recordingMarks = recordingMarks.map((mark) => mark.id === recordingEditor.markId
+      ? { ...mark, caption: draft, captionSource: draft ? "user" : "" }
+      : mark);
+    showRecordingNotice(draft ? "照片说明已保存" : "照片说明已清空");
+  } else {
+    recordingMarks = recordingMarks.map((mark) => mark.id === recordingEditor.markId
+      ? { ...mark, text: draft }
+      : mark);
+    showRecordingNotice("标记内容已保存");
+  }
+  closeRecordingEditor();
+  return true;
 }
 
 function addRecordingMark(type) {
-  const index = recordingMarks.length + 1;
-  const markMeta = {
-    input: { text: `备注标记 #${index} · App 输入` },
-    photo: { text: `照片标记 #${index} · 手机拍照` },
-    mark: { text: `重点标记 #${index} · App 标记` }
-  };
-  const meta = markMeta[type] || markMeta.mark;
-  recordingMarks = [...recordingMarks, { time: nextRecordingMarkTime(), type, text: meta.text }];
-  recordingCameraPrompt = type === "photo";
+  if (type === "input") {
+    openRecordingEditor("new-input");
+    return;
+  }
+  if (type === "photo") {
+    recordingCameraOpen = true;
+    recordingCameraPrompt = false;
+    return;
+  }
+  recordingMarks = [
+    ...recordingMarks,
+    { id: nextRecordingMarkId(), time: nextRecordingMarkTime(), type: "mark", text: "重点标记", source: "APP" }
+  ];
+  showRecordingNotice("已添加时间标记");
+}
+
+function captureRecordingPhoto() {
+  recordingMarks = [
+    ...recordingMarks,
+    {
+      id: nextRecordingMarkId(),
+      time: nextRecordingMarkTime(),
+      type: "photo",
+      text: "",
+      caption: "",
+      captionSource: "",
+      source: "APP",
+      photo: recordingPhotoAsset
+    }
+  ];
+  recordingCameraOpen = false;
+  recordingCameraPrompt = true;
+  showRecordingNotice("照片标记已插入");
+}
+
+function simulateRecordingPhotoAiCaption() {
+  const target = [...recordingMarks].reverse().find((mark) => mark.type === "photo" && !mark.caption && mark.captionSource !== "user");
+  if (!target) {
+    showRecordingNotice("没有可生成说明的照片");
+    return;
+  }
+  recordingMarks = recordingMarks.map((mark) => mark.id === target.id
+    ? { ...mark, caption: "会议笔记记录了项目进展、待办事项和下一步计划。", captionSource: "ai" }
+    : mark);
+  showRecordingNotice("AI 已生成照片说明");
+}
+
+function recordingKeyboardMock() {
+  const suggestions = ["客户", "希望", "首版", "支持", "离线转写"];
+  const rows = [
+    ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
+    ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
+    ["Z", "X", "C", "V", "B", "N", "M"]
+  ];
+  return `<section class="recording-keyboard" aria-label="中文输入键盘">
+    <div class="recording-keyboard-suggestions">
+      ${suggestions.map((word) => `<button type="button" data-action="recording-keyboard-key" data-key="${h(word)}">${h(word)}</button>`).join("")}
+    </div>
+    ${rows.map((row) => `<div class="recording-keyboard-row">${row.map((key) => `<button type="button" data-action="recording-keyboard-key" data-key="${key.toLowerCase()}">${key}</button>`).join("")}</div>`).join("")}
+    <div class="recording-keyboard-row recording-keyboard-bottom">
+      <button type="button" data-action="recording-keyboard-key" data-key="switch">123</button>
+      <button type="button" class="space" data-action="recording-keyboard-key" data-key="space">空格</button>
+      <button type="button" data-action="recording-keyboard-key" data-key="backspace">删除</button>
+      <button type="button" data-action="complete-recording-editor">完成</button>
+    </div>
+  </section>`;
+}
+
+function renderRecordingEditorDock() {
+  if (!recordingEditor) return "";
+  const targetMark = recordingMarks.find((mark) => mark.id === recordingEditor.markId);
+  const isCaption = recordingEditor.mode === "photo-caption";
+  const canDeleteText = recordingEditor.mode === "edit-text" && targetMark?.type === "mark" && Boolean(targetMark.text);
+  const placeholder = isCaption ? "添加照片说明（可选）" : "输入标记内容";
+  const canComplete = isCaption || Boolean(String(recordingEditor.draft || "").trim());
+  return `<section class="recording-editor-dock" aria-label="标记文字编辑">
+    <div class="recording-editor-composer">
+      ${canDeleteText ? `<button type="button" class="recording-delete-copy" data-action="delete-recording-mark-text" aria-label="删除标记文字"><img src="./assets/icons/trash3.svg" alt=""></button>` : ""}
+      <input id="recordingEditorInput" value="${h(recordingEditor.draft)}" placeholder="${h(placeholder)}" autocomplete="off">
+      <button type="button" class="recording-editor-cancel" data-action="cancel-recording-editor">取消</button>
+      <button type="button" class="recording-editor-complete" data-action="complete-recording-editor" ${canComplete ? "" : "disabled"}>完成</button>
+    </div>
+    ${recordingKeyboardMock()}
+  </section>`;
 }
 
 function renderRecordingMarks() {
-  return recordingMarks.map((mark) => `
-    <div class="timeline-item ${mark.type === "photo" ? "photo-marker" : ""} ${mark.type === "input" ? "input-marker" : ""}">
-      <strong>${h(mark.time)}${mark.type === "photo" ? ' <i class="timeline-photo-icon" aria-label="照片标记"></i>' : ""}</strong><br>
-      <span>${h(mark.text)}</span>
-    </div>
-  `).join("");
+  return recordingMarks.map((mark) => {
+    const isExpanded = recordingExpandedMarkIds.has(mark.id);
+    const isLong = String(mark.text || "").length > 34;
+    const text = mark.text || "添加标记说明";
+    return `<article class="timeline-item recording-marker ${mark.type === "photo" ? "photo-marker" : ""} ${mark.type === "input" ? "input-marker" : ""}" data-marker-id="${h(mark.id)}">
+      <div class="recording-marker-meta"><strong>${h(mark.time)}</strong><span>${h(mark.source || "APP")}</span></div>
+      ${mark.type === "photo" ? `
+        <div class="recording-photo-wrap">
+          <button type="button" class="recording-photo-preview" data-action="open-recording-photo" data-marker-id="${h(mark.id)}" aria-label="打开照片">
+            <img src="${h(mark.photo || recordingPhotoAsset)}" alt="会议笔记照片">
+          </button>
+          <button type="button" class="recording-photo-delete" data-action="delete-recording-photo" data-marker-id="${h(mark.id)}" aria-label="删除照片标记"><img src="./assets/icons/trash3.svg" alt=""></button>
+        </div>
+        <button type="button" class="recording-photo-caption ${mark.caption ? "filled" : "empty"}" data-action="edit-recording-photo-caption" data-marker-id="${h(mark.id)}">
+          <span>${h(mark.caption || "添加照片说明（可选）")}</span>
+          <small>${mark.captionSource === "ai" ? "AI 生成 · 点击可编辑" : "转写后可由 AI 识别生成，点击可编辑"}</small>
+        </button>
+      ` : `
+        <button type="button" class="recording-marker-copy ${!mark.text ? "empty" : ""} ${isLong && !isExpanded ? "collapsed" : ""}" data-action="edit-recording-mark" data-marker-id="${h(mark.id)}">${h(text)}</button>
+        ${isLong ? `<button type="button" class="recording-expand-copy" data-action="toggle-recording-mark-expanded" data-marker-id="${h(mark.id)}">${isExpanded ? "收起" : "展开"}</button>` : ""}
+      `}
+    </article>`;
+  }).join("");
+}
+
+function renderRecordingCamera() {
+  if (!recordingCameraOpen) return "";
+  return `<section class="recording-camera" aria-label="系统相机模拟">
+    <header><button type="button" data-action="close-recording-camera">取消</button><strong>相机</strong><span></span></header>
+    <div class="recording-camera-preview"><img src="${recordingPhotoAsset}" alt="相机取景：会议笔记"></div>
+    <footer><button type="button" class="recording-camera-shutter" data-action="capture-recording-photo" aria-label="拍照"></button></footer>
+  </section>`;
+}
+
+function renderRecordingPhotoViewer() {
+  const mark = recordingMarks.find((item) => item.id === recordingPhotoViewerId && item.type === "photo");
+  if (!mark) return "";
+  return `<section class="recording-photo-viewer" aria-label="照片预览">
+    <header><button type="button" data-action="close-recording-photo">关闭</button><strong>${h(mark.time)} · ${h(mark.source)}</strong><span></span></header>
+    <img src="${h(mark.photo || recordingPhotoAsset)}" alt="会议笔记照片大图">
+    <p>${h(mark.caption || "尚未添加照片说明")}</p>
+  </section>`;
 }
 
 function renderRecording() {
@@ -2617,32 +2858,36 @@ function renderRecording() {
     <section class="recording-stage">
       <div class="statusbar recording-status"><span>12:42</span><span>5G</span><span>78%</span></div>
       <div class="recording-back-card"></div>
-      <main class="recording-panel">
+      <main class="recording-panel ${recordingEditor ? "is-editing" : ""}">
         <div class="recording-handle"></div>
         <div class="recording-top">
           <button data-action="toggle-pause">${recordPaused ? "继续" : "暂停"}</button>
           <strong><i></i>${recordPaused ? "00:00:38" : "00:00:37"}</strong>
           <button data-action="finish-recording-sync">结束</button>
         </div>
-        <div class="recording-metrics">
-          <div><span>连接</span><b>正常</b></div>
-          <div><span>电量</span><b>76%</b></div>
-          <div><span>存储</span><b>11.8G</b></div>
+        <div class="recording-device-summary">
+          <i aria-hidden="true"></i>
+          <strong>AI Recorder A1</strong>
+          <span>已连接 · 76% · 11.8G</span>
         </div>
         <div class="recording-wave">${waveHeights.map((height) => `<i style="height:${Math.max(20, height + 18)}px"></i>`).join("")}</div>
         <section class="recording-mark-card">
-          <h3>标记时间轴</h3>
-          ${recordingCameraPrompt ? `<p class="recording-camera-toast">已唤起手机相机并添加照片标记</p>` : ""}
-          <div class="timeline">
+          <h3>标记记录</h3>
+          ${recordingCameraPrompt ? `<p class="recording-camera-toast">照片已插入，可点击查看或补充说明</p>` : ""}
+          <div class="timeline" role="list">
             ${renderRecordingMarks()}
           </div>
         </section>
-        <div class="recording-actions">
+        ${recordingEditor ? "" : `<div class="recording-actions">
           <button data-action="add-recording-mark" data-mark-type="input"><span class="record-action-icon input"></span><b>输入</b></button>
           <button data-action="add-recording-mark" data-mark-type="photo"><span class="record-action-icon photo"></span><b>拍照</b></button>
           <button data-action="add-recording-mark" data-mark-type="mark"><span class="record-action-icon mark"></span><b>标记</b></button>
-        </div>
+        </div>`}
       </main>
+      ${recordingNotice ? `<p class="recording-notice" role="status">${h(recordingNotice)}</p>` : ""}
+      ${renderRecordingEditorDock()}
+      ${renderRecordingCamera()}
+      ${renderRecordingPhotoViewer()}
     </section>
   `;
 }
@@ -2769,61 +3014,352 @@ function renderAskPlaudSheet() {
   `;
 }
 
+function fileDetailTimeToSeconds(time) {
+  return String(time || "00:00:00").split(":").reduce((total, part) => total * 60 + Number(part || 0), 0);
+}
+
+function fileDetailSecondsToTime(totalSeconds) {
+  const seconds = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const rest = seconds % 60;
+  return [hours, minutes, rest].map((part) => String(part).padStart(2, "0")).join(":");
+}
+
+function showFileDetailNotice(message) {
+  fileDetailNotice = message;
+  if (fileDetailNoticeTimer) window.clearTimeout(fileDetailNoticeTimer);
+  fileDetailNoticeTimer = window.setTimeout(() => {
+    fileDetailNoticeTimer = null;
+    fileDetailNotice = "";
+    if (["APP-FILE-01", "APP-FILE-10", "APP-FILE-15"].includes(currentPageId)) render();
+  }, 1800);
+}
+
+function renderFileDetailPlayer(totalTime = "00:43:52") {
+  const duration = Math.max(1, fileDetailTimeToSeconds(totalTime));
+  const progress = Math.min(100, Math.max(0, fileDetailAudioSeconds / duration * 100));
+  return `
+    <section class="audio-player file-marker-player">
+      <div class="audio-progress-row">
+        <span>${h(fileDetailSecondsToTime(fileDetailAudioSeconds))}</span>
+        <button class="audio-track" data-action="file-detail-seek-track" data-duration="${duration}" aria-label="调整播放进度"><b style="left: ${progress}%"></b></button>
+        <span>${h(totalTime)}</span>
+      </div>
+      <div class="player-controls">
+        <button class="player-icon sliders" data-go="APP-FILE-04" aria-label="音频设置"></button>
+        <button class="player-icon rewind" data-action="file-detail-skip" data-seconds="-15" aria-label="快退 15 秒">15</button>
+        <button class="play-icon ${fileDetailAudioPlaying ? "playing" : ""}" data-action="file-detail-toggle-play" aria-label="${fileDetailAudioPlaying ? "暂停" : "播放"}"></button>
+        <button class="player-icon forward" data-action="file-detail-skip" data-seconds="15" aria-label="快进 15 秒">15</button>
+        <button class="speed-btn" data-go="APP-FILE-05" aria-label="播放倍速">1.0x</button>
+      </div>
+    </section>
+  `;
+}
+
+function renderFileDetailMarkerItem(mark, markerState) {
+  const isPhoto = mark.type === "photo";
+  const displayCaption = mark.caption || (markerState === "generated" ? "白板记录了项目交付时间" : "");
+  const isEditing = fileDetailMarkerEditor?.markId === mark.id;
+  const editDraft = fileDetailMarkerEditor?.draft || "";
+  return `
+    <article class="file-marker-item" data-marker-id="${h(mark.id)}">
+      <div class="file-marker-anchor">
+        <button class="file-marker-play" data-action="file-detail-seek-marker" data-marker-id="${h(mark.id)}" aria-label="播放 ${h(mark.time)} 的标记">
+          <img src="./assets/icons/play-fill.svg" alt="">
+        </button>
+        <button class="file-marker-time" data-action="file-detail-seek-marker" data-marker-id="${h(mark.id)}">${h(mark.time)}</button>
+        <span class="file-marker-source">${h(mark.source || "APP")}</span>
+      </div>
+      ${isPhoto ? `
+        <div class="file-marker-photo-wrap">
+          <button class="file-marker-photo" data-action="file-detail-open-photo" data-marker-id="${h(mark.id)}" aria-label="打开 ${h(mark.time)} 的照片">
+            <img src="${h(mark.photo || recordingPhotoAsset)}" alt="会议笔记照片">
+          </button>
+          <button class="file-marker-photo-delete" data-action="file-detail-delete-photo" data-marker-id="${h(mark.id)}" aria-label="删除照片标记">
+            <img src="./assets/icons/trash3.svg" alt="">
+          </button>
+        </div>
+        ${isEditing ? renderFileDetailInlineMarkerEditor(mark, "photo", editDraft) : `<button class="file-marker-copy photo-caption ${displayCaption ? "filled" : "empty"}" data-action="file-detail-edit-marker" data-marker-id="${h(mark.id)}">
+          ${h(displayCaption || "添加照片说明（可选）")}
+        </button>`}
+      ` : `
+        ${isEditing ? renderFileDetailInlineMarkerEditor(mark, "text", editDraft) : `<button class="file-marker-copy ${mark.text ? "" : "empty"}" data-action="file-detail-edit-marker" data-marker-id="${h(mark.id)}">
+          ${h(mark.text || "添加标记说明")}
+        </button>`}
+      `}
+    </article>
+  `;
+}
+
+function renderFileDetailInlineMarkerEditor(mark, type, draft) {
+  return `
+    <div class="file-inline-edit file-inline-marker-edit ${type === "photo" ? "photo-caption" : ""}">
+      <textarea id="fileDetailMarkerInput" rows="${type === "photo" ? 2 : 3}" aria-label="编辑标记内容">${h(draft)}</textarea>
+    </div>
+    ${renderFileDetailKeyboard(false)}
+  `;
+}
+
+function renderFileDetailMarkers(markerState = "pending") {
+  const markerStatus = markerState === "generated"
+    ? "已用于本次生成，可继续编辑"
+    : markerState === "generating"
+      ? "本次生成已读取，后续修改将在下次生成时使用"
+      : "将在生成时作为辅助笔记";
+  return `
+    <section class="file-markers-panel" aria-label="文件标记">
+      <header class="file-markers-head">
+        <div>
+          <h2>标记</h2>
+          <p>${recordingMarks.length} 条标记 · ${markerStatus}</p>
+        </div>
+      </header>
+      <div class="file-marker-list">
+        ${recordingMarks.map((mark) => renderFileDetailMarkerItem(mark, markerState)).join("") || `<p class="file-marker-empty">本次录音没有标记。</p>`}
+      </div>
+    </section>
+  `;
+}
+
+function renderFileDetailEditableContent(kind, content, options = {}) {
+  const key = options.key || kind;
+  const isEditing = fileDetailContentEditor?.key === key;
+  const label = options.label || (kind === "summary" ? "总结" : "转写内容");
+  if (!isEditing) {
+    return `<button class="file-inline-content" data-action="file-detail-edit-content" data-key="${h(key)}" data-kind="${h(kind)}" aria-label="编辑${h(label)}">${h(content)}</button>`;
+  }
+  return `
+    <div class="file-inline-edit file-inline-content-edit">
+      <textarea id="fileDetailContentInput" rows="${options.rows || 5}" aria-label="编辑${h(label)}">${h(fileDetailContentEditor.draft)}</textarea>
+    </div>
+    ${renderFileDetailKeyboard(true)}
+  `;
+}
+
+function fileDetailFormatIcon(name, label = "") {
+  return `<img src="./assets/editor-icons/${name}.svg" alt="${h(label)}">`;
+}
+
+function fileDetailFormatButton({ action = "file-detail-format", value = "", label = "", icon = "", text = "", active = false, disabled = false, extraClass = "" }) {
+  return `<button class="${active ? "active" : ""} ${extraClass}" data-action="${action}" data-format="${h(value)}" aria-label="${h(label)}" ${disabled ? "disabled" : ""}>
+    ${icon ? fileDetailFormatIcon(icon) : text}
+  </button>`;
+}
+
+function renderFileDetailFormatToolbar() {
+  const keyboardButton = fileDetailFormatButton({ action: "file-detail-hide-keyboard", label: "收起键盘", icon: "keyboard-hide", extraClass: "file-format-keyboard-hide" });
+  if (fileDetailFormatPanel === "heading") {
+    const headingOptions = [
+      ["body", "T"], ["h1", "H₁"], ["h2", "H₂"], ["h3", "H₃"], ["h4", "H₄"]
+    ];
+    return `<div class="file-format-toolbar is-submenu" role="toolbar" aria-label="标题级别">
+      ${fileDetailFormatButton({ action: "file-detail-format-back", label: "返回格式工具栏", icon: "chevrons-left", extraClass: "file-format-back" })}
+      ${headingOptions.map(([value, text]) => fileDetailFormatButton({ action: "file-detail-set-block", value, text, label: value === "body" ? "正文" : `${value.slice(1)}级标题`, active: fileDetailFormatState.block === value })).join("")}
+      ${keyboardButton}
+    </div>`;
+  }
+  if (fileDetailFormatPanel === "text") {
+    const inlineOptions = [
+      ["bold", "bold", "加粗"], ["italic", "italic", "斜体"], ["underline", "underline", "下划线"], ["strike", "strikethrough", "删除线"], ["code", "code", "行内代码"]
+    ];
+    return `<div class="file-format-toolbar is-submenu" role="toolbar" aria-label="文字样式">
+      ${fileDetailFormatButton({ action: "file-detail-format-back", label: "返回格式工具栏", icon: "chevrons-left", extraClass: "file-format-back" })}
+      ${inlineOptions.map(([value, icon, label]) => fileDetailFormatButton({ action: "file-detail-toggle-inline", value, icon, label, active: fileDetailFormatState[value] })).join("")}
+      ${keyboardButton}
+    </div>`;
+  }
+  if (fileDetailFormatPanel === "list") {
+    const listOptions = [
+      ["bullet", "list-bullet", "无序列表"], ["check", "list-check", "待办列表"], ["ordered", "list-ordered", "有序列表"]
+    ];
+    return `<div class="file-format-toolbar is-submenu list-submenu" role="toolbar" aria-label="列表类型">
+      ${fileDetailFormatButton({ action: "file-detail-format-back", label: "返回格式工具栏", icon: "chevrons-left", extraClass: "file-format-back" })}
+      ${listOptions.map(([value, icon, label]) => fileDetailFormatButton({ action: "file-detail-set-list", value, icon, label, active: fileDetailFormatState.list === value })).join("")}
+      ${keyboardButton}
+    </div>`;
+  }
+
+  const canOutdent = fileDetailFormatState.list !== "none" && fileDetailFormatState.indent > 0;
+  const canIndent = fileDetailFormatState.list !== "none" && fileDetailFormatState.indent < 2;
+  const canUndo = fileDetailEditHistory.length > 1;
+  const canRedo = fileDetailEditRedo.length > 0;
+  return `<div class="file-format-toolbar" role="toolbar" aria-label="文字格式">
+    ${fileDetailFormatButton({ action: "file-detail-open-format-panel", value: "heading", text: ({ body: "H₁", h1: "H₁", h2: "H₂", h3: "H₃", h4: "H₄" })[fileDetailFormatState.block] || "H₁", label: "标题级别", active: fileDetailFormatState.block !== "body", extraClass: "type-tool" })}
+    ${fileDetailFormatButton({ action: "file-detail-open-format-panel", value: "text", text: "Aa", label: "文字样式", active: fileDetailFormatState.bold || fileDetailFormatState.italic || fileDetailFormatState.underline || fileDetailFormatState.strike || fileDetailFormatState.code, extraClass: "type-tool" })}
+    ${fileDetailFormatButton({ action: "file-detail-open-format-panel", value: "list", icon: "list-bullet", label: "列表类型", active: fileDetailFormatState.list !== "none" })}
+    ${fileDetailFormatButton({ value: "outdent", icon: "outdent", label: "减少缩进", disabled: !canOutdent })}
+    ${fileDetailFormatButton({ value: "indent", icon: "indent", label: "增加缩进", disabled: !canIndent })}
+    ${fileDetailFormatButton({ value: "quote", icon: "quote", label: "引用", active: fileDetailFormatState.quote })}
+    ${fileDetailFormatButton({ value: "undo", icon: "undo", label: "撤销", disabled: !canUndo })}
+    ${fileDetailFormatButton({ value: "redo", icon: "redo", label: "重做", disabled: !canRedo })}
+    ${keyboardButton}
+  </div>`;
+}
+
+function renderFileDetailKeyboard(showFormatting) {
+  const keys = [",", "@#", "ABC", "DEF", "⌫", "。", "GHI", "JKL", "MNO", "换行", "?", "PQRS", "TUV", "WXYZ", "重输", "符号", "123", "空格", "中英"];
+  return `<section class="file-detail-edit-dock ${showFormatting ? "rich" : "plain"}" aria-label="系统输入键盘">
+    ${showFormatting ? renderFileDetailFormatToolbar() : ""}
+    <div class="file-edit-keyboard-accessory">
+      <button data-action="file-detail-keyboard-key" data-key="command" aria-label="命令" class="key-command">⌘</button>
+      <button data-action="file-detail-keyboard-key" data-key="scan" aria-label="扫描文本">${fileDetailFormatIcon("scan")}</button>
+      <button data-action="file-detail-keyboard-key" data-key="cut" aria-label="剪切">${fileDetailFormatIcon("cut")}</button>
+      <button data-action="file-detail-keyboard-key" data-key="emoji" aria-label="表情">${fileDetailFormatIcon("smile")}</button>
+      <button data-action="file-detail-keyboard-key" data-key="assistant" aria-label="智能输入">${fileDetailFormatIcon("assistant")}</button>
+      <b>${fileDetailFormatIcon("microphone")}<span>点击说话</span></b>
+      <button data-action="file-detail-hide-keyboard" aria-label="收起键盘">${fileDetailFormatIcon("chevron-down")}</button>
+    </div>
+    <div class="file-edit-keyboard-grid">
+      ${keys.map((key) => `<button data-action="file-detail-keyboard-key" data-key="${h(key)}" class="${[",", "⌫", "。", "换行", "?", "重输", "符号"].includes(key) ? "modifier" : ""} ${key === "空格" ? "space" : ""}">${h(key)}</button>`).join("")}
+    </div>
+  </section>`;
+}
+
+function persistFileDetailMarkerEdit(showNotice = false) {
+  if (!fileDetailMarkerEditor) return;
+  const draft = fileDetailMarkerEditor.draft.trim();
+  recordingMarks = recordingMarks.map((mark) => {
+    if (mark.id !== fileDetailMarkerEditor.markId) return mark;
+    return mark.type === "photo"
+      ? { ...mark, caption: draft, captionSource: draft ? "user" : "" }
+      : { ...mark, text: draft };
+  });
+  fileDetailMarkerEditor = null;
+  if (showNotice) showFileDetailNotice(draft ? "标记已自动保存" : "标记文字已清空，时间锚点已保留");
+}
+
+function persistFileDetailContentEdit(showNotice = false) {
+  if (!fileDetailContentEditor) return;
+  const draft = fileDetailContentEditor.draft.trim();
+  if (draft) {
+    if (fileDetailContentEditor.kind === "summary") fileDetailContent.summary = draft;
+    if (fileDetailContentEditor.kind === "transcript") {
+      const index = Number(fileDetailContentEditor.key.split("-")[1]);
+      fileDetailContent.transcript[index] = draft;
+    }
+  }
+  fileDetailContentEditor = null;
+  if (showNotice && draft) showFileDetailNotice("内容已自动保存");
+}
+
+function activeFileDetailInput() {
+  return document.getElementById(fileDetailMarkerEditor ? "fileDetailMarkerInput" : "fileDetailContentInput");
+}
+
+function defaultFileDetailFormatState() {
+  return {
+    block: "body",
+    bold: false,
+    italic: false,
+    underline: false,
+    strike: false,
+    code: false,
+    list: "none",
+    indent: 0,
+    quote: false
+  };
+}
+
+function storeFileDetailFormatState() {
+  if (!fileDetailContentEditor?.key) return;
+  fileDetailContentFormats[fileDetailContentEditor.key] = { ...fileDetailFormatState };
+}
+
+function pushFileDetailEditHistory(value) {
+  if (!fileDetailContentEditor || fileDetailEditHistory.at(-1) === value) return;
+  fileDetailEditHistory.push(value);
+  if (fileDetailEditHistory.length > 40) fileDetailEditHistory.shift();
+  fileDetailEditRedo = [];
+}
+
+function applyFileDetailFormatState() {
+  const input = activeFileDetailInput();
+  if (!input || !fileDetailContentEditor) return;
+  ["body", "h1", "h2", "h3", "h4"].forEach((value) => input.classList.toggle(`is-${value}`, fileDetailFormatState.block === value));
+  input.classList.toggle("is-bold", fileDetailFormatState.bold);
+  input.classList.toggle("is-italic", fileDetailFormatState.italic);
+  input.classList.toggle("is-underline", fileDetailFormatState.underline);
+  input.classList.toggle("is-strike", fileDetailFormatState.strike);
+  input.classList.toggle("is-code", fileDetailFormatState.code);
+  input.classList.toggle("is-list", fileDetailFormatState.list !== "none");
+  input.classList.toggle("is-quote", fileDetailFormatState.quote);
+  input.dataset.list = fileDetailFormatState.list;
+  input.dataset.indent = String(fileDetailFormatState.indent);
+}
+
+function focusFileDetailEditor(inputId) {
+  requestAnimationFrame(() => {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    input.style.height = "auto";
+    input.style.height = `${input.scrollHeight}px`;
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+    applyFileDetailFormatState();
+  });
+}
+
+function rerenderFileDetailFormatEditor() {
+  render();
+  focusFileDetailEditor("fileDetailContentInput");
+}
+
+function renderFileDetailPhotoViewer() {
+  if (!fileDetailPhotoViewerId) return "";
+  const mark = recordingMarks.find((item) => item.id === fileDetailPhotoViewerId && item.type === "photo");
+  if (!mark) return "";
+  return `
+    <section class="file-marker-viewer" aria-label="照片预览">
+      <button class="file-marker-viewer-close" data-action="file-detail-close-photo" aria-label="关闭照片">×</button>
+      <img src="${h(mark.photo || recordingPhotoAsset)}" alt="会议笔记照片大图">
+      <p>${h(mark.time)} · ${h(mark.source || "APP")}</p>
+      <strong>${h(mark.caption || "尚未添加照片说明")}</strong>
+    </section>
+  `;
+}
+
+function renderFileDetailTabs(state = "generated") {
+  const tabs = state === "generated"
+    ? [["大纲", "outline"], ["智能总结", "summary"], ["文字记录", "transcript"], ["标记", "markers"], ["待办事项", "todos"], ["思维导图", "mindmap"]]
+    : [["标记", "markers"], ["总结", "summary"]];
+  return `
+    <nav class="file-detail-tabs" aria-label="文件详情内容">
+      ${tabs.map(([label, value]) => `<button class="${fileDetailActiveTab === value ? "active" : ""}" data-action="file-detail-set-tab" data-value="${value}">${h(label)}</button>`).join("")}
+    </nav>
+  `;
+}
+
 function renderFileDetail() {
-  const jumpItems = [
-    ["大纲", "detail-outline"],
-    ["智能总结", "detail-summary"],
-    ["文字记录", "detail-transcript"],
-    ["待办事项", "detail-todos"],
-    ["思维导图", "detail-mindmap"]
-  ];
+  const activeTab = ["outline", "summary", "transcript", "markers", "todos", "mindmap"].includes(fileDetailActiveTab) ? fileDetailActiveTab : "markers";
+  fileDetailActiveTab = activeTab;
+  const contentEditing = Boolean(fileDetailContentEditor);
   return `
     <div class="statusbar detail-statusbar"><span>9:41</span><span>5G</span><span>82%</span></div>
-    <main class="file-detail-page">
+    <main class="file-detail-page ${fileDetailMarkerEditor || contentEditing ? "is-editing" : ""} ${contentEditing ? "is-rich-editing" : ""}">
       <div class="detail-toolbar">
         <button class="round-btn" data-go="APP-HOME-01" aria-label="返回">‹</button>
+        <h1 class="detail-toolbar-title">拼团营销工具需求评审会</h1>
         <div class="detail-actions">
           <button class="round-btn" data-go="APP-FILE-06" aria-label="分享">↗</button>
           <button class="round-btn" data-go="APP-FILE-07" aria-label="更多">⋮</button>
         </div>
       </div>
-      <h1 class="detail-title">拼团营销工具需求评审会</h1>
-      <p class="detail-meta">创建时间&nbsp;&nbsp;2026-07-04 18:25:55</p>
-      <div class="detail-tags">
-        <button class="tag-add" aria-label="添加标签">+</button>
-        ${["录音笔记", "拆机", "电子设备维修", "工业加工"].map((label) => `<span>${h(label)}</span>`).join("")}
-      </div>
+      ${renderFileDetailPlayer("00:43:52")}
+      ${renderFileDetailTabs("generated")}
 
-      <section class="audio-player">
-        <div class="audio-progress-row">
-          <span>00:00:00</span>
-          <button class="audio-track" aria-label="调整播放进度"><b style="left: 4%"></b></button>
-          <span>00:43:52</span>
-        </div>
-        <div class="player-controls">
-          <button class="player-icon sliders" data-go="APP-FILE-04" aria-label="音频设置"></button>
-          <button class="player-icon rewind" aria-label="快退 15 秒">15</button>
-          <button class="play-icon" aria-label="播放"></button>
-          <button class="player-icon forward" aria-label="快进 15 秒">15</button>
-          <button class="speed-btn" data-go="APP-FILE-05" aria-label="播放倍速">1.0x</button>
-        </div>
-      </section>
-
-      <nav class="jump-tabs" aria-label="AI 内容快速定位">
-        ${jumpItems.map(([label, id]) => `<a href="#${id}">${h(label)}</a>`).join("")}
-      </nav>
-
-      <section class="ai-section outline-section" id="detail-outline">
+      ${activeTab === "markers" ? renderFileDetailMarkers("generated") : ""}
+      ${activeTab === "outline" ? `<section class="ai-section outline-section" id="detail-outline">
         <div class="section-head">
           <h2>大纲</h2>
           <span class="feedback-icons">♡ ♡</span>
         </div>
         <div class="outline-row"><a href="#">0:00:02</a><span>会议内容与图片关联问题</span></div>
         <div class="outline-row"><a href="#">0:00:59</a><span>拍摄与标注未处理的困扰</span></div>
-      </section>
+      </section>` : ""}
 
-      <section class="ai-section" id="detail-summary">
-        <h2>📄 智能总结</h2>
+      ${activeTab === "summary" ? `<section class="ai-section" id="detail-summary">
+        <h2>智能总结</h2>
         <h3>录音信息</h3>
         <ul class="summary-list">
           <li><strong>录音时间：</strong>2026-03-02 16:39:35 ~ 2026-03-02 17:23:27</li>
@@ -2832,16 +3368,16 @@ function renderFileDetail() {
           <li><strong>内容类型：</strong>工作会议</li>
         </ul>
         <h3>录音总结</h3>
-        <p>本次会议围绕拼团营销工具的需求评审展开，重点确认了功能范围、简化方案、标准商城与积分商城的拼团功能 MVP，以及后续大商品库项目的启动安排。</p>
-      </section>
+        ${renderFileDetailEditableContent("summary", fileDetailContent.summary, { label: "录音总结", rows: 6 })}
+      </section>` : ""}
 
-      <section class="ai-section" id="detail-transcript">
+      ${activeTab === "transcript" ? `<section class="ai-section" id="detail-transcript">
         <h2>文字记录</h2>
-        <div class="transcript-line"><b>00:03</b><p>我们先确认这次评审的目标，主要聚焦拼团营销工具的 MVP 范围。</p></div>
-        <div class="transcript-line"><b>01:18</b><p>图片、标注和商品关联需要先做最小可用链路，复杂规则放到下一版。</p></div>
-      </section>
+        <div class="transcript-line"><b>00:03</b>${renderFileDetailEditableContent("transcript", fileDetailContent.transcript[0], { key: "transcript-0", label: "00:03 转写内容", rows: 4 })}</div>
+        <div class="transcript-line"><b>01:18</b>${renderFileDetailEditableContent("transcript", fileDetailContent.transcript[1], { key: "transcript-1", label: "01:18 转写内容", rows: 4 })}</div>
+      </section>` : ""}
 
-      <section class="ai-section" id="detail-todos">
+      ${activeTab === "todos" ? `<section class="ai-section" id="detail-todos">
         <h2>待办事项</h2>
         <div class="quote-block">
           <p>1. 明确拼团营销工具 MVP 的上线范围和验收口径，避免标准商城和积分商城规则相互影响。</p>
@@ -2853,9 +3389,9 @@ function renderFileDetail() {
           <li>整理积分商城拼团规则与异常状态。</li>
           <li>补充大商品库项目启动前的依赖清单。</li>
         </ul>
-      </section>
+      </section>` : ""}
 
-      <section class="ai-section mindmap-section" id="detail-mindmap">
+      ${activeTab === "mindmap" ? `<section class="ai-section mindmap-section" id="detail-mindmap">
         <p class="template-line">使用模板：<a href="#">会议总结</a></p>
         <div class="mindmap-card">
           <div class="mindmap-head"><h2>思维导图</h2><button aria-label="展开思维导图">↗</button></div>
@@ -2877,91 +3413,67 @@ function renderFileDetail() {
           <button>♡ 满意</button>
           <button>♡ 不满意</button>
         </div>
-      </section>
+      </section>` : ""}
     </main>
-    <div class="note-question-bar" data-action="open-ask-plaud"><span>Beta</span><input placeholder="对此笔记提问" aria-label="对此笔记提问" readonly></div>
+    ${contentEditing ? "" : `<div class="note-question-bar" data-action="open-ask-plaud"><span>Beta</span><input placeholder="对此笔记提问" aria-label="对此笔记提问" readonly></div>`}
     ${renderAskPlaudSheet()}
+    ${renderFileDetailPhotoViewer()}
+    ${fileDetailNotice ? `<div class="file-detail-notice" role="status">${h(fileDetailNotice)}</div>` : ""}
     ${moveFolderToast ? `<div class="toast-message">文件夹已移动至${h(moveFolderToast)}</div>` : ""}
   `;
 }
 
 function renderFileDetailEmpty() {
+  const activeTab = ["markers", "summary"].includes(fileDetailActiveTab) ? fileDetailActiveTab : "markers";
+  fileDetailActiveTab = activeTab;
   return `
     <div class="statusbar detail-statusbar"><span>9:41</span><span>5G</span><span>82%</span></div>
-    <main class="file-detail-page empty-detail-page">
+    <main class="file-detail-page empty-detail-page ${fileDetailMarkerEditor ? "is-editing" : ""}">
       <div class="detail-toolbar">
         <button class="round-btn" data-go="APP-HOME-01" aria-label="返回">‹</button>
+        <h1 class="detail-toolbar-title">拼团营销工具需求评审会</h1>
         <div class="detail-actions">
           <button class="round-btn" data-go="APP-FILE-06" aria-label="分享">↗</button>
           <button class="round-btn" data-go="APP-FILE-07" aria-label="更多">⋮</button>
         </div>
       </div>
-      <h1 class="detail-title">拼团营销工具需求评审会</h1>
-      <p class="detail-meta">创建时间&nbsp;&nbsp;2026-07-04 18:25:55</p>
-      <div class="detail-tags empty-tags">
-        <button class="tag-add" aria-label="添加标签">+</button>
-      </div>
-
-      <section class="audio-player">
-        <div class="audio-progress-row">
-          <span>00:00:00</span>
-          <button class="audio-track" aria-label="调整播放进度"><b style="left: 4%"></b></button>
-          <span>00:10:01</span>
-        </div>
-        <div class="player-controls">
-          <button class="player-icon sliders" data-go="APP-FILE-04" aria-label="音频设置"></button>
-          <button class="player-icon rewind" aria-label="快退 15 秒">15</button>
-          <button class="play-icon" aria-label="播放"></button>
-          <button class="player-icon forward" aria-label="快进 15 秒">15</button>
-          <button class="speed-btn" data-go="APP-FILE-05" aria-label="播放倍速">1.0x</button>
-        </div>
-      </section>
-
-      <section class="empty-note-state">
+      ${renderFileDetailPlayer("00:43:52")}
+      ${renderFileDetailTabs("pending")}
+      ${activeTab === "markers" ? renderFileDetailMarkers("pending") : `<section class="empty-note-state">
         <div class="empty-note-icon"></div>
         <h2>可生成笔记</h2>
-        <p>生成后将在此处显示总结</p>
-      </section>
+        <p>生成后将在此处显示总结，并参考已保存的 ${recordingMarks.length} 条标记。</p>
+      </section>`}
     </main>
     <div class="empty-generate-bar">
-      <button class="primary-btn" data-go="APP-AI-01"><span>✦</span> 生成</button>
+      <button class="primary-btn" data-go="APP-AI-01">生成</button>
     </div>
+    ${renderFileDetailPhotoViewer()}
+    ${fileDetailNotice ? `<div class="file-detail-notice" role="status">${h(fileDetailNotice)}</div>` : ""}
   `;
 }
 
 function renderFileDetailGenerating() {
+  if (!fileDetailGeneratingInitialized) {
+    fileDetailActiveTab = "summary";
+    fileDetailGeneratingInitialized = true;
+  }
+  const activeTab = ["markers", "summary"].includes(fileDetailActiveTab) ? fileDetailActiveTab : "summary";
+  fileDetailActiveTab = activeTab;
   return `
     <div class="statusbar detail-statusbar"><span>9:41</span><span>5G</span><span>82%</span></div>
-    <main class="file-detail-page generating-detail-page">
+    <main class="file-detail-page generating-detail-page ${fileDetailMarkerEditor ? "is-editing" : ""}">
       <div class="detail-toolbar">
         <button class="round-btn" data-go="APP-HOME-01" aria-label="返回">‹</button>
+        <h1 class="detail-toolbar-title">拼团营销工具需求评审会</h1>
         <div class="detail-actions">
           <button class="round-btn" data-go="APP-FILE-06" aria-label="分享">↗</button>
           <button class="round-btn" data-go="APP-FILE-07" aria-label="更多">⋮</button>
         </div>
       </div>
-      <h1 class="detail-title">拼团营销工具需求评审会</h1>
-      <p class="detail-meta">创建时间&nbsp;&nbsp;2026-07-04 18:25:55</p>
-      <div class="detail-tags empty-tags">
-        <button class="tag-add" aria-label="添加标签">+</button>
-      </div>
-
-      <section class="audio-player">
-        <div class="audio-progress-row">
-          <span>00:00:00</span>
-          <button class="audio-track" aria-label="调整播放进度"><b style="left: 4%"></b></button>
-          <span>00:10:01</span>
-        </div>
-        <div class="player-controls">
-          <button class="player-icon sliders" data-go="APP-FILE-04" aria-label="音频设置"></button>
-          <button class="player-icon rewind" aria-label="快退 15 秒">15</button>
-          <button class="play-icon" aria-label="播放"></button>
-          <button class="player-icon forward" aria-label="快进 15 秒">15</button>
-          <button class="speed-btn" data-go="APP-FILE-05" aria-label="播放倍速">1.0x</button>
-        </div>
-      </section>
-
-      <section class="generation-card">
+      ${renderFileDetailPlayer("00:43:52")}
+      ${renderFileDetailTabs("generating")}
+      ${activeTab === "markers" ? renderFileDetailMarkers("generating") : `<section class="generation-card">
         <div class="skeleton-lines">
           <i class="short"></i>
           <i></i>
@@ -2974,8 +3486,10 @@ function renderFileDetailGenerating() {
           <h2>生成中...</h2>
           <p>生成还需几分钟，离开页面不会影响进度</p>
         </div>
-      </section>
+      </section>`}
     </main>
+    ${renderFileDetailPhotoViewer()}
+    ${fileDetailNotice ? `<div class="file-detail-notice" role="status">${h(fileDetailNotice)}</div>` : ""}
   `;
 }
 
@@ -5386,6 +5900,162 @@ document.addEventListener("click", (event) => {
     render();
     return;
   }
+  if (action && action.dataset.action === "file-detail-set-tab") {
+    persistFileDetailMarkerEdit();
+    persistFileDetailContentEdit();
+    fileDetailActiveTab = action.dataset.value || "markers";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "file-detail-open-format-panel") {
+    fileDetailFormatPanel = action.dataset.format || "main";
+    rerenderFileDetailFormatEditor();
+    return;
+  }
+  if (action && action.dataset.action === "file-detail-format-back") {
+    fileDetailFormatPanel = "main";
+    rerenderFileDetailFormatEditor();
+    return;
+  }
+  if (action && action.dataset.action === "file-detail-set-block") {
+    fileDetailFormatState.block = action.dataset.format || "body";
+    storeFileDetailFormatState();
+    rerenderFileDetailFormatEditor();
+    return;
+  }
+  if (action && action.dataset.action === "file-detail-toggle-inline") {
+    const format = action.dataset.format || "";
+    if (["bold", "italic", "underline", "strike", "code"].includes(format)) fileDetailFormatState[format] = !fileDetailFormatState[format];
+    storeFileDetailFormatState();
+    rerenderFileDetailFormatEditor();
+    return;
+  }
+  if (action && action.dataset.action === "file-detail-set-list") {
+    const list = action.dataset.format || "none";
+    fileDetailFormatState.list = fileDetailFormatState.list === list ? "none" : list;
+    if (fileDetailFormatState.list === "none") fileDetailFormatState.indent = 0;
+    storeFileDetailFormatState();
+    rerenderFileDetailFormatEditor();
+    return;
+  }
+  if (action && action.dataset.action === "file-detail-format") {
+    const format = action.dataset.format || "";
+    if (format === "outdent") fileDetailFormatState.indent = Math.max(0, fileDetailFormatState.indent - 1);
+    if (format === "indent") fileDetailFormatState.indent = Math.min(2, fileDetailFormatState.indent + 1);
+    if (format === "quote") fileDetailFormatState.quote = !fileDetailFormatState.quote;
+    if (format === "undo" && fileDetailEditHistory.length > 1) {
+      const current = fileDetailEditHistory.pop();
+      fileDetailEditRedo.push(current);
+      fileDetailContentEditor.draft = fileDetailEditHistory.at(-1) || "";
+    }
+    if (format === "redo" && fileDetailEditRedo.length) {
+      const next = fileDetailEditRedo.pop();
+      fileDetailEditHistory.push(next);
+      fileDetailContentEditor.draft = next;
+    }
+    storeFileDetailFormatState();
+    rerenderFileDetailFormatEditor();
+    return;
+  }
+  if (action && action.dataset.action === "file-detail-hide-keyboard") {
+    persistFileDetailMarkerEdit();
+    persistFileDetailContentEdit();
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "file-detail-keyboard-key") {
+    const input = activeFileDetailInput();
+    if (!input) return;
+    const key = action.dataset.key || "";
+    if (key === "⌫") input.value = input.value.slice(0, -1);
+    else if (key === "换行") input.value += "\n";
+    else if (key === "空格") input.value += " ";
+    else if (["ABC", "DEF", "GHI", "JKL", "MNO", "PQRS", "TUV", "WXYZ", ",", "。", "?", "@#"].includes(key)) input.value += key;
+    else {
+      showFileDetailNotice("原型键盘保持中文输入");
+      focusFileDetailEditor(input.id);
+      return;
+    }
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    focusFileDetailEditor(input.id);
+    return;
+  }
+  if (action && action.dataset.action === "file-detail-toggle-play") {
+    fileDetailAudioPlaying = !fileDetailAudioPlaying;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "file-detail-skip") {
+    fileDetailAudioSeconds = Math.max(0, fileDetailAudioSeconds + Number(action.dataset.seconds || 0));
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "file-detail-seek-track") {
+    const rect = action.getBoundingClientRect();
+    const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / Math.max(1, rect.width)));
+    fileDetailAudioSeconds = Math.round(Number(action.dataset.duration || 0) * ratio);
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "file-detail-seek-marker") {
+    const mark = recordingMarks.find((item) => item.id === action.dataset.markerId);
+    if (!mark) return;
+    fileDetailAudioSeconds = fileDetailTimeToSeconds(mark.time);
+    fileDetailAudioPlaying = true;
+    showFileDetailNotice(`已定位到 ${mark.time}`);
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "file-detail-edit-marker") {
+    const mark = recordingMarks.find((item) => item.id === action.dataset.markerId);
+    if (!mark) return;
+    fileDetailMarkerEditor = {
+      type: mark.type,
+      markId: mark.id,
+      time: mark.time,
+      source: mark.source,
+      draft: mark.type === "photo" ? (mark.caption || (currentPageId === "APP-FILE-01" ? "白板记录了项目交付时间" : "")) : (mark.text || "")
+    };
+    render();
+    focusFileDetailEditor("fileDetailMarkerInput");
+    return;
+  }
+  if (action && action.dataset.action === "file-detail-edit-content") {
+    const key = action.dataset.key || "";
+    const kind = action.dataset.kind || "";
+    let draft = "";
+    if (kind === "summary") draft = fileDetailContent.summary;
+    if (kind === "transcript") {
+      const index = Number(key.split("-")[1]);
+      draft = fileDetailContent.transcript[index] || "";
+    }
+    fileDetailFormatPanel = "main";
+    fileDetailFormatState = { ...defaultFileDetailFormatState(), ...(fileDetailContentFormats[key] || {}) };
+    fileDetailEditHistory = [draft];
+    fileDetailEditRedo = [];
+    fileDetailContentEditor = { key, kind, draft };
+    render();
+    focusFileDetailEditor("fileDetailContentInput");
+    return;
+  }
+  if (action && action.dataset.action === "file-detail-open-photo") {
+    fileDetailPhotoViewerId = action.dataset.markerId || "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "file-detail-close-photo") {
+    fileDetailPhotoViewerId = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "file-detail-delete-photo") {
+    const markerId = action.dataset.markerId || "";
+    recordingMarks = recordingMarks.filter((mark) => mark.id !== markerId);
+    if (fileDetailPhotoViewerId === markerId) fileDetailPhotoViewerId = "";
+    showFileDetailNotice("照片标记已删除");
+    render();
+    return;
+  }
   if (action && action.dataset.action === "open-sn-tip") {
     deviceSnTipOpen = true;
     render();
@@ -5397,14 +6067,134 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (action && action.dataset.action === "finish-recording-sync") {
+    recordingEditor = null;
+    recordingCameraOpen = false;
+    recordingPhotoViewerId = "";
     startSingleHomeSyncBatch();
     homeSyncTransport = "ble";
     go("APP-HOME-01");
     return;
   }
+  if (action && action.dataset.action === "reset-recording-demo") {
+    recordingMarks = recordingBaseMarks.map((mark) => ({ ...mark }));
+    recordingEditor = null;
+    recordingCameraOpen = false;
+    recordingPhotoViewerId = "";
+    recordingCameraPrompt = false;
+    recordingExpandedMarkIds = new Set();
+    recordingNotice = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "start-recording-input") {
+    openRecordingEditor("new-input");
+    render();
+    requestAnimationFrame(() => document.getElementById("recordingEditorInput")?.focus());
+    return;
+  }
+  if (action && action.dataset.action === "open-recording-camera") {
+    recordingEditor = null;
+    recordingPhotoViewerId = "";
+    recordingCameraOpen = true;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "close-recording-camera") {
+    recordingCameraOpen = false;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "capture-recording-photo") {
+    captureRecordingPhoto();
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "open-recording-photo") {
+    recordingPhotoViewerId = action.dataset.markerId || "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "close-recording-photo") {
+    recordingPhotoViewerId = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "delete-recording-photo") {
+    const markerId = action.dataset.markerId || "";
+    recordingMarks = recordingMarks.filter((mark) => mark.id !== markerId);
+    if (recordingPhotoViewerId === markerId) recordingPhotoViewerId = "";
+    showRecordingNotice("照片标记已删除");
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "edit-recording-photo-caption") {
+    openRecordingEditor("photo-caption", action.dataset.markerId || "");
+    render();
+    requestAnimationFrame(() => document.getElementById("recordingEditorInput")?.focus());
+    return;
+  }
+  if (action && action.dataset.action === "edit-recording-mark") {
+    openRecordingEditor("edit-text", action.dataset.markerId || "");
+    render();
+    requestAnimationFrame(() => document.getElementById("recordingEditorInput")?.focus());
+    return;
+  }
+  if (action && action.dataset.action === "toggle-recording-mark-expanded") {
+    const markerId = action.dataset.markerId || "";
+    if (recordingExpandedMarkIds.has(markerId)) recordingExpandedMarkIds.delete(markerId);
+    else recordingExpandedMarkIds.add(markerId);
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "cancel-recording-editor") {
+    closeRecordingEditor();
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "complete-recording-editor") {
+    completeRecordingEditor();
+    render();
+    if (recordingEditor) requestAnimationFrame(() => document.getElementById("recordingEditorInput")?.focus());
+    return;
+  }
+  if (action && action.dataset.action === "delete-recording-mark-text") {
+    if (recordingEditor?.markId) {
+      recordingMarks = recordingMarks.map((mark) => mark.id === recordingEditor.markId ? { ...mark, text: "" } : mark);
+      closeRecordingEditor();
+      showRecordingNotice("标记文字已删除，时间锚点已保留");
+    }
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "recording-keyboard-key") {
+    if (!recordingEditor) return;
+    const key = action.dataset.key || "";
+    if (key === "switch") {
+      showRecordingNotice("原型键盘保持中文输入");
+    } else if (key === "backspace") {
+      recordingEditor.draft = recordingEditor.draft.slice(0, -1);
+    } else if (key === "space") {
+      recordingEditor.draft += " ";
+    } else {
+      recordingEditor.draft += key;
+    }
+    render();
+    requestAnimationFrame(() => {
+      const input = document.getElementById("recordingEditorInput");
+      input?.focus();
+      input?.setSelectionRange(input.value.length, input.value.length);
+    });
+    return;
+  }
+  if (action && action.dataset.action === "simulate-recording-photo-ai") {
+    simulateRecordingPhotoAiCaption();
+    render();
+    return;
+  }
   if (action && action.dataset.action === "add-recording-mark") {
     addRecordingMark(action.dataset.markType || "mark");
     render();
+    if (recordingEditor) requestAnimationFrame(() => document.getElementById("recordingEditorInput")?.focus());
     return;
   }
   if (action && action.dataset.action === "home-complete-sync") {
@@ -5657,6 +6447,13 @@ document.addEventListener("click", (event) => {
 });
 
 document.addEventListener("pointerdown", (event) => {
+  const editDockButton = event.target.closest(".file-detail-edit-dock button");
+  if (editDockButton) {
+    fileDetailDockInteraction = true;
+    window.setTimeout(() => { fileDetailDockInteraction = false; }, 80);
+    event.preventDefault();
+    return;
+  }
   const priorityTrigger = event.target.closest("[data-action='open-home-priority-menu']");
   if (!priorityTrigger) return;
   clearHomePriorityLongPressTimer();
@@ -5686,6 +6483,22 @@ document.addEventListener("keydown", (event) => {
     openHomePriorityMenu(priorityTrigger.dataset.taskId || "", true);
     return;
   }
+  if (event.key === "Escape" && currentPageId === "APP-REC-04") {
+    if (recordingPhotoViewerId) recordingPhotoViewerId = "";
+    else if (recordingCameraOpen) recordingCameraOpen = false;
+    else if (recordingEditor) recordingEditor = null;
+    else return;
+    render();
+    return;
+  }
+    if (event.key === "Escape" && ["APP-FILE-01", "APP-FILE-10", "APP-FILE-15"].includes(currentPageId)) {
+    if (fileDetailPhotoViewerId) fileDetailPhotoViewerId = "";
+    else if (fileDetailMarkerEditor) persistFileDetailMarkerEdit();
+    else if (fileDetailContentEditor) persistFileDetailContentEdit();
+    else return;
+    render();
+    return;
+  }
   if (event.key !== "Escape" || !homePriorityMenuTaskId) return;
   const taskId = homePriorityMenuTaskId;
   closeHomePriorityMenu();
@@ -5696,6 +6509,23 @@ document.addEventListener("keydown", (event) => {
 });
 
 document.addEventListener("input", (event) => {
+  if (event.target.id === "fileDetailMarkerInput" && fileDetailMarkerEditor) {
+    fileDetailMarkerEditor.draft = event.target.value;
+    event.target.style.height = "auto";
+    event.target.style.height = `${event.target.scrollHeight}px`;
+  }
+  if (event.target.id === "fileDetailContentInput" && fileDetailContentEditor) {
+    fileDetailContentEditor.draft = event.target.value;
+    pushFileDetailEditHistory(event.target.value);
+    event.target.style.height = "auto";
+    event.target.style.height = `${event.target.scrollHeight}px`;
+  }
+  if (event.target.id === "recordingEditorInput" && recordingEditor) {
+    recordingEditor.draft = event.target.value;
+    const completeButton = document.querySelector("[data-action='complete-recording-editor']");
+    const canComplete = recordingEditor.mode === "photo-caption" || Boolean(recordingEditor.draft.trim());
+    if (completeButton) completeButton.disabled = !canComplete;
+  }
   if (event.target.id === "registerEmail" || event.target.id === "registerPassword") {
     registerEmail = document.getElementById("registerEmail")?.value || "";
     registerPassword = document.getElementById("registerPassword")?.value || "";
@@ -5836,6 +6666,23 @@ document.addEventListener("input", (event) => {
       : deleteAccountCodeSent && deleteAccountCode.length === 6;
     const button = document.querySelector("[data-action='confirm-delete-account']");
     if (button) button.disabled = !canDelete;
+  }
+});
+
+document.addEventListener("focusout", (event) => {
+  if (event.target.id === "fileDetailMarkerInput" && fileDetailMarkerEditor) {
+    persistFileDetailMarkerEdit();
+    window.setTimeout(() => {
+      if (["APP-FILE-01", "APP-FILE-10", "APP-FILE-15"].includes(currentPageId) && !fileDetailMarkerEditor) render();
+    }, 0);
+    return;
+  }
+  if (event.target.id === "fileDetailContentInput" && fileDetailContentEditor) {
+    if (fileDetailDockInteraction || event.relatedTarget?.closest?.(".file-detail-edit-dock")) return;
+    persistFileDetailContentEdit();
+    window.setTimeout(() => {
+      if (["APP-FILE-01", "APP-FILE-10", "APP-FILE-15"].includes(currentPageId) && !fileDetailContentEditor) render();
+    }, 0);
   }
 });
 

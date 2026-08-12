@@ -296,6 +296,11 @@ flowchart LR
 <ol>
 <li>录音中页展示计时、连接、电量、存储、录音模式、标记时间轴。</li>
 <li>用户可添加标记；硬件短按标记和 App 标记统一进入文件时间轴。</li>
+<li>点击“输入”进入文本编辑栏和系统键盘；点击完成后才新增输入标记，记录当前录音时间、来源 <code>APP</code> 与输入内容；取消不新增。键盘态隐藏页面级“输入 / 拍照 / 标记”功能栏。</li>
+<li>点击“标记”立即新增时间标记，记录当前录音时间、来源 <code>APP</code> 与默认文本；硬件按键标记记录来源 <code>录音卡</code>。</li>
+<li>普通标记直接展示文本，不显示右侧箭头；点击文字可编辑，仅文本超长时折叠。时间标记允许删除文本，但时间和来源锚点继续保留。</li>
+<li>点击“拍照”唤起系统相机；拍照完成后新增照片标记，展示可打开的缩略图、时间、来源 <code>APP</code> 和右上角删除图标。</li>
+<li>照片说明默认空且可点击编辑；转写完成后，若用户未编辑且说明仍为空，AI 可结合图片和录音内容生成说明，用户内容不得被自动覆盖。</li>
 <li>用户点击暂停后，设备进入暂停中；页面显示继续和结束。</li>
 <li>用户点击继续后，设备恢复录音中。</li>
 <li>用户点击结束后，设备保存录音文件，App 显示保存中。</li>
@@ -433,15 +438,20 @@ flowchart LR
 <h3 id="3-4-录音控制">3.4 录音控制</h3>
 <p>对应页面：<code>APP-REC-02 录音方式选择弹层</code>、<code>APP-REC-03 录音场景模板选择页</code>、<code>APP-REC-04 录音中页</code>、<code>APP-REC-05 设备保存中页</code>。</p>
 <p>标注点说明：</p>
-<div class="table-wrap"><table><thead><tr><th>#</th><th>内容</th><th>说明</th></tr></thead><tbody><tr><td>1</td><td>录音方式</td><td>开始录音（智能识别场景）/选择录音场景</td></tr><tr><td>2</td><td>下次默认</td><td>勾选后后续点击主按钮可直接使用智能识别场景</td></tr><tr><td>3</td><td>录音计时</td><td>录音中/暂停中的核心状态证明</td></tr><tr><td>4</td><td>设备保护信息</td><td>连接、电量、存储、剩余可录时长<span class="review-tag">待确认</span></td></tr><tr><td>5</td><td>标记时间轴</td><td>App 标记和硬件短按标记合并展示</td></tr><tr><td>6</td><td>操作按钮</td><td>添加标记、暂停/继续、结束录音</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>内容</th><th>说明</th></tr></thead><tbody><tr><td>1</td><td>录音方式</td><td>开始录音（智能识别场景）/选择录音场景</td></tr><tr><td>2</td><td>下次默认</td><td>勾选后后续点击主按钮可直接使用智能识别场景</td></tr><tr><td>3</td><td>录音计时</td><td>录音中/暂停中的核心状态证明</td></tr><tr><td>4</td><td>设备保护信息</td><td>连接、电量、存储、剩余可录时长<span class="review-tag">待确认</span></td></tr><tr><td>5</td><td>标记记录</td><td>输入、拍照、时间标记与硬件短按标记按时间合并展示，同时记录来源 <code>APP</code> / <code>录音卡</code></td></tr><tr><td>6</td><td>操作按钮</td><td>输入、拍照、标记、暂停/继续、结束录音</td></tr><tr><td>7</td><td>照片标记</td><td>缩略图、大图预览、右上角删除、可编辑照片说明和 AI 说明来源</td></tr></tbody></table></div>
 <p>字段定义：</p>
-<div class="table-wrap"><table><thead><tr><th>界面字段</th><th>控件</th><th>数据字段</th><th>规则</th></tr></thead><tbody><tr><td>录音模式</td><td>选择项</td><td><code>record_mode</code></td><td><code>auto_scene</code> / <code>scene_template</code></td></tr><tr><td>下次默认</td><td>复选框</td><td><code>default_record_mode</code></td><td>取消入口<span class="review-tag">待确认</span></td></tr><tr><td>录音时长</td><td>计时器</td><td><code>record_duration</code></td><td>断连时本地计时策略<span class="review-tag">待确认</span></td></tr><tr><td>录音状态</td><td>标签</td><td><code>record_state</code></td><td><code>录音中</code> / <code>暂停中</code> / <code>保存中</code></td></tr><tr><td>标记点</td><td>时间轴</td><td><code>marker_list</code></td><td>硬件/APP 标记来源需记录</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>界面字段</th><th>控件</th><th>数据字段</th><th>规则</th></tr></thead><tbody><tr><td>录音模式</td><td>选择项</td><td><code>record_mode</code></td><td><code>auto_scene</code> / <code>scene_template</code></td></tr><tr><td>下次默认</td><td>复选框</td><td><code>default_record_mode</code></td><td>取消入口<span class="review-tag">待确认</span></td></tr><tr><td>录音时长</td><td>计时器</td><td><code>record_duration</code></td><td>断连时本地计时策略<span class="review-tag">待确认</span></td></tr><tr><td>录音状态</td><td>标签</td><td><code>record_state</code></td><td><code>录音中</code> / <code>暂停中</code> / <code>保存中</code></td></tr><tr><td>标记点</td><td>时间轴</td><td><code>marker_list</code></td><td>时间、类型、来源和内容合并展示</td></tr><tr><td>标记来源</td><td>标签</td><td><code>marker_source</code></td><td><code>APP</code> / <code>录音卡</code>，时间锚点不可编辑</td></tr><tr><td>标记文本</td><td>文本</td><td><code>marker_text</code></td><td>点击编辑；普通内容完整展示，超长才折叠</td></tr><tr><td>标记照片</td><td>图片</td><td><code>marker_assets</code></td><td>缩略图可打开；右上角图标删除整条照片标记</td></tr><tr><td>照片说明</td><td>文本</td><td><code>marker_photo_caption</code></td><td>默认空；可编辑；满足条件时由 AI 生成</td></tr><tr><td>照片说明来源</td><td>隐藏状态</td><td><code>marker_caption_source</code></td><td><code>empty</code> / <code>user</code> / <code>ai</code>；AI 不覆盖 <code>user</code></td></tr></tbody></table></div>
 <p>交互行为：</p>
 <ul>
 <li>点击开始录音 → 下发硬件录音命令，成功后进入录音中页。</li>
 <li>点击暂停 → 下发暂停命令，页面进入暂停中。</li>
 <li>点击继续 → 下发继续命令，页面恢复录音中。</li>
 <li>点击结束 → 下发结束命令，进入设备保存中。</li>
+<li>点击输入 → 打开文本编辑栏与系统键盘；完成后新增输入标记，取消不新增；键盘态隐藏页面级输入/拍照/标记功能栏。</li>
+<li>点击标记 → 立即新增时间标记，记录当前时间和来源；点击标记文字可编辑，时间标记可删除文本但保留锚点。</li>
+<li>点击拍照 → 唤起系统相机；拍照完成后插入照片缩略图；点击照片打开大图，右上角删除图标删除照片标记。</li>
+<li>点击照片说明 → 编辑照片说明；默认空。转写完成且用户未编辑时，AI 可结合图片和录音内容生成说明。</li>
+<li>普通标记不显示右侧箭头，文本直接展示；仅内容超长时折叠并提供展开/收起。</li>
 <li>录音中断连 → 显示“设备仍在本地录音，重连后同步状态”。</li>
 <li>录音文件只在结束保存后同步（引用 R05）。</li>
 <li><span class="source-highlight" style="--source-color:#0B74DE">P0 录音中不自动开启 STA 或 SoftAP，不主动切换手机网络，不传输未封口音频文件；仅保留 BLE 控制、状态、标记和文件索引能力。</span></li>
@@ -451,7 +461,7 @@ flowchart LR
 <p>标注点说明：</p>
 <div class="table-wrap"><table><thead><tr><th>#</th><th>内容</th><th>说明</th></tr></thead><tbody><tr><td>1</td><td>筛选栏</td><td>按创建时间、文件夹和“来自”筛选；“来自”包含不同绑定设备与导入音频</td></tr><tr><td>2</td><td>文件卡片</td><td>文件名、来源、日期、时长、大小、状态</td></tr><tr><td>3</td><td>生成按钮</td><td>仅未转写文件展示</td></tr><tr><td>4</td><td>播放器</td><td>播放、暂停、进度、倍速、标记点</td></tr><tr><td>5</td><td>页签</td><td>转写、AI 笔记、信息</td></tr><tr><td>6</td><td>文件操作</td><td>重命名、删除、恢复、彻底删除、Markdown 导出</td></tr><tr><td>7</td><td><span class="source-highlight" style="--source-color:#0B74DE">同步方式</span></td><td>BLE、STA 同局域网、SoftAP 设备热点、失败回退</td></tr><tr><td>8</td><td><span class="source-highlight" style="--source-color:#0B74DE">双阶段同步状态</span></td><td>已传到手机、等待云上传、已上传云端</td></tr></tbody></table></div>
 <p>字段定义：</p>
-<div class="table-wrap"><table><thead><tr><th>界面字段</th><th>控件</th><th>数据字段</th><th>规则</th></tr></thead><tbody><tr><td>文件名</td><td>文本</td><td><code>file_name</code></td><td>可重命名</td></tr><tr><td>来源</td><td>标签</td><td><code>file_source</code></td><td>引用 R06</td></tr><tr><td>来源类型</td><td>筛选项</td><td><code>source_type</code></td><td><code>hardware_recording</code> / <code>imported_audio</code>，沿用 1.5 文件来源枚举</td></tr><tr><td>来源设备 ID</td><td>隐藏筛选键</td><td><code>source_device_id</code></td><td>硬件录音必填，取绑定设备的稳定 <code>device_id</code>；导入音频为空</td></tr><tr><td>来源设备名称</td><td>文本</td><td><code>source_device_name</code></td><td>显示绑定设备当前名称，例如 <code>AI Recorder A1</code>、<code>AI Recorder A1 Pro</code></td></tr><tr><td>同步状态</td><td>标签</td><td><code>sync_state</code></td><td>待同步/同步中/失败/完成</td></tr><tr><td><span class="source-highlight" style="--source-color:#0B74DE">传输通道</span></td><td>标签/进度</td><td><code>sync_transport</code></td><td><code>BLE</code> / <code>STA_LAN</code> / <code>SOFTAP</code></td></tr><tr><td><span class="source-highlight" style="--source-color:#0B74DE">预计剩余时间</span></td><td>文本</td><td><code>estimated_sync_time</code></td><td>使用最近吞吐或历史 P20 估算，不用芯片标称速率</td></tr><tr><td><span class="source-highlight" style="--source-color:#0B74DE">已确认偏移</span></td><td>隐藏字段/诊断</td><td><code>acked_offset</code></td><td>BLE/STA/SoftAP 统一 offset，断点续传使用</td></tr><tr><td><span class="source-highlight" style="--source-color:#0B74DE">设备到手机状态</span></td><td>标签</td><td><code>phone_sync_state</code></td><td><code>未传输</code> / <code>部分传输</code> / <code>已传到手机</code> / <code>校验失败</code></td></tr><tr><td><span class="source-highlight" style="--source-color:#0B74DE">云上传状态</span></td><td>标签</td><td><code>cloud_upload_state</code></td><td><code>等待网络</code> / <code>上传中</code> / <code>已上传云端</code> / <code>上传失败</code></td></tr><tr><td>生成状态</td><td>标签</td><td><code>generation_state</code></td><td>引用 R07</td></tr><tr><td>音频路径</td><td>播放源</td><td><code>audio_path</code></td><td>本地文件系统</td></tr><tr><td>云端对象</td><td>隐藏字段</td><td><code>cloud_object_key</code></td><td>上传后生成，接口待后端定义</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>界面字段</th><th>控件</th><th>数据字段</th><th>规则</th></tr></thead><tbody><tr><td>文件名</td><td>文本</td><td><code>file_name</code></td><td>可重命名</td></tr><tr><td>来源</td><td>标签</td><td><code>file_source</code></td><td>引用 R06</td></tr><tr><td>来源类型</td><td>筛选项</td><td><code>source_type</code></td><td><code>hardware_recording</code> / <code>imported_audio</code>，沿用 1.5 文件来源枚举</td></tr><tr><td>来源设备 ID</td><td>隐藏筛选键</td><td><code>source_device_id</code></td><td>硬件录音必填，取绑定设备的稳定 <code>device_id</code>；导入音频为空</td></tr><tr><td>来源设备名称</td><td>文本</td><td><code>source_device_name</code></td><td>显示绑定设备当前名称，例如 <code>AI Recorder A1</code>、<code>AI Recorder A1 Pro</code></td></tr><tr><td>同步状态</td><td>标签</td><td><code>sync_state</code></td><td>待同步/同步中/失败/完成</td></tr><tr><td><span class="source-highlight" style="--source-color:#0B74DE">传输通道</span></td><td>标签/进度</td><td><code>sync_transport</code></td><td><code>BLE</code> / <code>STA_LAN</code> / <code>SOFTAP</code></td></tr><tr><td><span class="source-highlight" style="--source-color:#0B74DE">预计剩余时间</span></td><td>文本</td><td><code>estimated_sync_time</code></td><td>使用最近吞吐或历史 P20 估算，不用芯片标称速率</td></tr><tr><td><span class="source-highlight" style="--source-color:#0B74DE">已确认偏移</span></td><td>隐藏字段/诊断</td><td><code>acked_offset</code></td><td>BLE/STA/SoftAP 统一 offset，断点续传使用</td></tr><tr><td><span class="source-highlight" style="--source-color:#0B74DE">设备到手机状态</span></td><td>标签</td><td><code>phone_sync_state</code></td><td><code>未传输</code> / <code>部分传输</code> / <code>已传到手机</code> / <code>校验失败</code></td></tr><tr><td><span class="source-highlight" style="--source-color:#0B74DE">云上传状态</span></td><td>标签</td><td><code>cloud_upload_state</code></td><td><code>等待网络</code> / <code>上传中</code> / <code>已上传云端</code> / <code>上传失败</code></td></tr><tr><td>生成状态</td><td>标签</td><td><code>generation_state</code></td><td>引用 R07</td></tr><tr><td>音频路径</td><td>播放源</td><td><code>audio_path</code></td><td>本地文件系统</td></tr><tr><td>云端对象</td><td>隐藏字段</td><td><code>cloud_object_key</code></td><td>上传后生成，接口待后端定义</td></tr><tr><td>文件标记列表</td><td>一级内容页签</td><td><code>marker_list</code></td><td>录音结束后永久保留，不依赖转写或 AI 生成状态</td></tr><tr><td>标记时间锚点</td><td>播放定位</td><td><code>marker_audio_offset</code></td><td>点击后将播放器定位到标记时间并开始播放</td></tr><tr><td>标记生成快照</td><td>隐藏关联</td><td><code>marker_generation_snapshot</code></td><td>确认生成时冻结；重新生成读取最新标记</td></tr></tbody></table></div>
 <p>交互行为：</p>
 <ul>
 <li>同步完成或导入成功 → 文件进入列表。</li>
@@ -467,6 +477,17 @@ flowchart LR
 <li><span class="source-highlight" style="--source-color:#0B74DE">同一任务、同一 Wi-Fi 失败原因 10 分钟内不重复弹窗；同步页可展示轻提示和手动重试入口。</span></li>
 <li>未转写文件 → 显示生成按钮（引用 R07）。</li>
 <li>已转写文件 → 文件详情显示转写结果。</li>
+<li>录音中创建的文字、时间和照片标记 → 录音结束后完整继承到 APP-FILE-10 与 APP-FILE-01 的“标记”一级页签；转写和 AI 生成不得覆盖或隐藏原标记。</li>
+<li>点击标记时间或播放图标 → 播放器定位到对应音频时间并开始播放。录音结束后不再提供新增标记入口，标记仅在录音过程中产生。</li>
+<li>文件详情中的标记 → 点击已有文字或照片说明后，原文字直接出现光标并唤起系统键盘；不增加边框、下划线、取消/保存按钮，不打开弹窗或跳转编辑页；失焦、收起键盘或切换页签时自动保存。照片可打开或删除；时间与来源只读。</li>
+<li>已转写或已生成内容 → 点击文字记录、智能总结或已有标记内容，只在原文字位置显示光标并直接输入；智能总结和文字记录在系统键盘上方显示参考图同款单行格式栏。主栏固定为标题级别、文字样式、列表、减少/增加缩进、引用、撤销、重做和收起键盘；普通标记和照片说明只使用纯文本键盘。不得打开独立编辑窗口或显示显式保存操作，输入内容自动保存。</li>
+<li>标题级别 → 点击标题入口后原栏切换为返回、正文 <code>T</code>、<code>H1</code>、<code>H2</code>、<code>H3</code>、<code>H4</code>、收起键盘；点击对应序号可实际选择。正文为 16px 常规，H1/H2/H3/H4 分别为 28/24/20/18px 粗体。</li>
+<li>文字样式 → 点击 <code>Aa</code> 后原栏切换为返回、加粗、斜体、下划线、删除线、行内代码、收起键盘；样式可独立开关和组合，行内代码使用等宽字体与浅灰背景。</li>
+<li>列表与段落 → 点击列表后原栏切换为返回、无序列表、待办列表、有序列表、收起键盘；再次点击当前类型可取消。列表启用后才开放减少/增加缩进，最多 2 级；引用显示左侧浅灰竖线。无撤销/重做历史时对应按钮使用浅灰禁用态。</li>
+<li>格式栏视觉 → 高约 54px、浅灰白背景、底部 1px 分隔线；图标等距排列，生效项使用浅灰圆角选中底；最右收起键盘图标前有竖分隔线。切换主栏/子栏不能推动正文、关闭键盘或丢失光标。</li>
+<li>未生成 AI 内容时 → 文件详情显示“标记 / 总结”页签；标记提示“将在生成时作为辅助笔记”，底部按钮只显示“生成”；用户确认生成时冻结本次标记快照。</li>
+<li>AI 内容生成中 → 继续显示“标记 / 总结”页签并默认打开“总结”展示生成进度；切回“标记”仍可查看并原位编辑已有标记，但不能新增。本次任务继续使用确认时冻结的快照，生成中修改的已有标记只用于下次生成。</li>
+<li>已生成 AI 内容时 → 标记提示“已用于本次生成，可继续编辑”；后续编辑标记不静默改写既有 AI 内容，重新生成时才读取最新标记。</li>
 <li>删除文件 → 进入回收站；云端删除、分享撤销、索引清理规则<span class="review-tag">待确认</span>。</li>
 <li>Markdown 导出 → 有转写或 AI 笔记时可导出，结构<span class="review-tag">待确认</span>。</li>
 </ul>
