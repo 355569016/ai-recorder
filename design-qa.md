@@ -117,6 +117,112 @@ final result: passed
 
 ---
 
+## Follow-up QA — APP-FILE-01 去除一级标签同名内容标题（2026-08-19）
+
+- Source evidence: `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-8df3881b-3f9c-4d85-9c61-45e535c35c76.png`.
+- Implementation target: APP-FILE-01 的“标记”和“转写记录”一级标签内容区。
+- Fresh implementation screenshot: unavailable. The in-app Browser was denied access to the local preview by the managed browser security policy, so no browser-rendered visual pass is claimed.
+
+**Implemented changes**
+
+- 一级标签仍保留“标记 / 总结 / 转写记录”，导航层级不变。
+- “标记”内容区移除重复的“标记”标题，直接从标记数量与生成状态说明开始展示。
+- “转写记录”内容区移除重复的“转写记录”标题，直接展示带时间戳的转写正文。
+- 标记列表、时间定位、照片、原位编辑、转写原位编辑及自动保存能力均保留。
+- APP-FILE-01 页面规则、验收标准与需求文档已同步说明“不重复显示同名标题”。
+
+**Static verification**
+
+- `node --check app.js` passed.
+- `node scripts/build-inline.js` rebuilt `index.html` successfully.
+- `git diff --check` passed.
+- Static assertions confirmed that neither `app.js` nor generated `index.html` contains `<h2>标记</h2>` or `<h2>转写记录</h2>`.
+- Static assertions also confirmed that the three primary tabs, marker status/list, transcript time rows and editable-content actions remain present.
+
+**Finding**
+
+- [P1] Fresh browser-rendered comparison and console evidence is unavailable.
+  - Location: APP-FILE-01 标记与转写记录内容区。
+  - Impact: the hierarchy change is source-verified, but final browser spacing and clipping cannot be certified in this run.
+  - Fix: reload `http://127.0.0.1:4173/index.html?page=APP-FILE-01`, switch between 标记 and 转写记录, and confirm each content pane begins directly with its content rather than a repeated title.
+
+final result: blocked
+
+---
+
+## Current QA gate — APP-FILE-23 回收站列表与批量操作（2026-08-19）
+
+- Source visual references:
+  - `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-7b899e86-e1f1-4060-b1b9-0f2285480b4a.jpg` — 回收站列表。
+  - `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-0aaaf714-b855-4961-8b97-3bc0c0555cc8.jpg` — 单选、多选与恢复/删除操作。
+  - `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-891cf97f-72e8-414c-b6e1-6f4378ddce27.jpg` — 空状态。
+- Target route: `index.html?page=APP-FILE-23`, from APP-FILE-03 “回收站”入口进入。
+
+**Implemented states and interaction chain**
+
+- Default list: displays file name, recording time and duration, source, moved-to-trash time, and the 30-day retention rule.
+- Selection: tapping a row enters selection mode and selects that row; subsequent rows support multi-select; the header shows the selected count and a completion action.
+- Actions: the bottom action bar is shown only when one or more items are selected and provides `恢复` and `删除`.
+- Restore: removes selected items from the recycle-bin list and shows the restored-count notice.
+- Permanent delete: opens a confirmation layer that explains audio, transcript and AI notes will be permanently deleted and cannot be recovered; only confirmation removes the selected items.
+- Empty state: after all items are restored/deleted, or from the prototype state control, shows the existing product trash asset and `暂无音频记录`; selection entry and batch actions are hidden.
+- APP-FILE-03 now displays the current recycle-bin count and routes to APP-FILE-23 rather than expanding content inside the filter sheet.
+
+**Static and source-level verification**
+
+- `node --check app.js` passed.
+- `node scripts/build-prd-preview.js` passed and regenerated `prd-preview.html`.
+- `node scripts/build-inline.js` passed and regenerated `index.html`.
+- `git diff --check` passed.
+- Source inspection confirms APP-FILE-23 is registered in metadata, renderer mapping and flow order, and confirms handlers for list/empty state, selection toggling, restore, delete request/cancel/confirm.
+- The parent PRD adds the recycle-bin fields, behavior rules and acceptance criteria.
+
+**Required fidelity surfaces**
+
+- Typography and spacing reuse the existing file-list hierarchy and phone viewport tokens.
+- Selection controls use native checkboxes and the existing black/red neutral action language; no fake image assets, emoji or new hand-drawn SVG icons were introduced.
+- Empty state reuses `assets/icons/trash3.svg` and the required copy `暂无音频记录`.
+- Destructive deletion is visually and behaviorally separated from reversible restore.
+
+**Finding**
+
+- [P1] Fresh browser-rendered visual comparison and console evidence are unavailable in the current managed environment.
+  - Location: APP-FILE-23 default, selected, confirm and empty states.
+  - Impact: source structure, generated artifacts and interaction handlers are verified, but final pixel fidelity and runtime console health cannot be certified.
+  - Fix: open `index.html?page=APP-FILE-23` in an inspectable browser and capture the 390 × 844 app-owned screen for the four states above.
+
+final result: blocked
+
+---
+
+## Follow-up QA — 文件详情总结同页连续阅读（2026-08-19）
+
+- Source visual truth: `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-833269f5-1bca-49cb-9dba-9b37df2a2195.png`.
+- Implementation target: `index.html?page=APP-FILE-01`, 总结一级标签。
+- Browser-rendered evidence: `implementation-app-file-01-summary-scroll.png` and focused crop `implementation-app-file-01-summary-tabs.png`.
+- Same-input visual comparison: `design-qa-comparison-app-file-01-summary-tabs.png` (left: source; right: implementation).
+
+**Verified outcome**
+
+- 一级标签“标记 / 总结 / 转写记录”使用自然内容宽度并左对齐排列，不再等宽居中。
+- 总结二级导航保留“智能总结 / 章节大纲 / 待办事项 / 思维导图”四个胶囊标签与清晰选中态。
+- 四块内容在同一滚动容器内按智能总结、章节大纲、待办事项、思维导图的顺序连续渲染，不再按标签拆分页面。
+- 点击二级标签调用内部滚动定位；滚动监听只更新二级选中态，不触发整页重绘或重置滚动位置。
+- 二级导航在总结长页内保持吸顶，一级导航和二级导航的层级、间距与滚动偏移互不遮挡。
+- 智能总结原位编辑、转写记录一级切换以及未转写状态的既有规则保持不变。
+
+**Evidence and checks**
+
+- Browser DOM verified primary-tab geometry at natural widths and confirmed summary section order `summary → outline → todos → mindmap`.
+- Focused comparison confirms the requested left-aligned primary navigation and four-pill secondary navigation match the selected reference structure.
+- Static interaction assertions passed 4/4 for section order, quick-jump handler, scroll-spy setup and left-aligned flex layout.
+- `node --check app.js`, `node scripts/build-inline.js` and `git diff --check` passed.
+- A later optional browser measurement was denied by the managed browser policy; it did not invalidate the already captured rendered screenshot, DOM structure or completed comparison.
+
+final result: passed
+
+---
+
 ## Follow-up QA — 准备录音、统一模板与转写生成流程（2026-08-19）
 
 - Source visual truth: `/Users/andyma/.codex/generated_images/01a00f29-3cee-73d2-88a5-652c7a12c7c6/exec-5a41f78e-b350-44e8-9e3c-3c8b57fda92a.png`.
@@ -169,6 +275,49 @@ final result: passed
 - Deferred until a valid browser-rendered comparison is available.
 
 final result: blocked
+
+---
+
+## Follow-up QA — 文件详情两级标签与“转写记录”（2026-08-19）
+
+- Source visual truth: `/Users/andyma/.codex/generated_images/01a00f29-3cee-73d2-88a5-652c7a12c7c6/exec-8bf234f9-39b5-4abb-a2a0-86305b2b4786.png`.
+- Browser-rendered implementation evidence: `implementation-app-file-01-browser.png`.
+- Same-input side-by-side comparison: `design-qa-comparison-app-file-01.png`; source is on the left and implementation is on the right.
+- Implementation target: APP-FILE-01 generated detail, APP-FILE-10 untranscribed detail and APP-FILE-15 generating detail.
+
+**Full-view comparison**
+
+- The implementation preserves the selected visual hierarchy: compact title/operations, audio player, three primary content tabs, a dedicated four-choice summary sub-navigation, structured summary content and the fixed question input.
+- The source label `文字记录` was intentionally changed to `转写记录` per the user's final copy decision; this is an approved product-copy delta, not a fidelity defect.
+- The implementation uses the existing prototype phone shell and 390 × 844 app-owned viewport; this adds device chrome around the same app content but does not change the selected information architecture.
+
+**Focused region comparison**
+
+- Primary tabs are exactly `标记 / 总结 / 转写记录`; `总结` is selected by default and uses an underline without introducing a second competing primary selection style.
+- Secondary tabs are exactly `智能总结 / 章节大纲 / 待办事项 / 思维导图`; the selected item uses the reference black pill while the container remains a light neutral surface.
+- Summary content begins immediately below the secondary navigation and keeps the selected design's `智能总结 / 关键结论 / 下一步` reading order.
+
+**Interaction verification**
+
+- APP-FILE-01 opens with `总结 / 智能总结` selected.
+- All four summary secondary tabs switch independently and render their matching content.
+- `转写记录` and `标记` switch the primary content rather than scrolling a long page; only one primary content type is visible at a time.
+- Clicking the intelligent-summary paragraph enters the existing borderless inline edit state and exposes the rich-text keyboard toolbar.
+- APP-FILE-10 and APP-FILE-15 expose only `标记 / 总结`; both hide `转写记录` and all summary secondary tabs until generation completes.
+- Browser console inspection returned zero warnings and zero errors.
+
+**Static verification**
+
+- `node --check app.js`, `node --check scripts/build-inline.js` and `node --check scripts/build-prd-preview.js` passed.
+- `node scripts/build-inline.js` and `node scripts/build-prd-preview.js` completed successfully.
+- `git diff --check` passed; the removed `文字记录` and old six-way parallel navigation copy are absent from the current source and generated outputs.
+
+**Findings**
+
+- No actionable P0, P1 or P2 issue remains.
+- [P3] The browser evidence is rendered at the existing documentation-board zoom, so the focused comparison crop is lower resolution than the selected source; DOM, interaction and full-board evidence confirm the hierarchy and copy.
+
+final result: passed
 
 ## Follow-up QA — 生成遮罩与录音场景互斥选择（2026-08-19）
 
@@ -275,5 +424,19 @@ final result: blocked
   - Evidence: both permitted local preview paths were unavailable in the current managed environment.
   - Impact: final pixel fidelity, clipping and browser-console health cannot be certified from source inspection and interaction assertions alone.
   - Fix: open the generated `index.html?page=APP-HOME-01&sync=hotspot` in an inspectable browser session and capture the 390 × 844 app-owned screen for side-by-side comparison.
+
+final result: blocked
+
+---
+
+## Current QA gate — APP-FILE-01 已生成标记页精简（2026-08-19）
+
+- Source visual truth: `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-58cc4a83-1bc4-45b3-ae6f-2229b4478c52.png`.
+- Target state: APP-FILE-01 已转写文件的“标记”一级标签。
+- Implemented: generated marker state no longer renders the header containing `3 条标记 · 已用于本次生成，可继续编辑`; the first marker item now follows the primary tab row directly.
+- Preserved: pending and generating states retain their task-specific guidance; generated marker playback, text/photo editing, deletion and timestamp anchors are unchanged.
+- Static verification: `node --check app.js`, `node scripts/build-prd-preview.js`, `node scripts/build-inline.js` and `git diff --check` passed. The generated-state branch now returns an empty marker header and the removed copy is absent from runtime source.
+- Required fidelity surfaces: typography, colors, icons and assets are unchanged; only the redundant status row and its vertical space are removed. Copy now matches the selected screenshot annotation.
+- Blocker: fresh browser-rendered comparison and console evidence remain unavailable because the managed browser security policy denied access to the local preview. No visual pass is claimed.
 
 final result: blocked

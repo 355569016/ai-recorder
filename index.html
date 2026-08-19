@@ -78,7 +78,8 @@ let recordingMarkSerial = recordingBaseMarks.length;
 let recordingExpandedMarkIds = new Set();
 let recordingNotice = "";
 let recordingNoticeTimer = null;
-let fileDetailActiveTab = "outline";
+let fileDetailActiveTab = "summary";
+let fileDetailSummaryTab = "summary";
 let fileDetailAudioSeconds = 0;
 let fileDetailAudioPlaying = false;
 let fileDetailMarkerEditor = null;
@@ -131,6 +132,16 @@ let filterFolderSheetMode = "";
 let activeFilterFolderId = "";
 let pendingDeleteFilterFolderId = "";
 let filterFolderError = "";
+const defaultRecycleBinItems = [
+  { id: "recycle-1", name: "周一项目复盘", meta: "今天 16:11 · 00:07", source: "硬件录音", deletedAt: "今天 16:18" },
+  { id: "recycle-2", name: "客户访谈", meta: "07-04 18:44 · 00:28:14", source: "硬件录音", deletedAt: "昨天 21:05" },
+  { id: "recycle-3", name: "Launch checklist", meta: "07-01 12:41 · 00:19:08", source: "导入音频", deletedAt: "07-02 09:30" }
+];
+let recycleBinItems = defaultRecycleBinItems.map((item) => ({ ...item }));
+let recycleSelectionMode = false;
+let selectedRecycleIds = new Set();
+let recycleDeleteConfirmOpen = false;
+let recycleNotice = "";
 let loggedInDevices = [
   { id: "web1", name: "AI录音卡 Web1", current: true, type: "通过 web 登录", lastActive: "2026-07-16 16:46:33" }
 ];
@@ -556,11 +567,26 @@ const pages = [
     priority: "P0",
     goal: "在文件列表中按创建时间、文件夹和“来自”筛选排序；“来自”用于区分不同绑定设备产生的录音与导入音频。",
     entry: "文件列表标题栏倒三角按钮。",
-    fields: [["sort_field", "排序字段", "本地筛选"], ["folder_id", "文件夹", "本地数据库"], ["folder_name", "文件夹名称", "用户输入"], ["folder_file_count", "文件夹文件数", "本地数据库"], ["source_type", "来源类型（hardware_recording / imported_audio）", "本地数据库"], ["source_device_id", "来源设备 ID", "绑定设备记录 / 文件元数据"], ["source_device_name", "来源设备名称", "绑定设备记录"]],
-    rules: ["筛选是用户可见操作，作为 App 内弹层展示。", "默认按创建时间排序。", "全部文件、未分类、回收站为固定入口。", "“来自”表示文件的实际来源：每一台绑定设备按稳定 device_id 独立成项，显示该设备当前名称，例如 AI Recorder A1、AI Recorder A1 Pro；导入音频不关联设备，统一显示为“导入”。", "同型号的多台绑定设备不得仅按型号合并；应按 device_id 区分，并使用设备昵称或序列号后四位消歧。", "每个来源项后的数量仅统计当前文件范围内来自该设备或导入的文件。", "文件夹标题右侧加号用于新增文件夹，点击后展示文件夹命名输入框，保存后新文件夹加入文件夹列表。", "每个自定义文件夹右侧三个点打开操作菜单，支持重命名和删除文件夹。", "删除空文件夹可直接删除；删除非空文件夹时必须二次确认，并提示将同步删除文件夹内的内容。"],
+    prototypeLinks: [["回收站", "APP-FILE-23"]],
+    fields: [["sort_field", "排序字段", "本地筛选"], ["folder_id", "文件夹", "本地数据库"], ["folder_name", "文件夹名称", "用户输入"], ["folder_file_count", "文件夹文件数", "本地数据库"], ["source_type", "来源类型（hardware_recording / imported_audio）", "本地数据库"], ["source_device_id", "来源设备 ID", "绑定设备记录 / 文件元数据"], ["source_device_name", "来源设备名称", "绑定设备记录"], ["trash_count", "回收站文件数", "本地数据库"]],
+    rules: ["筛选是用户可见操作，作为 App 内弹层展示。", "默认按创建时间排序。", "全部文件、未分类、回收站为固定入口。", "点击回收站进入独立回收站页面，不在筛选弹层内展开回收站内容。", "“来自”表示文件的实际来源：每一台绑定设备按稳定 device_id 独立成项，显示该设备当前名称，例如 AI Recorder A1、AI Recorder A1 Pro；导入音频不关联设备，统一显示为“导入”。", "同型号的多台绑定设备不得仅按型号合并；应按 device_id 区分，并使用设备昵称或序列号后四位消歧。", "每个来源项后的数量仅统计当前文件范围内来自该设备或导入的文件。", "文件夹标题右侧加号用于新增文件夹，点击后展示文件夹命名输入框，保存后新文件夹加入文件夹列表。", "每个自定义文件夹右侧三个点打开操作菜单，支持重命名和删除文件夹。", "删除空文件夹可直接删除；删除非空文件夹时必须二次确认，并提示将同步删除文件夹内的内容。"],
     states: ["默认", "新增文件夹", "重命名文件夹", "删除空文件夹", "删除非空文件夹确认", "已选择文件夹", "已选择来源", "清空筛选"],
     deps: ["本地数据库：文件夹、来源、删除状态、设备来源。"],
-    acceptance: ["文件首页点击筛选按钮打开筛选和排序弹层。", "弹层为底部筛选和排序面板，包含创建时间、文件夹和“来自”筛选。", "“来自”逐项显示有文件的绑定设备名称，并单独显示“导入”；选择某台设备后只保留由该 device_id 产生的文件，选择“导入”后只保留导入音频。", "点击文件夹加号可输入名称并新增文件夹。", "点击文件夹三个点可重命名或删除文件夹。", "非空文件夹删除前必须出现确认弹窗，并明确同步删除文件夹内容。"]
+    acceptance: ["文件首页点击筛选按钮打开筛选和排序弹层。", "弹层为底部筛选和排序面板，包含创建时间、文件夹和“来自”筛选。", "点击回收站进入 APP-FILE-23 回收站页面。", "“来自”逐项显示有文件的绑定设备名称，并单独显示“导入”；选择某台设备后只保留由该 device_id 产生的文件，选择“导入”后只保留导入音频。", "点击文件夹加号可输入名称并新增文件夹。", "点击文件夹三个点可重命名或删除文件夹。", "非空文件夹删除前必须出现确认弹窗，并明确同步删除文件夹内容。"]
+  },
+  {
+    id: "APP-FILE-23",
+    group: "文件",
+    title: "回收站",
+    priority: "P0",
+    goal: "查看已移入回收站的音频，并通过单选或多选恢复文件或永久删除文件。",
+    entry: "APP-FILE-03 筛选和排序弹层点击回收站。",
+    prototypeActions: [["恢复列表", "show-recycle-list"], ["空状态", "show-recycle-empty"]],
+    fields: [["trash_file_list", "回收站文件列表", "本地数据库"], ["selected_file_ids", "已选文件 ID", "用户选择"], ["selected_count", "已选数量", "本地状态"], ["trash_action", "恢复 / 删除", "用户操作"], ["trash_retention_days", "保留天数", "产品规则"]],
+    rules: ["回收站文件保留 30 天，之后自动永久删除。", "默认展示文件名、录音时间与时长、来源和移入回收站时间。", "点击任意文件行即进入选择模式并勾选该文件，继续点击其他文件可多选。", "选择模式顶部显示已选择数量和完成；再次点击已选文件可取消勾选。", "只有至少选中一个文件时，底部才显示恢复和删除操作。", "恢复后文件回到全部文件列表并从回收站移除。", "删除表示永久删除，执行前必须二次确认并明确此操作无法撤销。", "回收站为空时显示暂无音频记录，不显示选择按钮和批量操作栏。"],
+    states: ["列表", "单选", "多选", "删除确认", "恢复完成", "永久删除完成", "空状态"],
+    deps: ["本地数据库：文件删除状态、删除时间和原文件夹。", "文件索引与云端对象删除能力。"],
+    acceptance: ["APP-FILE-03 点击回收站进入本页。", "点击文件行可进入单选并继续多选，顶部已选数量随选择变化。", "未选文件时不显示恢复和删除操作；有选中项时底部操作栏出现。", "点击恢复后所选文件从回收站移除，并提示已恢复。", "点击删除先出现不可撤销确认，确认后才永久移除文件。", "所有文件被恢复或删除后显示暂无音频记录。"]
   },
   {
     id: "APP-FILE-13",
@@ -651,10 +677,10 @@ const pages = [
     entry: "硬件开始录音成功后。",
     prototypeActions: [["默认", "reset-recording-demo"], ["输入态", "start-recording-input"], ["相机", "open-recording-camera"], ["AI 照片说明", "simulate-recording-photo-ai"]],
     fields: [["record_duration", "录音时长", "BLE 状态包/本地计时"], ["record_state", "录音状态", "BLE 状态包"], ["live_sync_offset", "已同步偏移量", "BLE 分片传输"], ["pending_sync_size", "待补传大小", "同步队列"], ["battery_level", "电量", "BLE 状态包"], ["storage_remaining", "存储", "BLE 状态包"], ["marker_list", "标记记录", "BLE 标记包/本地数据库"], ["marker_type", "标记类型", "输入/拍照/时间标记"], ["marker_source", "标记来源", "APP/录音卡"], ["marker_text", "标记文本", "用户输入/默认标记文本"], ["marker_assets", "标记附件", "系统相机/本地照片"], ["marker_photo_caption", "照片说明", "用户输入/AI 图片识别"], ["marker_caption_source", "照片说明来源", "empty/user/ai"], ["disconnect_timer_mode", "断连计时模式", "本地时钟"]],
-    rules: ["暂停后停留录音中页。", "录音过程中 App 持续从硬件接收音频分片，实时更新首页同步队列，但正式文件需等结束录音和补传完成后生成。", "结束录音后回到文件首页，在首页展示同步传送中状态；完成 CRC/时长/标记校验后新增到文件列表。", "未进入编辑状态时，录音面板底部常驻输入、拍照、标记三个核心辅助功能按钮；键盘输入状态隐藏该功能栏，只展示文本编辑栏和系统键盘。", "点击输入先进入键盘输入状态；点击完成后才新增输入标记，并记录当前录音时间戳、来源 APP 与文本内容。", "点击标记立即新增时间标记，默认记录当前录音时间、来源 APP 与默认文本重点标记；录音卡短按标记记录来源录音卡。", "普通标记直接展示文本，不显示右侧箭头；仅文本超长时折叠并提供展开/收起。", "点击输入标记或时间标记文本进入编辑；时间与来源为只读锚点，时间标记支持删除文本但保留时间锚点。", "点击拍照先唤起系统相机；拍照完成后新增照片标记，记录当前录音时间、来源 APP 和照片附件。", "照片标记展示可点击的小图预览，点击照片打开大图；右上角删除图标删除整条照片标记。", "照片下方说明默认空，点击可编辑；转写完成后若说明仍为空且用户未编辑，AI 可结合图片与录音内容生成说明，用户编辑内容不得被 AI 自动覆盖。", "用户点击添加标记或拍照标记时，必须记录当前录音时间戳、标记类型、来源、备注或照片附件，并随音频分片一起进入同步队列。", "录音标记必须在文件详情中形成锚点映射，例如在文字记录 05:12 对应文字右侧内嵌当时拍摄的照片或备注。", "蓝牙断连时硬件仍在本地录音，App 波形图置灰，计时器继续以手机本地时钟模拟增长。", "蓝牙断连期间显示轻微呼吸红点和文案：蓝牙已断开，硬件仍安全录音中，靠近后自动恢复同步。", "蓝牙恢复后根据硬件录音状态包校准本地模拟计时、同步偏移量和标记时间戳。"],
+    rules: ["暂停后停留录音中页。", "录音过程中 App 持续从硬件接收音频分片，实时更新首页同步队列，但正式文件需等结束录音和补传完成后生成。", "结束录音后回到文件首页，在首页展示同步传送中状态；完成 CRC/时长/标记校验后新增到文件列表。", "未进入编辑状态时，录音面板底部常驻输入、拍照、标记三个核心辅助功能按钮；键盘输入状态隐藏该功能栏，只展示文本编辑栏和系统键盘。", "点击输入先进入键盘输入状态；点击完成后才新增输入标记，并记录当前录音时间戳、来源 APP 与文本内容。", "点击标记立即新增时间标记，默认记录当前录音时间、来源 APP 与默认文本重点标记；录音卡短按标记记录来源录音卡。", "普通标记直接展示文本，不显示右侧箭头；仅文本超长时折叠并提供展开/收起。", "点击输入标记或时间标记文本进入编辑；时间与来源为只读锚点，时间标记支持删除文本但保留时间锚点。", "点击拍照先唤起系统相机；拍照完成后新增照片标记，记录当前录音时间、来源 APP 和照片附件。", "照片标记展示可点击的小图预览，点击照片打开大图；右上角删除图标删除整条照片标记。", "照片下方说明默认空，点击可编辑；转写完成后若说明仍为空且用户未编辑，AI 可结合图片与录音内容生成说明，用户编辑内容不得被 AI 自动覆盖。", "用户点击添加标记或拍照标记时，必须记录当前录音时间戳、标记类型、来源、备注或照片附件，并随音频分片一起进入同步队列。", "录音标记必须在文件详情中形成锚点映射，例如在转写记录 05:12 对应文字右侧内嵌当时拍摄的照片或备注。", "蓝牙断连时硬件仍在本地录音，App 波形图置灰，计时器继续以手机本地时钟模拟增长。", "蓝牙断连期间显示轻微呼吸红点和文案：蓝牙已断开，硬件仍安全录音中，靠近后自动恢复同步。", "蓝牙恢复后根据硬件录音状态包校准本地模拟计时、同步偏移量和标记时间戳。"],
     states: ["录音中", "暂停中", "输入标记键盘态", "编辑标记键盘态", "系统相机态", "照片标记已插入", "照片大图预览", "照片说明为空", "AI 生成照片说明", "标记文本已删除", "设备断连但仍录音", "本地模拟计时", "蓝牙恢复同步", "低电量", "存储不足"],
-    deps: ["BLE 命令包：暂停、继续、结束、添加标记。", "BLE 状态包：录音状态、电量、存储。", "BLE 分片传输：实时音频片段、偏移量、校验值。", "系统相机与照片访问权限。", "本地数据库：标记时间戳、类型、来源、文本、照片附件和照片说明。", "AI 图片识别：转写后结合照片与录音内容生成说明，接口待定义。", "同步队列：结束录音后的待补传片段。", "文件详情：文字记录锚点映射。"],
-    acceptance: ["计时、连接、电量、存储、标记和结束按钮清晰可见。", "点击暂停后按钮变为继续。", "未编辑时底部输入、拍照、标记三个按钮常驻可见；键盘态不得重复展示这三个页面功能按钮。", "点击输入进入可实际输入的键盘状态；点击完成后新增包含时间、来源 APP 与输入内容的标记，取消不新增。", "点击标记立即新增时间标记，并展示时间、来源 APP 和默认文本。", "录音卡标记展示来源录音卡；所有普通标记不显示右侧箭头，超长文本才出现展开/收起。", "点击输入标记和时间标记可编辑文本；时间标记可删除文本但保留时间与来源。", "点击拍照必须先表达唤起相机，拍照完成后插入带缩略图、时间和来源 APP 的照片标记。", "照片缩略图可打开大图，右上角删除图标可删除照片标记。", "照片说明默认空且可点击编辑；AI 说明只在转写完成且用户未编辑时生成，不覆盖用户内容。", "点击结束后必须回到文件首页并展示同步传送中状态，而不是直接静默生成文件。", "补传完成后首页文件列表必须新增本次录音。", "录音中的文字、时间和拍照标记必须能在文件详情文字记录中按时间戳定位展示。", "蓝牙断连时界面必须置灰波形、持续模拟计时并给出安全录音提示。"]
+    deps: ["BLE 命令包：暂停、继续、结束、添加标记。", "BLE 状态包：录音状态、电量、存储。", "BLE 分片传输：实时音频片段、偏移量、校验值。", "系统相机与照片访问权限。", "本地数据库：标记时间戳、类型、来源、文本、照片附件和照片说明。", "AI 图片识别：转写后结合照片与录音内容生成说明，接口待定义。", "同步队列：结束录音后的待补传片段。", "文件详情：转写记录锚点映射。"],
+    acceptance: ["计时、连接、电量、存储、标记和结束按钮清晰可见。", "点击暂停后按钮变为继续。", "未编辑时底部输入、拍照、标记三个按钮常驻可见；键盘态不得重复展示这三个页面功能按钮。", "点击输入进入可实际输入的键盘状态；点击完成后新增包含时间、来源 APP 与输入内容的标记，取消不新增。", "点击标记立即新增时间标记，并展示时间、来源 APP 和默认文本。", "录音卡标记展示来源录音卡；所有普通标记不显示右侧箭头，超长文本才出现展开/收起。", "点击输入标记和时间标记可编辑文本；时间标记可删除文本但保留时间与来源。", "点击拍照必须先表达唤起相机，拍照完成后插入带缩略图、时间和来源 APP 的照片标记。", "照片缩略图可打开大图，右上角删除图标可删除照片标记。", "照片说明默认空且可点击编辑；AI 说明只在转写完成且用户未编辑时生成，不覆盖用户内容。", "点击结束后必须回到文件首页并展示同步传送中状态，而不是直接静默生成文件。", "补传完成后首页文件列表必须新增本次录音。", "录音中的文字、时间和拍照标记必须能在文件详情转写记录中按时间戳定位展示。", "蓝牙断连时界面必须置灰波形、持续模拟计时并给出安全录音提示。"]
   },
   {
     id: "APP-FILE-01",
@@ -664,10 +690,10 @@ const pages = [
     goal: "集中播放音频、查看并原位编辑录音标记、转写内容和智能总结，同时查看大纲、待办事项和思维导图。",
     entry: "文件列表点击文件、同步完成通知、任务完成通知。",
     fields: [["display_title", "展示标题", "文件名/云端同步数据/AI 摘要"], ["title_source", "标题来源", "本地数据库/云端/AI"], ["ai_tags", "AI 标签", "AI 会议总结"], ["audio_progress", "播放进度", "本地播放器"], ["skip_silence_enabled", "跳过空白片段", "播放器设置"], ["playback_rate", "播放倍速", "播放器设置"], ["ai_sections", "AI 内容结构", "AI 模板"], ["marker_list", "文件标记列表", "录音标记/本地数据库"], ["marker_anchor_map", "标记锚点映射", "录音标记/播放时间戳"], ["marker_generation_role", "标记生成作用", "AI 生成任务快照"], ["note_question", "笔记提问", "AI 问答"], ["share_state", "分享状态", "云端分享"]],
-    rules: ["开启同步云端时，标题优先根据云端同步数据提炼。", "未开启同步云端时，标题默认使用文件名称。", "生成 AI 会议摘要后，标题根据 AI 会议内容重新提炼总结。", "生成 AI 会议总结后，根据会议内容提取关键标签。", "播放器进度条支持点击和拖动调整音频进度。", "播放器控制区包含音频设置、快退 15 秒、播放、快进 15 秒、倍速，不展示额外方向箭头。", "播放器下方的大纲、智能总结、文字记录、标记、待办事项和思维导图为同一长页的内容锚点导航，不切换页面或替换内容；点击仅定位，滚动时自动关联高亮当前阅读区。", "录音中产生的文字、时间和照片标记在录音结束后完整继承到文件详情，不能依赖转写或 AI 生成状态。", "录音结束后不再允许新增标记，只能维护录音过程中已经产生的标记。", "点击标记时间或播放图标定位到对应音频时间并开始播放。", "点击标记文本、照片说明、文字记录或智能总结时，原文字直接出现光标并唤起系统键盘；不打开弹窗、新页面，不增加边框、下划线、取消或保存按钮。", "智能总结和文字记录使用系统键盘上方的轻量格式工具栏，至少包含标题/正文、列表、对齐、引用、撤销和重做；普通标记与照片说明保持纯文本键盘，不展示格式工具栏。", "编辑内容实时记录，输入框失焦、收起键盘或跳转其他内容锚点时自动保存。", "照片可打开和删除；标记时间与来源保持只读。", "生成 AI 内容时读取当时的标记快照作为辅助笔记；生成后继续编辑标记不会静默改写既有 AI 内容，重新生成时再读取最新标记。", "页面底部固定展示对此笔记提问输入框。", "右上角分享按钮打开分享弹窗，三个点打开更多操作浮层。"],
-    states: ["标记页签", "标记原位编辑", "转写原位编辑", "总结原位编辑", "照片预览", "未生成 AI 摘要", "AI 已生成", "音频设置", "倍速选择", "分享", "更多操作", "文件损坏", "删除确认"],
-    deps: ["本地播放器：进度、跳转、快退快进、倍速。", "音频分析：静音/无声片段识别。", "转写服务：文字记录和时间戳。", "本地数据库：录音标记、备注、照片附件。", "AI 服务：标题、标签、大纲、总结、待办、思维导图、笔记问答。", "云端分享：分享链接和权限。"],
-    acceptance: ["播放器下方必须有大纲、智能总结、文字记录、标记、待办事项、思维导图的横向锚点导航，六个内容区在同一长页连续展示。", "点击导航项仅平滑定位；向下滚动时当前阅读内容区自动高亮，且当前项保持可见。", "录音期间的全部标记在已生成文件详情中完整展示，并标注已用于本次生成、可继续编辑。", "录音结束后的文件详情不得出现新增标记入口。", "点击标记时间定位音频；点击标记内容、文字记录和智能总结均在原文字位置直接输入，仅显示光标和系统键盘，不出现独立窗口或显式保存操作。", "总结和转写编辑时格式栏可切换标题、列表、对齐和引用；标记编辑时不显示格式栏。", "失焦、收起键盘或跳转其他内容锚点后内容自动保存。", "照片可查看或删除，时间与来源只读。", "思维导图按卡片预览呈现。", "音频设置和倍速按钮能打开对应弹窗。", "底部有对此笔记提问输入框。", "标题和标签规则在字段与交互说明中明确。"],
+    rules: ["开启同步云端时，标题优先根据云端同步数据提炼。", "未开启同步云端时，标题默认使用文件名称。", "生成 AI 会议摘要后，标题根据 AI 会议内容重新提炼总结。", "生成 AI 会议总结后，根据会议内容提取关键标签。", "播放器进度条支持点击和拖动调整音频进度。", "播放器控制区包含音频设置、快退 15 秒、播放、快进 15 秒、倍速，不展示额外方向箭头。", "已转写文件的一级标签统一为标记、总结和转写记录，一级标签按内容宽度左对齐排列，负责切换内容类型；标记和转写记录内容区不再重复显示同名标题。", "点击总结后展示智能总结、章节大纲、待办事项和思维导图四个二级标签；四块内容在同一长页面中按此顺序连续展示，二级标签只负责快速定位，页面滚动时同步更新选中态。", "未转写和生成中状态仅保留标记、总结两个一级标签，不提前展示转写记录或总结二级标签。", "录音中产生的文字、时间和照片标记在录音结束后完整继承到文件详情，不能依赖转写或 AI 生成状态。", "录音结束后不再允许新增标记，只能维护录音过程中已经产生的标记。", "点击标记时间或播放图标定位到对应音频时间并开始播放。", "点击标记文本、照片说明、转写记录或智能总结时，原文字直接出现光标并唤起系统键盘；不打开弹窗、新页面，不增加边框、下划线、取消或保存按钮。", "智能总结和转写记录使用系统键盘上方的轻量格式工具栏，至少包含标题/正文、列表、对齐、引用、撤销和重做；普通标记与照片说明保持纯文本键盘，不展示格式工具栏。", "编辑内容实时记录，输入框失焦、收起键盘或切换其他标签时自动保存。", "照片可打开和删除；标记时间与来源保持只读。", "生成 AI 内容时读取当时的标记快照作为辅助笔记；生成后继续编辑标记不会静默改写既有 AI 内容，重新生成时再读取最新标记。", "页面底部固定展示对此笔记提问输入框。", "右上角分享按钮打开分享弹窗，三个点打开更多操作浮层。"],
+    states: ["标记一级标签", "总结一级标签", "转写记录一级标签", "智能总结二级标签", "章节大纲二级标签", "待办事项二级标签", "思维导图二级标签", "标记原位编辑", "转写原位编辑", "总结原位编辑", "照片预览", "未生成 AI 摘要", "AI 已生成", "音频设置", "倍速选择", "分享", "更多操作", "文件损坏", "删除确认"],
+    deps: ["本地播放器：进度、跳转、快退快进、倍速。", "音频分析：静音/无声片段识别。", "转写服务：转写记录和时间戳。", "本地数据库：录音标记、备注、照片附件。", "AI 服务：标题、标签、大纲、总结、待办、思维导图、笔记问答。", "云端分享：分享链接和权限。"],
+    acceptance: ["已转写详情必须展示左对齐的标记、总结、转写记录三个一级标签，且同一时刻只展示一个一级内容；标记与转写记录内容区不得重复出现同名标题，标记页不得显示标记数量与生成状态说明。", "总结一级标签内必须展示智能总结、章节大纲、待办事项、思维导图四个二级标签；点击可定位到同页对应区块，继续下滑可依次阅读全部四块内容，滚动时选中态同步变化。", "未转写和生成中详情只展示标记、总结两个一级标签，不显示转写记录和总结二级标签。", "录音期间的全部标记在已生成文件详情中完整展示，并可继续编辑。", "录音结束后的文件详情不得出现新增标记入口。", "点击标记时间定位音频；点击标记内容、转写记录和智能总结均在原文字位置直接输入，仅显示光标和系统键盘，不出现独立窗口或显式保存操作。", "总结和转写编辑时格式栏可切换标题、列表、对齐和引用；标记编辑时不显示格式栏。", "失焦、收起键盘或切换标签后内容自动保存。", "照片可查看或删除，时间与来源只读。", "思维导图按卡片预览呈现。", "音频设置和倍速按钮能打开对应弹窗。", "底部有对此笔记提问输入框。", "标题和标签规则在字段与交互说明中明确。"],
     prototypeLinks: [["文件详情已转写", "APP-FILE-01"], ["文件详情为空", "APP-FILE-10"]]
   },
   {
@@ -876,7 +902,7 @@ const pages = [
     entry: "文件列表点击生成、文件详情为空点击生成。",
     prototypeLinks: [["选择模板", "APP-REC-03"], ["音频语言", "APP-AI-02"], ["AI 模型", "APP-AI-03"], ["生成中", "APP-FILE-15"]],
     fields: [["generation_mode", "生成方式", "用户选择"], ["template_id", "生成模板", "系统匹配/用户选择"], ["estimated_minutes", "预计消耗", "用量服务"], ["remaining_minutes", "剩余额度", "用量服务"], ["speaker_diarization_enabled", "自动标注说话人", "用户选择"], ["audio_language", "音频语言", "用户选择"], ["ai_model", "AI 模型", "用户选择"]],
-    rules: ["文件列表和文件详情为空的生成入口必须先进入本页。", "点击立即生成后进入文件详情生成中页面。", "自动生成自动匹配转写模板与总结。", "自定义生成可调整模板、说话人、语言和 AI 模型。", "额度不足时立即生成按钮置灰并禁止提交。", "弹层打开时底层文件详情整体进入同一蒙版状态，包括吸顶的大纲、智能总结、文字记录等导航。", "页面不重复展示录音场景，也不在按钮上方展示云端上传说明。"],
+    rules: ["文件列表和文件详情为空的生成入口必须先进入本页。", "点击立即生成后进入文件详情生成中页面。", "自动生成自动匹配转写模板与总结。", "自定义生成可调整模板、说话人、语言和 AI 模型。", "额度不足时立即生成按钮置灰并禁止提交。", "弹层打开时底层文件详情整体进入同一蒙版状态，包括吸顶的大纲、智能总结、转写记录等导航。", "页面不重复展示录音场景，也不在按钮上方展示云端上传说明。"],
     states: ["自动生成", "自定义生成", "额度充足", "额度不足", "模板已选择", "语言选择", "模型选择"],
     deps: ["用量服务：预估分钟、余额。", "会员服务：订阅等级与权益。", "支付服务：购买分钟数、升级订阅。", "AI 服务：模板列表、模型列表。", "云端文件：上传凭证。"],
     acceptance: ["弹层展示自动与自定义生成、模板配置和用量确认。", "底层大纲导航不得穿透蒙版或保持高亮。", "选择模板进入无标签栏的分类模板列表。", "额度充足时立即生成可提交并进入文件详情生成中。"]
@@ -892,7 +918,7 @@ const pages = [
     rules: ["默认选择自动。", "弹层打开时底层文件详情整体进入蒙版状态，包括吸顶内容导航。", "选择语言后立即返回转写与生成页面并更新当前值。"],
     states: ["自动", "中文简体", "English (US)", "日本語", "其他热门语言"],
     deps: ["转写服务语言列表。"],
-    acceptance: ["当前语言有清晰勾选态。", "底层大纲、智能总结、文字记录等导航不得穿透蒙版。", "点击任一语言后返回转写与生成页面。"]
+    acceptance: ["当前语言有清晰勾选态。", "底层大纲、智能总结、转写记录等导航不得穿透蒙版。", "点击任一语言后返回转写与生成页面。"]
   },
   {
     id: "APP-AI-03",
@@ -905,7 +931,7 @@ const pages = [
     rules: ["默认选择自动。", "弹层打开时底层文件详情整体进入蒙版状态，包括吸顶内容导航。", "每个模型展示简短适用说明。", "选择模型后立即返回转写与生成页面并更新当前值。"],
     states: ["自动", "GPT-5", "GPT-5.5", "Gemini 2.5 Pro", "Gemini 3.5 Flash", "Claude Sonnet 5", "Claude Opus 4.8"],
     deps: ["AI 服务模型列表与可用状态。"],
-    acceptance: ["当前模型有清晰勾选态。", "底层大纲、智能总结、文字记录等导航不得穿透蒙版。", "点击任一模型后返回转写与生成页面。"]
+    acceptance: ["当前模型有清晰勾选态。", "底层大纲、智能总结、转写记录等导航不得穿透蒙版。", "点击任一模型后返回转写与生成页面。"]
   },
   {
     id: "APP-ME-02",
@@ -1699,6 +1725,12 @@ function go(id) {
     pendingDeleteFilterFolderId = "";
     filterFolderError = "";
   }
+  if (currentPageId === "APP-FILE-23" && previousPageId !== "APP-FILE-23") {
+    recycleSelectionMode = false;
+    selectedRecycleIds = new Set();
+    recycleDeleteConfirmOpen = false;
+    recycleNotice = "";
+  }
   if (currentPageId !== "APP-ME-36") {
     termSheetMode = "";
     termEditorIndex = null;
@@ -1718,7 +1750,8 @@ function go(id) {
     fileDetailNotice = "";
   }
   if (currentPageId === "APP-FILE-01" && previousPageId !== "APP-FILE-01") {
-    fileDetailActiveTab = "outline";
+    fileDetailActiveTab = "summary";
+    fileDetailSummaryTab = "summary";
   }
   if (currentPageId === "APP-FILE-10" && previousPageId !== "APP-FILE-10") {
     fileDetailActiveTab = "markers";
@@ -2546,7 +2579,7 @@ function renderFilterSheet() {
       <div class="filter-options">
         <button class="filter-option selected"><span class="file-icon folder"></span><b>全部文件 <em>(35)</em></b><i>✓</i></button>
         <button class="filter-option"><span class="file-icon tray"></span><b>未分类 <em>(35)</em></b></button>
-        <button class="filter-option"><span class="file-icon trash"></span><b>回收站 <em>(1)</em></b></button>
+        <button class="filter-option" data-go="APP-FILE-23"><span class="file-icon trash"></span><b>回收站 <em>(${recycleBinItems.length})</em></b></button>
       </div>
       <div class="sheet-line"></div>
       <div class="filter-section-title"><h3>文件夹</h3><button data-action="open-filter-folder-create" aria-label="添加文件夹">＋</button></div>
@@ -2569,6 +2602,69 @@ function renderFilterSheet() {
     ${filterFolderSheetMode === "create" || filterFolderSheetMode === "rename" ? renderFilterFolderEditorSheet() : ""}
     ${filterFolderSheetMode === "actions" ? renderFilterFolderActionSheet() : ""}
     ${pendingDeleteFilterFolderId ? renderFilterFolderDeleteConfirm() : ""}
+  `;
+}
+
+function renderRecycleBinItem(item) {
+  const selected = selectedRecycleIds.has(item.id);
+  return `
+    <button class="recycle-file-row ${selected ? "selected" : ""}" data-action="toggle-recycle-item" data-recycle-id="${h(item.id)}" aria-pressed="${selected ? "true" : "false"}">
+      <span class="recycle-file-copy">
+        <strong>${h(item.name)}</strong>
+        <small>${h(item.meta)}</small>
+        <span>${h(item.source)} · 移入回收站 ${h(item.deletedAt)}</span>
+      </span>
+      ${recycleSelectionMode ? `<input type="checkbox" tabindex="-1" aria-hidden="true" ${selected ? "checked" : ""}>` : ""}
+    </button>
+  `;
+}
+
+function renderRecycleDeleteConfirm() {
+  if (!recycleDeleteConfirmOpen) return "";
+  const count = selectedRecycleIds.size;
+  return `
+    <div class="scrim recycle-confirm-scrim" data-action="cancel-recycle-delete"></div>
+    <section class="recycle-delete-confirm" role="dialog" aria-modal="true" aria-label="永久删除确认">
+      <h2>永久删除所选文件？</h2>
+      <p>将永久删除已选择的 ${count} 个音频文件及其转写和 AI 笔记，此操作无法撤销。</p>
+      <button class="danger-fill" data-action="confirm-recycle-delete">永久删除</button>
+      <button class="outline" data-action="cancel-recycle-delete">取消</button>
+    </section>
+  `;
+}
+
+function renderRecycleBin() {
+  const count = selectedRecycleIds.size;
+  const hasItems = recycleBinItems.length > 0;
+  return `
+    <div class="statusbar"><span>9:41</span><span>5G</span><span>82%</span></div>
+    <header class="recycle-page-header ${recycleSelectionMode ? "selecting" : ""}">
+      ${recycleSelectionMode
+        ? `<span class="recycle-header-spacer"></span><h1>已选择 ${count} 项</h1><button data-action="finish-recycle-selection">完成</button>`
+        : `<button class="recycle-back" data-go="APP-HOME-01" aria-label="返回文件首页">‹</button><h1>回收站</h1>${hasItems ? `<button data-action="start-recycle-selection">选择</button>` : `<span class="recycle-header-spacer"></span>`}`}
+    </header>
+    <main class="recycle-page ${recycleSelectionMode ? "selecting" : ""}">
+      ${hasItems ? `
+        <p class="recycle-retention-note">文件将在移入回收站 30 天后自动删除</p>
+        <section class="recycle-file-list" aria-label="回收站文件">
+          ${recycleBinItems.map(renderRecycleBinItem).join("")}
+        </section>
+      ` : `
+        <section class="recycle-empty-state" aria-label="回收站为空">
+          <img src="./assets/icons/trash3.svg" alt="">
+          <h2>暂无音频记录</h2>
+          <p>移入回收站的音频会在这里保留 30 天</p>
+        </section>
+      `}
+    </main>
+    ${recycleSelectionMode ? (count > 0 ? `
+      <nav class="recycle-action-bar" aria-label="回收站批量操作">
+        <button data-action="restore-recycle-items">恢复</button>
+        <button class="danger" data-action="request-recycle-delete">删除</button>
+      </nav>
+    ` : "") : bottom("files")}
+    ${recycleNotice ? `<div class="toast-message recycle-toast" role="status">${h(recycleNotice)}</div>` : ""}
+    ${renderRecycleDeleteConfirm()}
   `;
 }
 
@@ -3124,7 +3220,7 @@ function renderAskPlaudThinking() {
       <div class="ask-thinking-copy" data-action="ask-complete-thinking">
         <p>深度思考中 <span>⌃</span></p>
         <b>提取关键见解</b>
-        <p>我目前正在仔细研读这份文字记录，重点在于提炼出 3 到 5 条与制造业演示相关的关键见解。我的工作流程包括仔细阅读并理解讨论的核心内容。</p>
+        <p>我目前正在仔细研读这份转写记录，重点在于提炼出 3 到 5 条与制造业演示相关的关键见解。我的工作流程包括仔细阅读并理解讨论的核心内容。</p>
         <b>提炼核心要点</b>
         <p>我目前正专注于提炼制造业演示文稿的精髓，旨在寻找值得引用且能转换视角的深刻见解。</p>
       </div>
@@ -3261,19 +3357,16 @@ function renderFileDetailInlineMarkerEditor(mark, type, draft) {
 }
 
 function renderFileDetailMarkers(markerState = "pending") {
-  const markerStatus = markerState === "generated"
-    ? "已用于本次生成，可继续编辑"
-    : markerState === "generating"
-      ? "本次生成已读取，后续修改将在下次生成时使用"
-      : "将在生成时作为辅助笔记";
+  const markerStatus = markerState === "generating"
+    ? "本次生成已读取，后续修改将在下次生成时使用"
+    : "将在生成时作为辅助笔记";
   return `
     <section class="file-markers-panel" aria-label="文件标记">
-      <header class="file-markers-head">
+      ${markerState === "generated" ? "" : `<header class="file-markers-head">
         <div>
-          <h2>标记</h2>
           <p>${recordingMarks.length} 条标记 · ${markerStatus}</p>
         </div>
-      </header>
+      </header>`}
       <div class="file-marker-list">
         ${recordingMarks.map((mark) => renderFileDetailMarkerItem(mark, markerState)).join("") || `<p class="file-marker-empty">本次录音没有标记。</p>`}
       </div>
@@ -3480,11 +3573,20 @@ function renderFileDetailPhotoViewer() {
 
 function renderFileDetailTabs(state = "generated") {
   const tabs = state === "generated"
-    ? [["大纲", "outline"], ["智能总结", "summary"], ["文字记录", "transcript"], ["标记", "markers"], ["待办事项", "todos"], ["思维导图", "mindmap"]]
+    ? [["标记", "markers"], ["总结", "summary"], ["转写记录", "transcript"]]
     : [["标记", "markers"], ["总结", "summary"]];
   return `
-    <nav class="file-detail-tabs" aria-label="文件详情内容锚点导航">
+    <nav class="file-detail-tabs ${state === "generated" ? "is-generated" : "is-pending"}" aria-label="文件详情一级导航">
       ${tabs.map(([label, value]) => `<button class="${fileDetailActiveTab === value ? "active" : ""}" data-action="file-detail-set-tab" data-value="${value}">${h(label)}</button>`).join("")}
+    </nav>
+  `;
+}
+
+function renderFileDetailSummaryTabs() {
+  const tabs = [["智能总结", "summary"], ["章节大纲", "outline"], ["待办事项", "todos"], ["思维导图", "mindmap"]];
+  return `
+    <nav class="file-detail-summary-tabs" aria-label="总结二级导航">
+      ${tabs.map(([label, value]) => `<button class="${fileDetailSummaryTab === value ? "active" : ""}" data-action="file-detail-set-summary-tab" data-value="${value}">${h(label)}</button>`).join("")}
     </nav>
   `;
 }
@@ -3500,63 +3602,37 @@ function renderFileDetailUntranscribedSummary() {
   `;
 }
 
-function renderFileDetail() {
-  const activeTab = ["outline", "summary", "transcript", "markers", "todos", "mindmap"].includes(fileDetailActiveTab) ? fileDetailActiveTab : "outline";
-  fileDetailActiveTab = activeTab;
-  const contentEditing = Boolean(fileDetailContentEditor);
-  const editingSection = fileDetailContentEditor?.kind === "summary"
-    ? "summary"
-    : fileDetailContentEditor?.kind === "transcript"
-      ? "transcript"
-      : "";
+function renderFileDetailSummaryContent(editingSection) {
   return `
-    <div class="statusbar detail-statusbar"><span>9:41</span><span>5G</span><span>82%</span></div>
-    <main class="file-detail-page ${fileDetailMarkerEditor || contentEditing ? "is-editing" : ""} ${contentEditing ? "is-rich-editing" : ""}">
-      <div class="detail-toolbar">
-        <button class="round-btn" data-go="APP-HOME-01" aria-label="返回">‹</button>
-        <h1 class="detail-toolbar-title">拼团营销工具需求评审会</h1>
-        <div class="detail-actions">
-          <button class="round-btn" data-go="APP-FILE-06" aria-label="分享">↗</button>
-          <button class="round-btn" data-go="APP-FILE-07" aria-label="更多">⋮</button>
-        </div>
-      </div>
-      ${renderFileDetailPlayer("00:43:52")}
-      ${renderFileDetailTabs("generated")}
-
-      <div class="file-detail-sections" aria-label="文件详情内容">
-      <section class="file-detail-section ai-section outline-section" data-detail-section="outline" id="detail-outline">
+    <div class="file-detail-summary-long-page">
+      <section class="file-detail-section ai-section ${editingSection === "summary" ? "is-editing-section" : ""}" data-summary-section="summary" id="detail-summary">
+        <h2>智能总结</h2>
+        ${renderFileDetailEditableContent("summary", fileDetailContent.summary, { label: "智能总结", rows: 6 })}
+        <h3>关键结论</h3>
+        <ul class="summary-list summary-key-points">
+          <li><strong>产品目标：</strong>提升拼团活动创建效率与数据转化效果，支撑多场景营销。</li>
+          <li><strong>核心功能：</strong>活动创建与配置、团购规则设置、参与流程、数据看板与导出。</li>
+          <li><strong>集成方案：</strong>对接用户中心、订单中心与消息推送服务。</li>
+          <li><strong>范围约定：</strong>本期不包含社交裂变玩法与优惠券联动。</li>
+          <li><strong>里程碑：</strong>原型评审完成后进入开发与灰度测试。</li>
+        </ul>
+        <h3>下一步</h3>
+        <ul class="summary-list summary-next-steps">
+          <li>产品：输出 PRD 与原型评审最终版。</li>
+          <li>研发：细化技术方案与接口文档。</li>
+          <li>设计：补充关键页面视觉稿。</li>
+          <li>运营：提供活动规则示例与文案支持。</li>
+        </ul>
+      </section>
+      <section class="file-detail-section ai-section outline-section" data-summary-section="outline" id="detail-outline">
         <div class="section-head">
-          <h2>大纲</h2>
+          <h2>章节大纲</h2>
           <span class="feedback-icons">♡ ♡</span>
         </div>
         <div class="outline-row"><a href="#">0:00:02</a><span>会议内容与图片关联问题</span></div>
         <div class="outline-row"><a href="#">0:00:59</a><span>拍摄与标注未处理的困扰</span></div>
       </section>
-
-      <section class="file-detail-section ai-section ${editingSection === "summary" ? "is-editing-section" : ""}" data-detail-section="summary" id="detail-summary">
-        <h2>智能总结</h2>
-        <h3>录音信息</h3>
-        <ul class="summary-list">
-          <li><strong>录音时间：</strong>2026-03-02 16:39:35 ~ 2026-03-02 17:23:27</li>
-          <li><strong>时长：</strong>约 0 小时 44 分钟</li>
-          <li><strong>参与人数：</strong>约 3 人</li>
-          <li><strong>内容类型：</strong>工作会议</li>
-        </ul>
-        <h3>录音总结</h3>
-        ${renderFileDetailEditableContent("summary", fileDetailContent.summary, { label: "录音总结", rows: 6 })}
-      </section>
-
-      <section class="file-detail-section ai-section ${editingSection === "transcript" ? "is-editing-section" : ""}" data-detail-section="transcript" id="detail-transcript">
-        <h2>文字记录</h2>
-        <div class="transcript-line"><b>00:03</b>${renderFileDetailEditableContent("transcript", fileDetailContent.transcript[0], { key: "transcript-0", label: "00:03 转写内容", rows: 4 })}</div>
-        <div class="transcript-line"><b>01:18</b>${renderFileDetailEditableContent("transcript", fileDetailContent.transcript[1], { key: "transcript-1", label: "01:18 转写内容", rows: 4 })}</div>
-      </section>
-
-      <section class="file-detail-section ai-section" data-detail-section="markers" id="detail-markers">
-        ${renderFileDetailMarkers("generated")}
-      </section>
-
-      <section class="file-detail-section ai-section" data-detail-section="todos" id="detail-todos">
+      <section class="file-detail-section ai-section" data-summary-section="todos" id="detail-todos">
         <h2>待办事项</h2>
         <div class="quote-block">
           <p>1. 明确拼团营销工具 MVP 的上线范围和验收口径，避免标准商城和积分商城规则相互影响。</p>
@@ -3569,8 +3645,7 @@ function renderFileDetail() {
           <li>补充大商品库项目启动前的依赖清单。</li>
         </ul>
       </section>
-
-      <section class="file-detail-section ai-section mindmap-section" data-detail-section="mindmap" id="detail-mindmap">
+      <section class="file-detail-section ai-section mindmap-section" data-summary-section="mindmap" id="detail-mindmap">
         <p class="template-line">使用模板：<a href="#">会议总结</a></p>
         <div class="mindmap-card">
           <div class="mindmap-head"><h2>思维导图</h2><button aria-label="展开思维导图">↗</button></div>
@@ -3593,6 +3668,88 @@ function renderFileDetail() {
           <button>♡ 不满意</button>
         </div>
       </section>
+    </div>
+  `;
+}
+
+function updateFileDetailSummaryTab(target) {
+  const allowed = ["summary", "outline", "todos", "mindmap"];
+  fileDetailSummaryTab = allowed.includes(target) ? target : "summary";
+  document.querySelectorAll(".file-detail-summary-tabs [data-action='file-detail-set-summary-tab']").forEach((button) => {
+    button.classList.toggle("active", button.dataset.value === fileDetailSummaryTab);
+  });
+}
+
+function scrollFileDetailSummaryToSection(target, behavior = "smooth") {
+  const scroller = document.querySelector(".file-detail-page");
+  const primaryTabs = document.querySelector(".file-detail-tabs");
+  const summaryTabs = document.querySelector(".file-detail-summary-tabs");
+  const section = document.getElementById(`detail-${target}`);
+  if (!scroller || !section) return;
+  const scrollerRect = scroller.getBoundingClientRect();
+  const sectionRect = section.getBoundingClientRect();
+  const stickyOffset = (primaryTabs?.offsetHeight || 0) + (summaryTabs?.offsetHeight || 0) - 8;
+  const nextTop = scroller.scrollTop + sectionRect.top - scrollerRect.top - stickyOffset;
+  updateFileDetailSummaryTab(target);
+  scroller.scrollTo({ top: Math.max(0, nextTop), behavior });
+}
+
+function setupFileDetailSummarySectionSpy() {
+  const scroller = document.querySelector(".file-detail-page");
+  const sections = [...document.querySelectorAll("[data-summary-section]")];
+  if (!scroller || !sections.length || fileDetailActiveTab !== "summary") return;
+  const update = () => {
+    const primaryTabs = document.querySelector(".file-detail-tabs");
+    const summaryTabs = document.querySelector(".file-detail-summary-tabs");
+    const scrollerRect = scroller.getBoundingClientRect();
+    const threshold = scrollerRect.top + (primaryTabs?.offsetHeight || 0) + (summaryTabs?.offsetHeight || 0) + 20;
+    let active = sections[0].dataset.summarySection;
+    sections.forEach((section) => {
+      if (section.getBoundingClientRect().top <= threshold) active = section.dataset.summarySection;
+    });
+    updateFileDetailSummaryTab(active);
+  };
+  scroller.addEventListener("scroll", update, { passive: true });
+  update();
+}
+
+function renderFileDetail() {
+  const activeTab = ["markers", "summary", "transcript"].includes(fileDetailActiveTab) ? fileDetailActiveTab : "summary";
+  fileDetailActiveTab = activeTab;
+  fileDetailSummaryTab = ["summary", "outline", "todos", "mindmap"].includes(fileDetailSummaryTab) ? fileDetailSummaryTab : "summary";
+  const contentEditing = Boolean(fileDetailContentEditor);
+  const editingSection = fileDetailContentEditor?.kind === "summary"
+    ? "summary"
+    : fileDetailContentEditor?.kind === "transcript"
+      ? "transcript"
+      : "";
+  return `
+    <div class="statusbar detail-statusbar"><span>9:41</span><span>5G</span><span>82%</span></div>
+    <main class="file-detail-page ${fileDetailMarkerEditor || contentEditing ? "is-editing" : ""} ${contentEditing ? "is-rich-editing" : ""}">
+      <div class="detail-toolbar">
+        <button class="round-btn" data-go="APP-HOME-01" aria-label="返回">‹</button>
+        <h1 class="detail-toolbar-title">拼团营销工具需求评审会</h1>
+        <div class="detail-actions">
+          <button class="round-btn" data-go="APP-FILE-06" aria-label="分享">↗</button>
+          <button class="round-btn" data-go="APP-FILE-07" aria-label="更多">⋮</button>
+        </div>
+      </div>
+      ${renderFileDetailPlayer("00:43:52")}
+      ${renderFileDetailTabs("generated")}
+      <div class="file-detail-view" aria-label="文件详情内容">
+        ${activeTab === "markers" ? `
+          <section class="file-detail-section ai-section" data-detail-section="markers" id="detail-markers">
+            ${renderFileDetailMarkers("generated")}
+          </section>
+        ` : activeTab === "transcript" ? `
+          <section class="file-detail-section ai-section ${editingSection === "transcript" ? "is-editing-section" : ""}" data-detail-section="transcript" id="detail-transcript">
+            <div class="transcript-line"><b>00:03</b>${renderFileDetailEditableContent("transcript", fileDetailContent.transcript[0], { key: "transcript-0", label: "00:03 转写内容", rows: 4 })}</div>
+            <div class="transcript-line"><b>01:18</b>${renderFileDetailEditableContent("transcript", fileDetailContent.transcript[1], { key: "transcript-1", label: "01:18 转写内容", rows: 4 })}</div>
+          </section>
+        ` : `
+          ${renderFileDetailSummaryTabs()}
+          ${renderFileDetailSummaryContent(editingSection)}
+        `}
       </div>
     </main>
     ${contentEditing ? "" : `<div class="note-question-bar" data-action="open-ask-plaud"><span>Beta</span><input placeholder="对此笔记提问" aria-label="对此笔记提问" readonly></div>`}
@@ -5397,6 +5554,7 @@ const renderers = {
   "APP-HOME-03": renderHomeTrashToast,
   "APP-FILE-02": renderSearch,
   "APP-FILE-03": renderFilterSheet,
+  "APP-FILE-23": renderRecycleBin,
   "APP-FILE-13": renderImportAudioSheet,
   "APP-FILE-11": renderSearchTimeSheet,
   "APP-FILE-12": renderSearchResults,
@@ -5480,6 +5638,7 @@ function renderNav() {
 
 function renderFlow() {
   const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-07", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-DEV-05", "APP-HOME-01", "APP-SYNC-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-REC-03", "APP-AI-02", "APP-AI-03", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-02", "APP-ME-16", "APP-ME-26", "APP-ME-27", "APP-ME-28", "APP-ME-29", "APP-ME-30", "APP-ME-31", "APP-ME-32", "APP-ME-33", "APP-ME-34", "APP-ME-35", "APP-ME-36", "APP-ME-37", "APP-ME-38", "APP-ME-40", "APP-ME-39", "APP-ME-17", "APP-ME-18", "APP-ME-41", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-23", "APP-ME-10", "APP-ME-11", "APP-ME-12", "APP-DEV-03", "APP-DEV-10", "APP-ME-04", "APP-ME-24", "APP-ME-25", "APP-DEV-06", "APP-DEV-07", "APP-DEV-08", "APP-DEV-09"];
+  flow.splice(flow.indexOf("APP-FILE-03") + 1, 0, "APP-FILE-23");
   document.getElementById("flowStrip").innerHTML = flow.map((id, index) => {
     const page = pageById(id);
     return `<button class="${id === currentPageId ? "active" : ""}" data-go="${id}">${index + 1}. ${h(page.title)}</button>`;
@@ -5718,46 +5877,9 @@ function render() {
   renderFlow();
   renderPrototypeLinks(page);
   renderSpec(page);
-  if (page.id === "APP-FILE-01") setupFileDetailSectionSpy();
-}
-
-function setFileDetailActiveSection(value) {
-  if (!["outline", "summary", "transcript", "markers", "todos", "mindmap"].includes(value) || fileDetailActiveTab === value) return;
-  fileDetailActiveTab = value;
-  const nav = document.querySelector(".file-detail-tabs");
-  const activeButton = nav?.querySelector(`[data-value="${value}"]`);
-  nav?.querySelectorAll("button").forEach((button) => {
-    button.classList.toggle("active", button.dataset.value === value);
-  });
-  activeButton?.scrollIntoView({ behavior: "auto", block: "nearest", inline: "center" });
-}
-
-function setupFileDetailSectionSpy() {
-  const scroller = document.querySelector(".file-detail-page");
-  const sections = [...document.querySelectorAll("[data-detail-section]")];
-  if (!scroller || !sections.length) return;
-  const update = () => {
-    const containerTop = scroller.getBoundingClientRect().top;
-    const targetLine = containerTop + 132;
-    let active = sections[0];
-    sections.forEach((section) => {
-      if (section.getBoundingClientRect().top <= targetLine) active = section;
-    });
-    setFileDetailActiveSection(active.dataset.detailSection);
-  };
-  scroller.addEventListener("scroll", update, { passive: true });
-  requestAnimationFrame(update);
-}
-
-function scrollFileDetailToSection(target, behavior = "smooth") {
-  const scroller = document.querySelector(".file-detail-page");
-  const section = document.querySelector(`[data-detail-section="${target}"]`);
-  if (!scroller || !section) return false;
-  const navHeight = document.querySelector(".file-detail-tabs")?.offsetHeight || 54;
-  const nextTop = Math.max(0, scroller.scrollTop + section.getBoundingClientRect().top - scroller.getBoundingClientRect().top - navHeight - 10);
-  if (typeof scroller.scrollTo === "function") scroller.scrollTo({ top: nextTop, behavior });
-  else scroller.scrollTop = nextTop;
-  return true;
+  if (page.id === "APP-FILE-01" && fileDetailActiveTab === "summary") {
+    requestAnimationFrame(setupFileDetailSummarySectionSpy);
+  }
 }
 
 document.addEventListener("click", (event) => {
@@ -6245,13 +6367,16 @@ document.addEventListener("click", (event) => {
   if (action && action.dataset.action === "file-detail-set-tab") {
     persistFileDetailMarkerEdit();
     persistFileDetailContentEdit();
-    const target = action.dataset.value || "outline";
-    setFileDetailActiveSection(target);
-    if (currentPageId !== "APP-FILE-01") {
-      render();
-      return;
-    }
-    scrollFileDetailToSection(target);
+    const allowed = currentPageId === "APP-FILE-01" ? ["markers", "summary", "transcript"] : ["markers", "summary"];
+    fileDetailActiveTab = allowed.includes(action.dataset.value) ? action.dataset.value : allowed[0];
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "file-detail-set-summary-tab") {
+    persistFileDetailContentEdit();
+    const target = action.dataset.value || "summary";
+    fileDetailActiveTab = "summary";
+    scrollFileDetailSummaryToSection(target);
     return;
   }
   if (action && action.dataset.action === "file-detail-open-format-panel") {
@@ -6381,12 +6506,12 @@ document.addEventListener("click", (event) => {
     fileDetailEditHistory = [draft];
     fileDetailEditRedo = [];
     fileDetailContentEditor = { key, kind, draft };
-    if (currentPageId === "APP-FILE-01") fileDetailActiveTab = kind;
+    if (currentPageId === "APP-FILE-01") {
+      fileDetailActiveTab = kind;
+      if (kind === "summary") fileDetailSummaryTab = "summary";
+    }
     render();
-    requestAnimationFrame(() => {
-      if (currentPageId === "APP-FILE-01") scrollFileDetailToSection(kind, "auto");
-      focusFileDetailEditor("fileDetailContentInput");
-    });
+    focusFileDetailEditor("fileDetailContentInput");
     return;
   }
   if (action && action.dataset.action === "file-detail-open-photo") {
@@ -6671,6 +6796,84 @@ document.addEventListener("click", (event) => {
   if (action && action.dataset.action === "select-filter-folder") {
     filterFolderSheetMode = "";
     activeFilterFolderId = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "show-recycle-list") {
+    recycleBinItems = defaultRecycleBinItems.map((item) => ({ ...item }));
+    recycleSelectionMode = false;
+    selectedRecycleIds = new Set();
+    recycleDeleteConfirmOpen = false;
+    recycleNotice = "";
+    if (currentPageId !== "APP-FILE-23") go("APP-FILE-23");
+    else render();
+    return;
+  }
+  if (action && action.dataset.action === "show-recycle-empty") {
+    recycleBinItems = [];
+    recycleSelectionMode = false;
+    selectedRecycleIds = new Set();
+    recycleDeleteConfirmOpen = false;
+    recycleNotice = "";
+    if (currentPageId !== "APP-FILE-23") go("APP-FILE-23");
+    else render();
+    return;
+  }
+  if (action && action.dataset.action === "start-recycle-selection") {
+    recycleSelectionMode = true;
+    selectedRecycleIds = new Set();
+    recycleNotice = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "finish-recycle-selection") {
+    recycleSelectionMode = false;
+    selectedRecycleIds = new Set();
+    recycleDeleteConfirmOpen = false;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "toggle-recycle-item") {
+    const itemId = action.dataset.recycleId || "";
+    if (!recycleBinItems.some((item) => item.id === itemId)) return;
+    recycleSelectionMode = true;
+    const nextSelection = new Set(selectedRecycleIds);
+    if (nextSelection.has(itemId)) nextSelection.delete(itemId);
+    else nextSelection.add(itemId);
+    selectedRecycleIds = nextSelection;
+    recycleNotice = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "restore-recycle-items") {
+    const count = selectedRecycleIds.size;
+    if (!count) return;
+    recycleBinItems = recycleBinItems.filter((item) => !selectedRecycleIds.has(item.id));
+    selectedRecycleIds = new Set();
+    recycleSelectionMode = false;
+    recycleNotice = `已恢复 ${count} 个文件`;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "request-recycle-delete") {
+    if (!selectedRecycleIds.size) return;
+    recycleDeleteConfirmOpen = true;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "cancel-recycle-delete") {
+    recycleDeleteConfirmOpen = false;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "confirm-recycle-delete") {
+    const count = selectedRecycleIds.size;
+    if (!count) return;
+    recycleBinItems = recycleBinItems.filter((item) => !selectedRecycleIds.has(item.id));
+    selectedRecycleIds = new Set();
+    recycleSelectionMode = false;
+    recycleDeleteConfirmOpen = false;
+    recycleNotice = `已永久删除 ${count} 个文件`;
     render();
     return;
   }
