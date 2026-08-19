@@ -170,8 +170,6 @@ final result: passed
 
 final result: blocked
 
----
-
 ## Follow-up QA — 生成遮罩与录音场景互斥选择（2026-08-19）
 
 - Source and annotated implementation evidence: `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-8dbd6350-dff2-44ca-9734-b7275d8ee8a3.png`, `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-9331374c-e9e4-4e80-8d70-4f94ee2c650f.png`, and `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-b0bd9ede-9e4b-4330-ac43-936c1a783409.png`.
@@ -232,5 +230,50 @@ final result: blocked
 **Remaining blocker**
 
 - A fresh browser-rendered implementation screenshot is still required for side-by-side checking of typography, spacing, clipping, colors and final mask coverage.
+
+final result: blocked
+
+---
+
+## Follow-up QA — Wi-Fi 快传首页状态与蓝牙续传（2026-08-19）
+
+- Source visual truth: `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-d288ed0f-af3b-4768-ade6-7a6f7e4b7687.png`.
+- Source dimensions: 853 × 1844 px, normalized to the project-owned 390 × 844 CSS phone viewport.
+- Implementation target: `index.html?page=APP-HOME-01&sync=hotspot`, APP-HOME-01 Wi-Fi 快传中.
+- Implementation screenshot: unavailable. The in-app Browser rejected the local `file://` preview under its URL security policy, and the managed environment did not approve starting a local preview server. No browser-rendered visual comparison or console pass is claimed.
+
+**Full-view comparison evidence**
+
+- Blocked because the rendered implementation screenshot is unavailable. The selected source was opened and inspected before implementation, but a source-only review does not satisfy the visual comparison gate.
+
+**Focused region comparison evidence**
+
+- Blocked for the same reason. The intended focus is the three-part sync region: status/action row, 2px full progress line, and acceleration-benefit row.
+
+**Implemented behavior and static verification**
+
+- Wi-Fi fast transfer keeps `同步中 / Wi-Fi 快传 / 35% / 3/12 / 预计 8 分钟` and the batch progress line.
+- The right action is `结束快传`; the second row shows `加速快传中 / 预计节省约 6 分钟`.
+- The saved-time copy is calculated from the same remaining bytes using the current Bluetooth and Wi-Fi prototype speeds rather than hard-coded into the markup.
+- Starting Wi-Fi fast transfer preserves the current queue instead of creating a new batch.
+- Ending fast transfer switches to Bluetooth, preserves 35% batch progress, the 3/12 completion count, current-file offsets and queue order, and shows `已断开 Wi-Fi，继续使用蓝牙传输`.
+- A VM interaction harness passed the complete start/end state chain and asserted the selected copy, progress preservation and Bluetooth continuation.
+- `node --check app.js`, `node scripts/build-inline.js` and `git diff --check` passed.
+
+**Required fidelity surfaces**
+
+- Typography: existing system sans-serif hierarchy is retained; the compact sync metadata uses the current prototype's 9–11px UI scale.
+- Spacing and layout: Wi-Fi mode expands only the existing sync region to three rows; the device summary and file list structure remain unchanged.
+- Colors and tokens: white background, black progress, neutral gray transport pill and outlined red end action follow the selected direction.
+- Image and icon fidelity: no new approximate image, emoji, CSS-drawn icon or handcrafted SVG was introduced. The optional acceleration icon is omitted pending a matching product icon asset.
+- Copy: the visible fast-transfer and fallback wording matches the selected state and confirmed interaction rule.
+
+**Finding**
+
+- [P1] Fresh browser-rendered visual and console evidence is unavailable.
+  - Location: APP-HOME-01 Wi-Fi fast-transfer state.
+  - Evidence: both permitted local preview paths were unavailable in the current managed environment.
+  - Impact: final pixel fidelity, clipping and browser-console health cannot be certified from source inspection and interaction assertions alone.
+  - Fix: open the generated `index.html?page=APP-HOME-01&sync=hotspot` in an inspectable browser session and capture the 390 × 844 app-owned screen for side-by-side comparison.
 
 final result: blocked

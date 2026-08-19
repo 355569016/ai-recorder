@@ -359,11 +359,11 @@ const pages = [
     priority: "P0",
     goal: "引导手机临时加入录音卡热点，以第一版支持的方式完成高速传输。",
     entry: "APP-HOME-01 文件首页点击“快传”。",
-    fields: [["device_hotspot_ssid", "录音卡热点名称", "BLE/设备热点"], ["hotspot_join_state", "手机加入热点状态", "系统 Wi-Fi"], ["system_join_prompt", "系统加入无线局域网确认", "操作系统"], ["network_impact_tip", "联网影响提示", "本地文案"]],
-    rules: ["APP-HOME-01 点击“快传”后直接进入本页，不再展示传输方式选择。", "第一版仅支持手机临时加入录音卡热点的高速传输方案，不提供让录音卡连接手机当前 Wi-Fi 的 APP-SYNC-02 流程。", "APP 内底部弹窗蒙层下复用 APP-HOME-01 文件首页，只负责解释连接设备热点的目的、下一步系统操作和联网影响。", "连接前说明页不展示模拟系统弹窗或等待确认状态卡，只提示系统弹窗出现后选择加入。", "用户点击继续并连接后才调用系统加入热点能力；系统原生风格的取消/加入确认弹窗直接覆盖在当前连接设备引导页上，不切换或复用固件更新页面。", "系统弹窗点击取消后返回连接前说明；点击加入后关闭系统弹窗，并以轻量底部反馈展示正在连接。", "连接中仅展示加载反馈、通常只需几秒和取消操作；取消后中止本次高速连接并返回文件首页。", "连接成功后立即返回文件首页，以“已连接，开始高速传输”短提示和文件传输进度承接，不展示独立成功页或额外等待。", "连接热点期间手机可能暂时无法通过 Wi-Fi 上网；传输结束后恢复原网络。"],
-    states: ["连接前说明", "系统加入确认", "连接中（轻量底部反馈）", "连接成功并开始传输（首页提示）"],
+    fields: [["device_hotspot_ssid", "录音卡热点名称", "BLE/设备热点"], ["hotspot_join_state", "手机加入热点状态", "系统 Wi-Fi"], ["system_join_prompt", "系统加入无线局域网确认", "操作系统"], ["network_impact_tip", "联网影响提示", "本地文案"], ["fast_transfer_saved_minutes", "预计节省等待时间", "同步队列/传输速率估算"]],
+    rules: ["APP-HOME-01 点击“快传”后直接进入本页，不再展示传输方式选择。", "第一版仅支持手机临时加入录音卡热点的高速传输方案，不提供让录音卡连接手机当前 Wi-Fi 的 APP-SYNC-02 流程。", "APP 内底部弹窗蒙层下复用 APP-HOME-01 文件首页，只负责解释连接设备热点的目的、下一步系统操作和联网影响。", "连接前说明页不展示模拟系统弹窗或等待确认状态卡，只提示系统弹窗出现后选择加入。", "用户点击继续并连接后才调用系统加入热点能力；系统原生风格的取消/加入确认弹窗直接覆盖在当前连接设备引导页上，不切换或复用固件更新页面。", "系统弹窗点击取消后返回连接前说明；点击加入后关闭系统弹窗，并以轻量底部反馈展示正在连接。", "连接中仅展示加载反馈、通常只需几秒和取消操作；取消后中止本次高速连接并返回文件首页。", "连接成功后立即返回文件首页，以“已连接，开始高速传输”短提示和文件传输进度承接，不展示独立成功页或额外等待。", "Wi-Fi 快传中保留本批次整体进度、百分比、已完成数/总数和预计时间，并展示“加速快传中”与预计节省等待时间。", "点击“结束快传”后断开设备 Wi-Fi，从当前文件偏移和批次进度继续使用蓝牙传输，不重新创建批次或清零进度。", "连接热点期间手机可能暂时无法通过 Wi-Fi 上网；传输结束后恢复原网络。"],
+    states: ["连接前说明", "系统加入确认", "连接中（轻量底部反馈）", "连接成功并开始传输（首页提示）", "Wi-Fi 快传中", "结束快传并由蓝牙续传"],
     deps: ["BLE：启动和读取录音卡 SoftAP 会话。", "iOS / Android：临时加入设备热点能力。", "设备热点鉴权和连接状态回传。"],
-    acceptance: ["APP-HOME-01 点击“快传”直接进入 APP-SYNC-01，不出现传输方式选择弹层。", "第一版导航、状态链路和页面流程中不出现 APP-SYNC-02。", "APP 引导弹窗底层为 APP-HOME-01 文件首页，并使用两步说明提示下一步在系统弹窗中选择加入。", "连接前说明不展示模拟系统弹窗或等待确认状态卡，只保留继续并连接和暂不使用。", "点击继续并连接后出现独立的系统加入无线局域网确认弹窗，弹窗下方仍为当前录音文件传输引导页，不出现固件更新内容。", "系统取消返回连接前说明；系统加入后展示轻量连接中底部反馈，包含正在连接、通常只需几秒和取消操作。", "连接成功后立即进入文件首页，不展示独立成功页；首页短提示为“已连接，开始高速传输”，文件列表显示正在传输及进度。", "右侧状态链路可独立预览连接前说明、连接中和成功后开始传输。"],
+    acceptance: ["APP-HOME-01 点击“快传”直接进入 APP-SYNC-01，不出现传输方式选择弹层。", "第一版导航、状态链路和页面流程中不出现 APP-SYNC-02。", "APP 引导弹窗底层为 APP-HOME-01 文件首页，并使用两步说明提示下一步在系统弹窗中选择加入。", "连接前说明不展示模拟系统弹窗或等待确认状态卡，只保留继续并连接和暂不使用。", "点击继续并连接后出现独立的系统加入无线局域网确认弹窗，弹窗下方仍为当前录音文件传输引导页，不出现固件更新内容。", "系统取消返回连接前说明；系统加入后展示轻量连接中底部反馈，包含正在连接、通常只需几秒和取消操作。", "连接成功后立即进入文件首页，不展示独立成功页；首页短提示为“已连接，开始高速传输”，文件列表显示正在传输及进度。", "Wi-Fi 快传状态显示完整进度条、Wi-Fi 快传方式、结束快传入口，以及“加速快传中 / 预计节省约 X 分钟”。", "结束快传后继续使用蓝牙传输，整体百分比、已完成数、当前任务和队列顺序均保持不变。", "右侧状态链路可独立预览连接前说明、连接中、成功后开始传输和结束快传后蓝牙续传。"],
     prototypeLinks: [],
     prototypeActions: [["连接前说明", "set-hotspot-state", "awaiting"], ["连接中", "set-hotspot-state", "connecting"], ["开始传输", "set-hotspot-state", "success"]]
   },
@@ -374,7 +374,7 @@ const pages = [
     priority: "P0",
     goal: "3 秒内让用户知道设备是否可用、同步是否进行中，并直接在首页浏览全部文件。",
     entry: "登录/绑定成功后默认进入，底部文件 Tab。",
-    fields: [["device_binding_state", "是否已添加录音卡", "本地数据库/云端设备"], ["current_device", "当前设备", "本地数据库/云端设备"], ["connection_state", "连接状态", "BLE 状态包"], ["battery_storage_record", "电量/存储/录音", "BLE 状态包"], ["recording_live_sync", "录音中持续同步", "BLE 分片传输/本地缓存"], ["sync_batch_id", "本次同步批次", "同步队列"], ["sync_task_count", "已完成数/本批次总数", "同步队列"], ["sync_overall_progress", "本批次整体字节进度", "同步队列"], ["sync_priority_order", "待同步任务顺序", "同步队列"], ["finish_sync_transfer", "结束录音补传", "同步队列"], ["file_transfer_state", "文件等待传输/正在传输/同步失败", "本地数据库/同步队列"], ["sync_retry_count", "已自动重试次数/重试限额", "同步队列/重试策略"], ["sync_summary", "同步摘要", "本地数据库/BLE 全部文件"], ["file_list", "全部文件", "本地数据库"], ["file_source", "文件来源", "本地数据库"]],
+    fields: [["device_binding_state", "是否已添加录音卡", "本地数据库/云端设备"], ["current_device", "当前设备", "本地数据库/云端设备"], ["connection_state", "连接状态", "BLE 状态包"], ["battery_storage_record", "电量/存储/录音", "BLE 状态包"], ["recording_live_sync", "录音中持续同步", "BLE 分片传输/本地缓存"], ["sync_batch_id", "本次同步批次", "同步队列"], ["sync_task_count", "已完成数/本批次总数", "同步队列"], ["sync_overall_progress", "本批次整体字节进度", "同步队列"], ["sync_transport", "蓝牙/Wi-Fi 快传", "同步会话"], ["fast_transfer_saved_minutes", "快传预计节省时间", "同步队列/传输速率估算"], ["sync_priority_order", "待同步任务顺序", "同步队列"], ["finish_sync_transfer", "结束录音补传", "同步队列"], ["file_transfer_state", "文件等待传输/正在传输/同步失败", "本地数据库/同步队列"], ["sync_retry_count", "已自动重试次数/重试限额", "同步队列/重试策略"], ["sync_summary", "同步摘要", "本地数据库/BLE 全部文件"], ["file_list", "全部文件", "本地数据库"], ["file_source", "文件来源", "本地数据库"]],
     rules: [
       "打开 App 时如果硬件正在录音，首页默认只显示设备录音中状态，不展示同步状态条。",
       "录音中持续同步是后端和 App 端的后台传输接收动作：App 持续接收硬件分片，先写入本地临时缓存和同步队列，但该过程不对用户展示。",
@@ -389,10 +389,12 @@ const pages = [
       "已绑定设备列表需要展示多个设备的连接状态，支持点击切换；已连接设备显示绿色状态，断开连接设备显示灰色离线状态。",
       "未连接或未绑定时，通过下拉菜单提供添加设备入口，不占用大面积状态卡。",
       "首页只在结束录音补传或其他需要用户关注的同步任务进行中显示同步状态条；录音中后台持续同步不显示，本批次完成后状态条消失。",
-      "同步状态条压缩为单行，依次展示同步状态、当前传输方式、本批次整体进度、已完成数/总数和预计剩余时间；蓝牙同步时末尾显示快传入口，录音卡热点同步时不显示。底部只保留 2px 整体进度线。",
+      "蓝牙同步状态条压缩为单行，依次展示同步状态、当前传输方式、本批次整体进度、已完成数/总数和预计剩余时间，末尾显示快传入口；底部保留 2px 整体进度线。",
+      "Wi-Fi 快传状态在同一同步区保留上述进度信息和完整进度线，快传入口改为“结束快传”，并增加“加速快传中 / 预计节省约 X 分钟”的收益说明。",
       "外部百分比按本次同步批次全部文件的累计已传输字节除以批次总字节计算，不代表当前单个文件的进度。",
       "本批次存在多个任务时显示已完成数/总数，例如 3/12；仅有 1 个任务时不显示数量。首页不提供独立的同步队列入口或队列列表。",
-      "蓝牙同步时，点击右侧“快传”按钮直接进入 APP-SYNC-01 连接录音卡进行高速传输；切换到录音卡热点并开始高速同步后，隐藏“快传”按钮，因为当前已经处于快传状态。同步状态条主体只承载信息，不打开其他列表或弹层。",
+      "蓝牙同步时，点击右侧“快传”按钮直接进入 APP-SYNC-01 连接录音卡进行高速传输；切换到 Wi-Fi 快传后，按钮改为“结束快传”。同步状态条主体只承载信息，不打开其他列表或弹层。",
+      "点击“结束快传”后断开设备 Wi-Fi，并从当前批次、当前文件偏移和现有整体进度继续使用蓝牙传输；不得清空队列或从头开始。",
       "第一版不考虑 APP-SYNC-02 让录音卡连接当前 Wi-Fi 的方案，也不展示传输方式选择弹层。",
       "正在传输与等待传输任务统一归入全部文件列表，并排列在已完成同步的正常文件之前；不再单独展示同步队列列表。",
       "为控制原型页面信息密度，APP-HOME-01 默认只展示前 3 条等待传输文件示例；后台仍保留完整待传输任务并按同步策略自动排序。",
@@ -403,7 +405,7 @@ const pages = [
       "同步完成文件恢复正常显示，不保留同步完成标签；按未转写、AI 已生成等后续处理状态展示。",
       "单个任务完成后更新外部已完成数并自动开始待传输列表中的下一项；本批次全部完成后隐藏同步状态条。",
       "本批次完成后若产生新的同步任务，创建新的批次；全部文件列表仅按当前文件状态展示，不出现上一批次的同步队列历史。",
-      "同步状态条不使用大卡片、阴影或第二行通知，全部文件紧接状态条显示。",
+      "同步状态区不使用大卡片或阴影；仅 Wi-Fi 快传状态允许增加一行常驻的加速收益说明，全部文件紧接同步区显示。",
       "全部文件是首页下半区，不再作为单独页面；滚动到设备状态和同步摘要不可见后，全部文件标题默认吸顶。",
       "全部文件标题栏左侧为全部文件文字和倒三角筛选/排序入口，右侧为导入音频按钮。",
       "正常文件行不显示“生成”“详情”或“优先同步”等右侧按钮，整行作为进入文件详情的点击区域；未转写文件进入 APP-FILE-10 后再执行生成，AI 已生成文件进入 APP-FILE-01。",
@@ -414,20 +416,22 @@ const pages = [
     criticalRules: [
       "交互调整：等待传输行不恢复右侧常驻按钮；点击或长按“等待传输”状态打开轻量浮层，确认后状态改为“已优先”，并以底部 Toast 提示“已设为优先，将在当前文件后传输”。",
       "未添加录音卡强规则：设备摘要区域沿用已添加状态的布局和尺寸，以无外框的轻量入口展示“添加设备”；不显示任何虚构设备信息、同步状态、快传入口及正在传输或等待传输的置灰文件，正常文件列表保持可浏览。",
-      "热点快传强规则：当前传输方式为录音卡热点时，首页同步状态条不显示“快传”按钮；只有蓝牙同步状态可显示该入口。",
+      "热点快传强规则：当前传输方式为 Wi-Fi 快传时，首页保留完整进度条，右侧显示“结束快传”，下方显示加速状态与预计节省时间；结束后原进度由蓝牙续传。",
       "低打扰强规则：当未完成同步任务少于 2 个，并且预计剩余时间少于 3 分钟时（两个条件必须同时满足），首页不显示顶部同步状态条、整体进度和“快传”按钮；任一条件不满足时仍按正常同步状态展示。",
       "当前没有同步任务时，首页不显示同步状态条，也不显示正在传输或等待传输的置灰文件记录；全部文件直接展示已完成同步的正常文件列表。",
       "同步失败处理强规则：传输失败后先由系统自动重试，不立即向用户显示失败；设备重新连接后自动继续重试。只有达到自动重试限额后，文件才显示轻量“同步失败 · 重试”操作。自动重试限额及退避间隔由同步重试策略配置。"
     ],
-    states: ["未添加录音卡", "未绑定/未连接", "设备已连接", "当前无同步任务", "录音中持续同步", "单任务同步中", "多任务同步中", "文件正在传输且不可点击", "文件等待传输状态可操作", "已优先", "同步失败自动重试", "设备重连后自动重试", "达到自动重试限额后失败可重试", "单个任务同步完成", "本批次同步完成", "新同步批次", "空文件", "加载更多"],
+    states: ["未添加录音卡", "未绑定/未连接", "设备已连接", "当前无同步任务", "录音中持续同步", "单任务同步中", "多任务同步中", "Wi-Fi 快传中", "结束快传并由蓝牙续传", "文件正在传输且不可点击", "文件等待传输状态可操作", "已优先", "同步失败自动重试", "设备重连后自动重试", "达到自动重试限额后失败可重试", "单个任务同步完成", "本批次同步完成", "新同步批次", "空文件", "加载更多"],
     deps: ["BLE 状态包：电量、存储、录音状态。", "BLE 分片传输：录音过程中的增量音频、偏移量和校验值。", "本地数据库：文件列表、同步队列、转写状态。", "本地临时缓存：录音未结束前的已同步分片。", "同步重试策略：重试限额、退避间隔、设备重连触发。", "云端文件：上传/删除/状态，接口待后端定义。"],
     acceptance: [
       "打开 App 默认处于硬件录音场景时，首页只展示设备录音中状态，不展示同步进度模块。",
       "点击录音中页结束后，首页必须展示剩余内容补传和校验进度，并在全部文件顶部建立对应临时文件记录。",
-      "同步状态条为约 40px 高的单行结构，状态、方式、整体进度、任务数量和预计时间不换行；蓝牙同步可显示快传入口，录音卡热点同步不显示。",
+      "蓝牙同步状态条为约 40px 高的单行结构；Wi-Fi 快传状态扩展为进度主行、完整进度线和加速收益说明行。两种状态的整体进度、任务数量和文件队列保持一致。",
       "多任务状态显示已完成数/总数；单任务状态不显示数量。同步状态条不提供队列入口，也不能打开独立队列列表。",
       "外部百分比和底部 2px 进度线必须与本批次累计字节进度一致。",
-      "蓝牙同步状态下的快传按钮直接进入 APP-SYNC-01，不出现传输方式选择弹层；录音卡热点同步状态下快传按钮不可见。同步状态条主体无点击操作。",
+      "蓝牙同步状态下的快传按钮直接进入 APP-SYNC-01，不出现传输方式选择弹层；Wi-Fi 快传状态下按钮改为“结束快传”。同步状态条主体无点击操作。",
+      "Wi-Fi 快传状态显示“加速快传中”和根据蓝牙与 Wi-Fi 预计时间差计算的“预计节省约 X 分钟”。",
+      "点击“结束快传”后断开设备 Wi-Fi 并切回蓝牙，整体百分比、已完成数、当前文件偏移和队列顺序不变。",
       "第一版页面导航、状态链路和交互流程中不出现 APP-SYNC-02。",
       "正在传输任务和最多 3 条等待传输示例显示在全部文件列表顶部，不存在独立同步队列列表。",
       "APP-HOME-01 原型默认只展示 3 条等待传输文件示例；等待行不展示常驻优先同步按钮，后台仍保留完整任务队列。",
@@ -453,7 +457,7 @@ const pages = [
       "录音主按钮点击前执行登录/绑定/连接检查。"
     ],
     prototypeLinks: [["设备详情", "APP-DEV-03"], ["添加设备", "APP-DEV-01"]],
-    prototypeActions: [["未添加录音卡", "home-show-no-device"], ["蓝牙同步", "set-sync-transport", "ble"], ["录音卡热点", "set-sync-transport", "hotspot"], ["当前无同步任务", "home-show-no-sync-tasks"], ["完成当前任务", "home-complete-sync"], ["单任务新批次", "home-start-single-sync-batch"], ["重置多任务同步", "home-reset-sync-batch"]]
+    prototypeActions: [["未添加录音卡", "home-show-no-device"], ["蓝牙同步", "set-sync-transport", "ble"], ["Wi-Fi 快传", "set-sync-transport", "hotspot"], ["结束快传", "end-home-fast-transfer"], ["当前无同步任务", "home-show-no-sync-tasks"], ["完成当前任务", "home-complete-sync"], ["单任务新批次", "home-start-single-sync-batch"], ["重置多任务同步", "home-reset-sync-batch"]]
   },
   {
     id: "APP-HOME-03",
@@ -1427,7 +1431,7 @@ let askPlaudSkill = "获取洞察";
 let askPlaudTipVisible = true;
 let deviceSnTipOpen = false;
 let homeSyncStage = "finishing";
-let homeSyncTransport = "ble";
+let homeSyncTransport = new URLSearchParams(window.location.search).get("sync") === "hotspot" ? "hotspot" : "ble";
 let homeSyncBatchSerial = 1;
 function createDefaultHomeSyncQueue() {
   return [
@@ -1849,9 +1853,13 @@ function homeSyncStats() {
   const transferredBytes = homeSyncQueue.reduce((sum, task) => sum + Math.min(task.transferred, task.size), 0);
   const percent = totalBytes ? Math.round((transferredBytes / totalBytes) * 100) : 0;
   const remainingBytes = Math.max(0, totalBytes - transferredBytes);
-  const speed = homeSyncTransport === "hotspot" ? 2 : .45;
-  const remainingMinutes = Math.max(1, Math.ceil((remainingBytes / speed) / 60));
-  return { total, completed, totalBytes, transferredBytes, percent, remainingBytes, remainingMinutes };
+  const bleSpeed = .45;
+  const fastSpeed = 2;
+  const bleRemainingMinutes = Math.max(1, Math.ceil((remainingBytes / bleSpeed) / 60));
+  const fastRemainingMinutes = Math.max(1, Math.ceil((remainingBytes / fastSpeed) / 60));
+  const remainingMinutes = homeSyncTransport === "hotspot" ? fastRemainingMinutes : bleRemainingMinutes;
+  const savedMinutes = Math.max(0, bleRemainingMinutes - fastRemainingMinutes);
+  return { total, completed, totalBytes, transferredBytes, percent, remainingBytes, remainingMinutes, bleRemainingMinutes, fastRemainingMinutes, savedMinutes };
 }
 
 function homeSyncTaskPercent(task) {
@@ -1868,14 +1876,14 @@ function shouldShowHomeSyncStatus() {
 function renderHomeSyncModule(stage = homeSyncStage) {
   const transportViews = {
     ble: { label: "蓝牙", tone: "ble" },
-    hotspot: { label: "录音卡热点", tone: "hotspot" }
+    hotspot: { label: "Wi-Fi 快传", tone: "hotspot" }
   };
   if (stage !== homeSyncStage || !shouldShowHomeSyncStatus()) return "";
   const stats = homeSyncStats();
   const multipleTasks = stats.total > 1;
   const transport = transportViews[homeSyncTransport] || transportViews.ble;
   const title = "同步中";
-  const remainingText = `预计 ${stats.remainingMinutes} 分钟`;
+  const remainingText = `预计 ${homeSyncTransport === "hotspot" ? stats.bleRemainingMinutes : stats.remainingMinutes} 分钟`;
   return `
     <section class="sync-mini finishing ${homeSyncTransport === "hotspot" ? "hotspot-active" : ""}" aria-label="当前同步状态">
       <div class="sync-mini-main" aria-label="本次同步进度">
@@ -1885,10 +1893,38 @@ function renderHomeSyncModule(stage = homeSyncStage) {
         ${multipleTasks ? `<em class="sync-mini-count">${stats.completed}/${stats.total}</em>` : ""}
         <span>${h(remainingText)}</span>
       </div>
-      ${homeSyncTransport === "hotspot" ? "" : `<button class="sync-mini-switch" data-go="APP-SYNC-01">快传</button>`}
+      ${homeSyncTransport === "hotspot"
+        ? `<button class="sync-mini-switch end-fast" data-action="end-home-fast-transfer">结束快传</button>`
+        : `<button class="sync-mini-switch" data-go="APP-SYNC-01">快传</button>`}
       <div class="sync-mini-progress" aria-hidden="true"><b style="width:${stats.percent}%"></b></div>
+      ${homeSyncTransport === "hotspot" ? `
+        <div class="sync-mini-boost" role="status">
+          <span>加速快传中</span>
+          <em>预计节省约 ${stats.savedMinutes} 分钟</em>
+        </div>
+      ` : ""}
     </section>
   `;
+}
+
+function startHomeFastTransfer() {
+  homeDeviceAdded = true;
+  if (homeSyncStage !== "finishing" || !homeSyncQueue.length) resetMultiHomeSyncBatch();
+  homeSyncTransport = "hotspot";
+}
+
+function endHomeFastTransfer() {
+  if (homeSyncTransport !== "hotspot") return false;
+  homeSyncTransport = "ble";
+  homeHotspotSuccessNotice = false;
+  homePriorityNotice = "已断开 Wi-Fi，继续使用蓝牙传输";
+  if (homePriorityNoticeTimer) window.clearTimeout(homePriorityNoticeTimer);
+  homePriorityNoticeTimer = window.setTimeout(() => {
+    homePriorityNoticeTimer = null;
+    homePriorityNotice = "";
+    if (currentPageId === "APP-HOME-01") render();
+  }, 1800);
+  return true;
 }
 
 function completeCurrentHomeSyncTask() {
@@ -6066,8 +6102,7 @@ document.addEventListener("click", (event) => {
       syncPrototypeTimer = null;
       if (currentPageId !== "APP-SYNC-01") return;
       hotspotTransferState = "success";
-      startSingleHomeSyncBatch();
-      homeSyncTransport = "hotspot";
+      startHomeFastTransfer();
       homeHotspotSuccessNotice = true;
       go("APP-HOME-01");
       if (homeHotspotSuccessNoticeTimer) window.clearTimeout(homeHotspotSuccessNoticeTimer);
@@ -6086,15 +6121,20 @@ document.addEventListener("click", (event) => {
     }
     hotspotTransferState = action.dataset.value || "awaiting";
     if (hotspotTransferState === "success") {
-      startSingleHomeSyncBatch();
-      homeSyncTransport = "hotspot";
+      startHomeFastTransfer();
     }
     render();
     return;
   }
   if (action && action.dataset.action === "set-sync-transport") {
     homeDeviceAdded = true;
-    homeSyncTransport = action.dataset.value || "ble";
+    if (action.dataset.value === "hotspot") startHomeFastTransfer();
+    else homeSyncTransport = "ble";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "end-home-fast-transfer") {
+    endHomeFastTransfer();
     render();
     return;
   }
