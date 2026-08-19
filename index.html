@@ -613,28 +613,30 @@ const pages = [
   {
     id: "APP-REC-02",
     group: "录音",
-    title: "录音方式选择",
+    title: "准备录音",
     priority: "P0",
-    goal: "点击底部中间录音按钮后选择智能识别场景或手动场景模板。",
+    goal: "点击底部中间录音按钮后确认自动识别策略，并可选录音场景后开始录音。",
     entry: "文件首页或任意底部导航页面点击录音主按钮。",
-    fields: [["record_mode", "录音方式", "用户选择"], ["default_record_mode", "下次默认", "本地设置/云端偏好"], ["device_state", "设备可录音状态", "BLE 状态包"]],
-    rules: ["进入弹层前已完成登录、绑定、设备连接、电量、存储检查。", "开始录音（智能识别场景）可勾选下次默认。", "选择录音场景进入模板列表。"],
-    states: ["默认", "已设置下次默认", "设备未连接", "低电量", "存储不足"],
-    deps: ["BLE 命令包：开始录音，协议待固件定义。", "本地设置：默认录音方式保存与恢复。"],
-    acceptance: ["弹层必须说明当前使用硬件录音。", "点击开始录音后进入录音中页。"]
+    prototypeActions: [["自动识别", "select-record-mode", "auto"], ["指定场景", "select-record-mode", "manual"]],
+    prototypeLinks: [["录音中", "APP-REC-04"]],
+    fields: [["record_mode", "自动识别/指定场景", "用户选择"], ["record_scene", "指定录音场景", "用户选择/上次选择"], ["device_state", "设备可录音状态", "BLE 状态包"]],
+    rules: ["进入弹层前已完成登录、绑定、设备连接、电量、存储检查。", "自动识别场景与选择录音场景互斥，默认选择自动识别场景。", "选择录音场景后直接在当前弹层展示会议、访谈、课堂和电话，不进入二级页面。", "首次选择录音场景默认勾选会议；切回自动识别后再次选择录音场景，继续勾选上一次的具体场景。", "只有点击开始录音按钮才向硬件发送开始录音命令。"],
+    states: ["自动识别场景", "指定录音场景", "会议", "访谈", "课堂", "电话", "设备未连接", "低电量", "存储不足"],
+    deps: ["BLE 命令包：开始录音，协议待固件定义。", "AI 场景识别服务或本地场景配置。"],
+    acceptance: ["弹层展示当前连接的录音设备。", "两种场景选择方式只能勾选一个。", "指定场景在当前弹层展开且不包含自动选项。", "重新选择指定场景时恢复上次选择。", "录音面板和遮罩完整覆盖文件列表状态，不出现等待传输文字穿透。", "点击开始录音后进入录音中页。"]
   },
   {
     id: "APP-REC-03",
     group: "录音",
-    title: "录音场景选择",
+    title: "选择模板",
     priority: "P0",
-    goal: "选择录音场景模板后开始硬件录音。",
-    entry: "录音方式选择弹层点击选择录音场景。",
-    fields: [["scene_template_id", "场景模板", "本地配置/云端模板"], ["scene_name", "场景名称", "本地配置/云端模板"], ["scene_desc", "场景说明", "本地配置/云端模板"]],
-    rules: ["模板列表当前待确认，首版可包含通用、会议、访谈、课堂、电话。", "模板可能影响后续 AI 笔记结构，需与 AI 服务字段一致。"],
-    states: ["模板加载中", "加载失败", "已选择", "可开始录音"],
+    goal: "在转写与生成前从模板库选择转写与 AI 笔记模板。",
+    entry: "转写与生成页面点击模板。",
+    fields: [["template_id", "模板", "本地配置/云端模板"], ["template_category", "模板分类", "本地配置/云端模板"], ["template_output", "生成内容", "AI 模板服务"]],
+    rules: ["进入页面后直接展示模板分类列表，不展示我的模板与探索标签栏。", "模板按通用、会议、演讲、通话、面试/采访等分类展示。", "未选择模板时由系统自动匹配。", "选择模板后需点击使用此模板才写回转写与生成页面。"],
+    states: ["未选择", "已选择", "模板加载失败"],
     deps: ["AI 模板服务或本地模板配置，接口待后端定义。"],
-    acceptance: ["用户选择模板并点击开始录音后进入录音中页。", "模板失败时可使用通用模板降级。"]
+    acceptance: ["进入页面即展示按分类组织的模板列表。", "页面不出现我的模板与探索标签栏。", "选中模板有清晰的选中态并可返回转写与生成页面。", "模板失败时保持自动匹配降级。"]
   },
   {
     id: "APP-REC-04",
@@ -672,11 +674,11 @@ const pages = [
     goal: "展示音频已存在但尚未生成 AI 笔记时的文件详情空状态。",
     entry: "文件列表点击未生成 AI 摘要的文件、转写/总结尚未生成完成。",
     fields: [["display_title", "展示标题", "文件名/云端同步数据"], ["audio_progress", "播放进度", "本地播放器"], ["marker_list", "录音标记列表", "本地数据库"], ["marker_generation_role", "生成辅助笔记", "AI 生成任务快照"], ["generation_state", "生成状态", "AI 服务"], ["estimated_audio_duration", "音频时长", "本地播放器"]],
-    rules: ["空状态保留标题、音频播放器和右上角操作。", "未生成状态以标记作为默认一级页签，完整展示录音期间的标记；录音结束后不允许新增标记，只能原位编辑已有文字或照片说明、查看照片和删除照片。", "总结页签显示可生成笔记提示，底部固定生成主按钮。", "生成按钮文案只显示生成；点击后进入生成方式与用量确认弹层，并在确认时冻结本次标记快照。"],
+    rules: ["空状态保留标题、音频播放器和右上角操作。", "未生成状态以标记作为默认一级页签，完整展示录音期间的标记；录音结束后不允许新增标记，只能原位编辑已有文字或照片说明、查看照片和删除照片。", "总结页签显示可生成笔记提示，底部固定生成主按钮。", "生成按钮文案只显示生成；点击后进入转写与生成弹层，并在确认时冻结本次标记快照。"],
     states: ["标记页签", "总结空状态", "标记原位编辑", "未生成 AI 摘要", "可生成笔记", "生成中", "生成失败"],
     deps: ["本地播放器。", "AI 服务：生成入口和状态。", "用量服务：生成前确认。"],
     acceptance: ["空详情显示标记/总结两个页签；默认展示已保存标记，并说明生成时将作为辅助笔记。", "标记可定位播放和原位编辑，但不得新增。", "总结空状态不展示已转写内容和笔记提问框。", "底部按钮只显示生成。"],
-    prototypeLinks: [["文件详情已转写", "APP-FILE-01"], ["文件详情为空", "APP-FILE-10"], ["生成方式选择", "APP-AI-01"], ["生成中", "APP-FILE-15"]]
+    prototypeLinks: [["文件详情已转写", "APP-FILE-01"], ["文件详情为空", "APP-FILE-10"], ["转写与生成", "APP-AI-01"], ["生成中", "APP-FILE-15"]]
   },
   {
     id: "APP-FILE-15",
@@ -684,12 +686,12 @@ const pages = [
     title: "文件详情生成中",
     priority: "P0",
     goal: "展示 AI 笔记生成中的文件详情状态，告知用户可离开页面且不会影响生成进度。",
-    entry: "生成方式与用量确认点击立即生成。",
+    entry: "转写与生成点击立即生成。",
     fields: [["display_title", "展示标题", "文件名/云端同步数据"], ["audio_progress", "播放进度", "本地播放器"], ["marker_list", "录音标记列表", "本地数据库"], ["generation_marker_snapshot", "本次生成标记快照", "AI 生成任务"], ["generation_state", "生成状态", "AI 服务"], ["generation_hint", "生成提示", "本地文案"]],
     rules: ["生成中页面保留同一文件详情顶部、播放器以及标记/总结两个页签。", "默认打开总结页签，显示骨架占位和生成中提示；切换标记仍可查看、定位并原位编辑已有标记，但不能新增。", "本次任务使用确认生成时冻结的标记快照；生成中修改的已有标记仅用于下次生成。", "生成完成后直接进入文件详情已转写状态。", "离开页面不影响生成进度。"],
     states: ["总结生成中", "标记页签", "编辑标记", "生成完成", "生成失败"],
     deps: ["AI 服务：生成状态轮询或推送。", "本地任务状态：离开页面后继续跟踪。", "本地标记数据库与生成快照。"],
-    acceptance: ["文件列表和文件详情为空点击生成都先进入生成方式与用量确认。", "生成中页结构与未生成页连续，默认打开总结并可切回标记维护。", "标记页明确说明本次生成已读取、后续修改用于下次生成。", "完成状态进入文件详情页，不再停留在生成确认页。"],
+    acceptance: ["文件列表和文件详情为空点击生成都先进入转写与生成。", "生成中页结构与未生成页连续，默认打开总结并可切回标记维护。", "标记页明确说明本次生成已读取、后续修改用于下次生成。", "完成状态进入文件详情页，不再停留在生成确认页。"],
     prototypeLinks: [["生成完成", "APP-FILE-01"], ["文件详情为空", "APP-FILE-10"]]
   },
   {
@@ -864,15 +866,42 @@ const pages = [
   {
     id: "APP-AI-01",
     group: "AI",
-    title: "生成方式与用量确认",
+    title: "转写与生成",
     priority: "P0",
-    goal: "作为文件生成前的方式选择和用量确认弹层，选择自动或自定义并确认用量。",
+    goal: "作为文件转写与 AI 笔记生成前的方式选择和用量确认弹层。",
     entry: "文件列表点击生成、文件详情为空点击生成。",
-    fields: [["generation_mode", "生成方式", "用户选择"], ["estimated_minutes", "预计消耗", "用量服务"], ["remaining_minutes", "剩余额度", "用量服务"], ["purchase_minutes_entry", "立即购买分钟数", "用量服务/支付"], ["upgrade_subscription_entry", "升级订阅会员", "会员服务/支付"], ["speaker_diarization_enabled", "自动标注说话人", "用户选择"], ["audio_language", "音频语言", "用户选择"], ["ai_model", "AI 模型", "用户选择"]],
-    rules: ["文件列表和文件详情为空的生成入口必须先进入本页。", "点击立即生成后进入文件详情生成中页面。", "自动生成使用默认策略。", "自定义生成默认自动标注说话人开启、语言 English、AI 模型自动。", "额度不足时立即生成按钮置灰并禁止提交。", "仅额度不足时在立即生成按钮上方展示“立即购买分钟数”和“升级订阅会员”的直达按钮。", "额度充足时隐藏购买分钟数和升级订阅会员入口。", "购买或升级完成后返回本页并重新校验剩余额度。"],
-    states: ["自动生成", "自定义生成", "额度充足", "额度不足", "购买入口", "升级订阅入口", "模板加载失败"],
+    prototypeLinks: [["选择模板", "APP-REC-03"], ["音频语言", "APP-AI-02"], ["AI 模型", "APP-AI-03"], ["生成中", "APP-FILE-15"]],
+    fields: [["generation_mode", "生成方式", "用户选择"], ["template_id", "生成模板", "系统匹配/用户选择"], ["estimated_minutes", "预计消耗", "用量服务"], ["remaining_minutes", "剩余额度", "用量服务"], ["speaker_diarization_enabled", "自动标注说话人", "用户选择"], ["audio_language", "音频语言", "用户选择"], ["ai_model", "AI 模型", "用户选择"]],
+    rules: ["文件列表和文件详情为空的生成入口必须先进入本页。", "点击立即生成后进入文件详情生成中页面。", "自动生成自动匹配转写模板与总结。", "自定义生成可调整模板、说话人、语言和 AI 模型。", "额度不足时立即生成按钮置灰并禁止提交。", "弹层打开时底层文件详情整体进入同一蒙版状态，包括吸顶的大纲、智能总结、文字记录等导航。", "页面不重复展示录音场景，也不在按钮上方展示云端上传说明。"],
+    states: ["自动生成", "自定义生成", "额度充足", "额度不足", "模板已选择", "语言选择", "模型选择"],
     deps: ["用量服务：预估分钟、余额。", "会员服务：订阅等级与权益。", "支付服务：购买分钟数、升级订阅。", "AI 服务：模板列表、模型列表。", "云端文件：上传凭证。"],
-    acceptance: ["弹层展示预计消耗、剩余额度和云端处理提示。", "额度不足时立即生成按钮必须置灰且不可提交，并展示购买分钟数和升级订阅会员入口。", "额度充足时不展示购买分钟数和升级订阅会员入口，立即生成可提交并进入文件详情生成中。"]
+    acceptance: ["弹层展示自动与自定义生成、模板配置和用量确认。", "底层大纲导航不得穿透蒙版或保持高亮。", "选择模板进入无标签栏的分类模板列表。", "额度充足时立即生成可提交并进入文件详情生成中。"]
+  },
+  {
+    id: "APP-AI-02",
+    group: "AI",
+    title: "音频语言",
+    priority: "P0",
+    goal: "选择转写使用的音频语言或交由系统自动识别。",
+    entry: "转写与生成页面点击音频语言。",
+    fields: [["audio_language", "音频语言", "用户选择"]],
+    rules: ["默认选择自动。", "弹层打开时底层文件详情整体进入蒙版状态，包括吸顶内容导航。", "选择语言后立即返回转写与生成页面并更新当前值。"],
+    states: ["自动", "中文简体", "English (US)", "日本語", "其他热门语言"],
+    deps: ["转写服务语言列表。"],
+    acceptance: ["当前语言有清晰勾选态。", "底层大纲、智能总结、文字记录等导航不得穿透蒙版。", "点击任一语言后返回转写与生成页面。"]
+  },
+  {
+    id: "APP-AI-03",
+    group: "AI",
+    title: "AI 模型",
+    priority: "P0",
+    goal: "选择用于生成 AI 笔记的模型或交由系统自动匹配。",
+    entry: "转写与生成页面点击 AI 模型。",
+    fields: [["ai_model", "AI 模型", "用户选择/系统策略"]],
+    rules: ["默认选择自动。", "弹层打开时底层文件详情整体进入蒙版状态，包括吸顶内容导航。", "每个模型展示简短适用说明。", "选择模型后立即返回转写与生成页面并更新当前值。"],
+    states: ["自动", "GPT-5", "GPT-5.5", "Gemini 2.5 Pro", "Gemini 3.5 Flash", "Claude Sonnet 5", "Claude Opus 4.8"],
+    deps: ["AI 服务模型列表与可用状态。"],
+    acceptance: ["当前模型有清晰勾选态。", "底层大纲、智能总结、文字记录等导航不得穿透蒙版。", "点击任一模型后返回转写与生成页面。"]
   },
   {
     id: "APP-ME-02",
@@ -1448,6 +1477,14 @@ let previousPageId = null;
 let fileDetailTab = "transcript";
 let recordPaused = false;
 let generationMode = "custom";
+let selectedTemplateId = "";
+let draftTemplateId = "";
+let templateReturnPage = "APP-AI-01";
+let recordMode = "auto";
+let selectedRecordScene = "meeting";
+let generationSpeakerDiarization = true;
+let selectedAudioLanguage = "自动";
+let selectedAiModel = "自动";
 let askPlaudMode = "closed";
 let askPlaudPrompt = "";
 let askPlaudSkill = "获取洞察";
@@ -1609,6 +1646,9 @@ function go(id) {
   clearFirmwareUpdateTimer();
   previousPageId = currentPageId;
   currentPageId = id === "APP-HOME-02" ? "APP-HOME-01" : id === "APP-SYNC-02" ? "APP-SYNC-01" : id;
+  if (currentPageId === "APP-REC-02" && previousPageId !== "APP-REC-02") {
+    recordMode = "auto";
+  }
   if (currentPageId === "APP-ME-41" && previousPageId !== "APP-ME-41") {
     changePasswordCurrent = "";
     changePasswordNew = "";
@@ -1727,7 +1767,7 @@ function fileCard(file) {
   const disabled = file.transferState === "syncing" || file.transferState === "pending";
   const statusNode = disabled
     ? file.transferState === "pending" && file.taskId
-      ? `<div class="file-transfer-status-wrap">
+      ? `<div class="file-transfer-status-wrap ${homePriorityMenuTaskId === file.taskId ? "menu-open" : ""}">
           <button class="file-transfer-status file-transfer-status-action ${file.isPriority ? "prioritized" : ""}" data-action="open-home-priority-menu" data-task-id="${h(file.taskId)}" aria-haspopup="dialog" aria-expanded="${homePriorityMenuTaskId === file.taskId ? "true" : "false"}" aria-label="${h(file.name)}，${file.isPriority ? "已优先" : "等待传输"}，点击查看传输顺序操作">
             <span role="status" aria-live="polite">${h(file.isPriority ? "已优先" : file.statusText)}</span>
           </button>
@@ -2609,45 +2649,128 @@ function renderSearchResults() {
   `;
 }
 
+const templateCatalog = [
+  {
+    category: "通用",
+    items: [
+      { id: "smart-summary", title: "智能摘要", desc: "多场景自适应摘要，快速提炼要点" },
+      { id: "reasoning-summary", title: "推理总结", desc: "自动生成结构化总结，快速把握要点" }
+    ]
+  },
+  {
+    category: "会议",
+    items: [
+      { id: "meeting-minutes", title: "会议纪要", desc: "整理会议要点与结论，生成行动项" },
+      { id: "discussion-summary", title: "讨论总结", desc: "提炼讨论重点与分歧，明确结论与行动项" }
+    ]
+  },
+  {
+    category: "演讲",
+    items: [
+      { id: "class-notes", title: "课堂笔记", desc: "结构化记录课堂要点与作业，便于复习" },
+      { id: "course-summary", title: "课程总结", desc: "提炼课程要点与建议，一页看懂讲座" }
+    ]
+  },
+  {
+    category: "通话",
+    items: [
+      { id: "phone-discussion", title: "电话讨论", desc: "记录电话讨论，清晰产出结论与待办" },
+      { id: "phone-consulting", title: "电话咨询", desc: "整理咨询答复与后续行动" }
+    ]
+  },
+  {
+    category: "面试/采访",
+    items: [
+      { id: "research-interview", title: "研究访谈", desc: "整理访谈要点，快速回顾关键信息" },
+      { id: "interview-analysis", title: "面试分析", desc: "整理面试纪要，输出要点与行动项" }
+    ]
+  }
+];
+
+function templateById(id) {
+  return templateCatalog.flatMap((group) => group.items).find((item) => item.id === id) || null;
+}
+
+function selectedTemplateLabel() {
+  return templateById(selectedTemplateId)?.title || "自动匹配";
+}
+
+const recordSceneOptions = [
+  { id: "meeting", title: "会议", desc: "优化说话人分离与重点提炼" },
+  { id: "interview", title: "访谈", desc: "适合一对一或多人访谈，强化问答结构识别" },
+  { id: "classroom", title: "课堂", desc: "适合教学场景，整理知识点与复习清单" },
+  { id: "phone", title: "电话", desc: "适合通话场景，提升通话内容的转写准确率" }
+];
+
 function renderRecordSheet() {
   return `
     ${renderHome()}
-    <div class="scrim" data-go="APP-HOME-01"></div>
-    <section class="bottom-sheet">
+    <div class="scrim record-prepare-scrim" data-go="APP-HOME-01"></div>
+    <section class="bottom-sheet record-prepare-sheet mode-${recordMode}" role="dialog" aria-modal="true" aria-labelledby="recordPrepareTitle">
       <div class="handle"></div>
-      <div class="card-title"><strong>开始录音</strong>${chip("硬件录音", "blue")}</div>
-      <div class="option selected" data-go="APP-REC-04">
-        <span class="option-dot">✓</span>
-        <div><strong>开始录音（智能识别场景）</strong><p class="caption">直接开始硬件录音，后续自动匹配转写与总结。</p></div>
-        <span></span>
+      <header class="record-prepare-header">
+        <h2 id="recordPrepareTitle">准备录音</h2>
+        <p>AI Recorder A1 · 已连接</p>
+      </header>
+      <div class="record-mode-group" role="radiogroup" aria-label="录音场景识别方式">
+        <button class="record-mode-option ${recordMode === "auto" ? "selected" : ""}" data-action="select-record-mode" data-value="auto" role="radio" aria-checked="${recordMode === "auto" ? "true" : "false"}">
+          <span class="option-dot">${recordMode === "auto" ? "✓" : ""}</span>
+          <span><strong>自动识别场景</strong><small>录音完成后自动匹配转写与总结</small></span>
+        </button>
+        <button class="record-mode-option ${recordMode === "manual" ? "selected" : ""}" data-action="select-record-mode" data-value="manual" role="radio" aria-checked="${recordMode === "manual" ? "true" : "false"}" aria-expanded="${recordMode === "manual" ? "true" : "false"}" aria-controls="recordSceneOptions">
+          <span class="option-dot">${recordMode === "manual" ? "✓" : ""}</span>
+          <span><strong>选择录音场景</strong><small>可指定会议、访谈、课堂或电话</small></span>
+        </button>
+        ${recordMode === "manual" ? `
+          <div class="record-scene-options" id="recordSceneOptions" role="radiogroup" aria-label="录音场景">
+            ${recordSceneOptions.map((scene) => `
+              <button class="record-scene-option ${selectedRecordScene === scene.id ? "selected" : ""}" data-action="select-record-scene" data-value="${h(scene.id)}" role="radio" aria-checked="${selectedRecordScene === scene.id ? "true" : "false"}">
+                <span class="option-dot">${selectedRecordScene === scene.id ? "✓" : ""}</span>
+                <span><strong>${h(scene.title)}</strong><small>${h(scene.desc)}</small></span>
+              </button>
+            `).join("")}
+          </div>
+        ` : ""}
       </div>
-      <div class="option" data-go="APP-REC-03">
-        <span class="option-dot"></span>
-        <div><strong>选择录音场景</strong><p class="caption">会议、访谈、课堂、电话、通用，模板待确认。</p></div>
-        <span></span>
-      </div>
-      <div class="row"><span>下次默认直接开始</span><span class="toggle"></span></div>
-      <button class="primary-btn" data-go="APP-REC-04">开始硬件录音</button>
+      <footer class="record-prepare-footer">
+        <button class="primary-btn record-start-btn" data-go="APP-REC-04">开始录音</button>
+      </footer>
     </section>
   `;
 }
 
-function renderScene() {
-  const scene = (title, desc, selected = false) => `
-    <div class="option ${selected ? "selected" : ""}">
-      <span class="option-dot">${selected ? "✓" : ""}</span>
-      <div><strong>${h(title)}</strong><p class="caption">${h(desc)}</p></div>
-      <span></span>
-    </div>
+function renderTemplateCard(item) {
+  const selected = draftTemplateId === item.id;
+  return `
+    <button class="template-card ${selected ? "selected" : ""}" data-action="select-template" data-value="${h(item.id)}">
+      ${selected ? '<span class="template-selected-mark">✓</span>' : ""}
+      <strong>${h(item.title)}</strong>
+      <p>${h(item.desc)}</p>
+      <small>AI Recorder</small>
+    </button>
   `;
-  return screen(`
-    ${scene("通用", "不确定场景时使用，后续自动匹配模板。", true)}
-    ${scene("会议", "生成会议纪要、重点和行动项。")}
-    ${scene("访谈", "强化问答结构和说话人区分。")}
-    ${scene("课堂", "整理知识点、摘要和复习清单。")}
-    ${scene("电话", "需展示录音同意提示，文案待法务确认。")}
-    <button class="primary-btn" data-go="APP-REC-04">开始录音</button>
-  `, { title: "选择录音场景", back: "APP-REC-02", bottom: false });
+}
+
+function renderScene() {
+  return `
+    <div class="statusbar"><span>9:41</span><span>5G</span><span>82%</span></div>
+    <header class="app-top template-library-top">
+      <button class="icon-btn" data-action="close-template-library" aria-label="返回">‹</button>
+      <h2>选择模板</h2>
+      <button class="icon-btn search-top-btn" aria-label="搜索模板"></button>
+    </header>
+    <main class="template-library-page">
+      ${templateCatalog.map((group) => `
+        <section class="template-category">
+          <header><h3>${h(group.category)}</h3><button>查看更多 ›</button></header>
+          <div class="template-grid">${group.items.map(renderTemplateCard).join("")}</div>
+        </section>
+      `).join("")}
+    </main>
+    <footer class="template-library-footer">
+      <button class="primary-btn ${draftTemplateId ? "" : "disabled"}" ${draftTemplateId ? 'data-action="apply-template"' : "disabled"}>使用此模板</button>
+    </footer>
+  `;
 }
 
 function nextRecordingMarkTime() {
@@ -3822,27 +3945,47 @@ function renderShareExpiryDateSheet() {
   `;
 }
 
+function renderGenerationSettingRow(label, value, opts = {}) {
+  const attrs = opts.action
+    ? ` data-action="${h(opts.action)}"`
+    : opts.go ? ` data-go="${h(opts.go)}"` : "";
+  const tail = opts.toggle
+    ? `<span class="toggle ${generationSpeakerDiarization ? "" : "off"}"></span>`
+    : `<span class="generation-setting-value">${h(value)}<i>›</i></span>`;
+  return `<button class="generation-setting-row"${attrs}><strong>${h(label)}</strong>${tail}</button>`;
+}
+
 function renderGenerate() {
   const quotaInsufficient = false;
   return `
     ${renderFileDetail()}
-    <div class="scrim" data-go="APP-FILE-01"></div>
-    <section class="bottom-sheet">
+    <div class="scrim generate-sheet-scrim" data-go="APP-FILE-01"></div>
+    <section class="bottom-sheet generate-sheet">
       <div class="handle"></div>
-      <div class="card-title"><strong>生成内容</strong>${chip("01:12:17", "blue")}</div>
-      <div class="option ${generationMode === "auto" ? "selected" : ""}" data-mode="auto">
+      <div class="generate-sheet-title"><h2>转写与生成</h2><span>01:12:17</span></div>
+      <button class="option ${generationMode === "auto" ? "selected" : ""}" data-mode="auto">
         <span class="option-dot">${generationMode === "auto" ? "✓" : ""}</span>
-        <div><strong>自动生成</strong><p class="caption">自动匹配转写与总结，无需手动设置。</p></div>
-        <span></span>
-      </div>
-      <div class="option ${generationMode === "custom" ? "selected" : ""}" data-mode="custom">
+        <div><strong>自动生成</strong><p class="caption">自动匹配转写模板与总结，无需手动设置</p></div>
+      </button>
+      <button class="option ${generationMode === "custom" ? "selected" : ""}" data-mode="custom">
         <span class="option-dot">${generationMode === "custom" ? "✓" : ""}</span>
-        <div><strong>自定义生成</strong><p class="caption">选择模板、说话人、语言和 AI 模型。</p></div>
-        <span></span>
-      </div>
-      ${generationMode === "custom" ? `${row("模板", "会议纪要 · 查看全部")}${row("自动标注说话人", "开启")}${row("音频语言", "English (US)")}${row("AI 模型", "自动")}` : ""}
-      ${card("用量确认", `${row("预计消耗", "73 分钟")}${row("剩余额度", "420 分钟")}`, "warn")}
-      <p class="caption">音频将上传云端用于转写和 AI 笔记生成。</p>
+        <div><strong>自定义生成</strong><p class="caption">可调整模板、说话人、语言和 AI 模型</p></div>
+      </button>
+      ${generationMode === "custom" ? `
+        <div class="generation-settings">
+          ${renderGenerationSettingRow("模板", `${selectedTemplateLabel()} · 查看全部`, { action: "open-template-library" })}
+          ${renderGenerationSettingRow("自动标注说话人", "", { action: "toggle-generation-speakers", toggle: true })}
+          ${renderGenerationSettingRow("音频语言", selectedAudioLanguage, { go: "APP-AI-02" })}
+          ${renderGenerationSettingRow("AI 模型", selectedAiModel, { go: "APP-AI-03" })}
+        </div>
+      ` : ""}
+      <section class="generation-usage">
+        <h3>用量确认</h3>
+        <div>
+          <span><small>预计消耗</small><b>73 <em>分钟</em></b></span>
+          <span><small>剩余额度</small><b>420 <em>分钟</em></b></span>
+        </div>
+      </section>
       ${quotaInsufficient ? `
         <div class="ai-purchase-row">
           <button data-go="APP-ME-02">立即购买分钟数</button>
@@ -3850,6 +3993,59 @@ function renderGenerate() {
         </div>
       ` : ""}
       <button class="primary-btn ${quotaInsufficient ? "disabled" : ""}" ${quotaInsufficient ? "" : 'data-go="APP-FILE-15"'}>立即生成</button>
+    </section>
+  `;
+}
+
+function renderSelectionChoice(title, desc, selected, action, value, premium = false) {
+  return `
+    <button class="selection-choice" data-action="${h(action)}" data-value="${h(value)}">
+      <span><strong>${h(title)}${premium ? '<i class="premium-dot"></i>' : ""}</strong>${desc ? `<small>${h(desc)}</small>` : ""}</span>
+      ${selected ? "<b>✓</b>" : ""}
+    </button>
+  `;
+}
+
+function renderAudioLanguageSheet() {
+  const languages = [
+    ["中文简体 - 普通话", "中文（简体 - 普通话）"],
+    ["English (US)", "英语（美国）"],
+    ["日本語", "日语"],
+    ["Português", "葡萄牙语"],
+    ["Français (France)", "法语（法国）"],
+    ["中文繁體 - 國語", "中文（繁体 - 普通话）"]
+  ];
+  return `
+    ${renderFileDetail()}
+    <div class="scrim" data-go="APP-AI-01"></div>
+    <section class="bottom-sheet ai-selection-sheet">
+      <header><h2>音频语言</h2><button data-go="APP-AI-01" aria-label="关闭">×</button></header>
+      <div class="selection-divider"></div>
+      <h3>最近使用</h3>
+      ${renderSelectionChoice("自动", "系统会自动识别录音语言", selectedAudioLanguage === "自动", "select-ai-language", "自动")}
+      <h3>热门语言</h3>
+      ${languages.map(([title, desc]) => renderSelectionChoice(title, desc, selectedAudioLanguage === title, "select-ai-language", title)).join("")}
+    </section>
+  `;
+}
+
+function renderAiModelSheet() {
+  const models = [
+    ["GPT-5", "均衡稳健，适合多数会议与访谈", false],
+    ["GPT-5.5", "推理更深入，适合复杂讨论与结构化笔记", false],
+    ["Gemini 2.5 Pro", "适合长录音与复杂内容分析", false],
+    ["Gemini 3.5 Flash", "响应迅速，适合快速生成要点", true],
+    ["Claude Sonnet 5", "理解准确，适合忠实整理讨论内容", true],
+    ["Claude Opus 4.8", "适合深度推理与复杂洞察", true]
+  ];
+  return `
+    ${renderFileDetail()}
+    <div class="scrim" data-go="APP-AI-01"></div>
+    <section class="bottom-sheet ai-selection-sheet model-selection-sheet">
+      <header><h2>AI 模型</h2><button data-go="APP-AI-01" aria-label="关闭">×</button></header>
+      <div class="selection-divider"></div>
+      ${renderSelectionChoice("自动", "智能匹配适合的模型", selectedAiModel === "自动", "select-ai-model", "自动")}
+      ${models.map(([title, desc, premium]) => renderSelectionChoice(title, desc, selectedAiModel === title, "select-ai-model", title, premium)).join("")}
     </section>
   `;
 }
@@ -5189,6 +5385,8 @@ const renderers = {
   "APP-FILE-10": renderFileDetailEmpty,
   "APP-FILE-15": renderFileDetailGenerating,
   "APP-AI-01": renderGenerate,
+  "APP-AI-02": renderAudioLanguageSheet,
+  "APP-AI-03": renderAiModelSheet,
   "APP-ME-02": renderUsage,
   "APP-ME-16": renderAccountSettingsHome,
   "APP-ME-26": renderPreferences,
@@ -5245,7 +5443,7 @@ function renderNav() {
 }
 
 function renderFlow() {
-  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-07", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-DEV-05", "APP-HOME-01", "APP-SYNC-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-02", "APP-ME-16", "APP-ME-26", "APP-ME-27", "APP-ME-28", "APP-ME-29", "APP-ME-30", "APP-ME-31", "APP-ME-32", "APP-ME-33", "APP-ME-34", "APP-ME-35", "APP-ME-36", "APP-ME-37", "APP-ME-38", "APP-ME-40", "APP-ME-39", "APP-ME-17", "APP-ME-18", "APP-ME-41", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-23", "APP-ME-10", "APP-ME-11", "APP-ME-12", "APP-DEV-03", "APP-DEV-10", "APP-ME-04", "APP-ME-24", "APP-ME-25", "APP-DEV-06", "APP-DEV-07", "APP-DEV-08", "APP-DEV-09"];
+  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-07", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-DEV-05", "APP-HOME-01", "APP-SYNC-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-REC-03", "APP-AI-02", "APP-AI-03", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-02", "APP-ME-16", "APP-ME-26", "APP-ME-27", "APP-ME-28", "APP-ME-29", "APP-ME-30", "APP-ME-31", "APP-ME-32", "APP-ME-33", "APP-ME-34", "APP-ME-35", "APP-ME-36", "APP-ME-37", "APP-ME-38", "APP-ME-40", "APP-ME-39", "APP-ME-17", "APP-ME-18", "APP-ME-41", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-23", "APP-ME-10", "APP-ME-11", "APP-ME-12", "APP-DEV-03", "APP-DEV-10", "APP-ME-04", "APP-ME-24", "APP-ME-25", "APP-DEV-06", "APP-DEV-07", "APP-DEV-08", "APP-DEV-09"];
   document.getElementById("flowStrip").innerHTML = flow.map((id, index) => {
     const page = pageById(id);
     return `<button class="${id === currentPageId ? "active" : ""}" data-go="${id}">${index + 1}. ${h(page.title)}</button>`;
@@ -5546,6 +5744,53 @@ document.addEventListener("click", (event) => {
     return;
   }
   const action = event.target.closest("[data-action]");
+  if (action && action.dataset.action === "select-record-mode") {
+    recordMode = action.dataset.value === "manual" ? "manual" : "auto";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "select-record-scene") {
+    selectedRecordScene = action.dataset.value || "auto";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "open-template-library") {
+    templateReturnPage = "APP-AI-01";
+    draftTemplateId = selectedTemplateId;
+    go("APP-REC-03");
+    return;
+  }
+  if (action && action.dataset.action === "close-template-library") {
+    draftTemplateId = selectedTemplateId;
+    go(templateReturnPage);
+    return;
+  }
+  if (action && action.dataset.action === "select-template") {
+    draftTemplateId = action.dataset.value || "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "apply-template") {
+    if (!draftTemplateId) return;
+    selectedTemplateId = draftTemplateId;
+    go(templateReturnPage);
+    return;
+  }
+  if (action && action.dataset.action === "toggle-generation-speakers") {
+    generationSpeakerDiarization = !generationSpeakerDiarization;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "select-ai-language") {
+    selectedAudioLanguage = action.dataset.value || "自动";
+    go("APP-AI-01");
+    return;
+  }
+  if (action && action.dataset.action === "select-ai-model") {
+    selectedAiModel = action.dataset.value || "自动";
+    go("APP-AI-01");
+    return;
+  }
   if (action && action.dataset.action === "toggle-register-password") {
     registerPasswordVisible = !registerPasswordVisible;
     render();

@@ -114,3 +114,123 @@
 - No actionable P0, P1 or P2 issue remains.
 
 final result: passed
+
+---
+
+## Follow-up QA — 准备录音、统一模板与转写生成流程（2026-08-19）
+
+- Source visual truth: `/Users/andyma/.codex/generated_images/01a00f29-3cee-73d2-88a5-652c7a12c7c6/exec-5a41f78e-b350-44e8-9e3c-3c8b57fda92a.png`.
+- Source pixel dimensions: 1672 × 941 presentation board containing five 390 × 844 mobile app states.
+- Implementation target: `index.html`, app-owned phone content at 390 × 844 CSS px, deviceScaleFactor 1.
+- Implementation screenshot path: unavailable. The Codex in-app Browser rejected navigation to `http://127.0.0.1:4173/?page=APP-REC-02` under its local-URL security policy, so no browser-rendered capture could be produced.
+- State coverage intended for comparison: APP-REC-02 准备录音; APP-REC-03 统一模板库及选中态; APP-AI-01 自定义转写与生成; APP-AI-02 音频语言; APP-AI-03 AI 模型.
+
+**Full-view comparison evidence**
+
+- Blocked because the browser-rendered implementation artifact is unavailable. The source board was opened and inspected before implementation, but a source-only review does not satisfy visual comparison requirements.
+
+**Focused region comparison evidence**
+
+- Blocked for the same reason. No typography, spacing, color, icon, image-quality or copy comparison is claimed without an implementation screenshot.
+
+**Static and interaction verification completed**
+
+- `node --check app.js` passed.
+- `node scripts/build-inline.js` rebuilt `index.html` successfully.
+- `git diff --check` passed.
+- A VM-based DOM harness executed 20 interaction assertions covering: preparing a recording, opening the unified template library, template draft/confirm behavior, template inheritance into generation, auto/custom mode switching, speaker toggle, language and model selection with return-value updates, removal of the cloud-upload copy, and transition to APP-FILE-15.
+- The removed strings and controls are absent from the new target flow: independent recording-scene selection, remember-scene preference, the pre-recording safety hint, “开始硬件录音”, and the cloud-upload sentence.
+
+**Findings**
+
+- [P1] Browser-rendered visual evidence and console evidence are unavailable.
+  - Location: all five implemented mobile states.
+  - Evidence: local navigation was denied before DOM capture, screenshot capture and console inspection.
+  - Impact: visual fidelity, clipping, responsive layout and runtime console health cannot be certified from source and static assertions alone.
+  - Fix: repeat capture and comparison when the in-app Browser is permitted to open the local preview.
+
+**Open Questions**
+
+- None on the product behavior. The remaining blocker is verification access rather than an unresolved design decision.
+
+**Implementation Checklist**
+
+- [x] Implement simplified preparation sheet and red “开始录音” CTA.
+- [x] Replace independent scene picker with one reusable template library.
+- [x] Inherit selected template into custom generation.
+- [x] Add audio-language and AI-model child sheets.
+- [x] Preserve quota confirmation and “立即生成”.
+- [x] Run syntax, build, diff and interaction assertions.
+- [ ] Capture all five implementation states and run side-by-side visual comparison.
+- [ ] Inspect browser console and resolve any P0/P1/P2 visual findings.
+
+**Follow-up Polish**
+
+- Deferred until a valid browser-rendered comparison is available.
+
+final result: blocked
+
+---
+
+## Follow-up QA — 生成遮罩与录音场景互斥选择（2026-08-19）
+
+- Source and annotated implementation evidence: `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-8dbd6350-dff2-44ca-9734-b7275d8ee8a3.png`, `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-9331374c-e9e4-4e80-8d70-4f94ee2c650f.png`, and `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-b0bd9ede-9e4b-4330-ac43-936c1a783409.png`.
+- Implementation target: `index.html`, APP-AI-01 and APP-REC-02 at the project-owned 390 × 844 phone viewport.
+- Fresh post-fix implementation screenshot: unavailable because no inspectable in-app browser surface is exposed in this task. The supplied screenshots are pre-fix evidence.
+
+**Visible pre-fix findings and fixes**
+
+- [P1] APP-AI-01 大纲导航穿透生成遮罩。The sticky file-detail tabs use z-index 8 while the generic scrim used z-index 3. Fix: APP-AI-01 now uses a dedicated scrim at z-index 40 and the generation sheet at 41, so all file-detail content is under the same dimmed layer.
+- [P1] APP-REC-02 等待传输文字穿透白色弹层。The normal transfer-status wrapper previously stayed at z-index 9. Fix: its resting z-index is now auto; only an opened transfer-order popover receives z-index 31/32, while the preparation scrim and sheet remain 20/21.
+- [P1] 录音选择层级重复。The prior expanded list contained another 自动 item beneath an already selected 自动识别场景 row. Fix: the top level is now an exclusive pair—自动识别场景 or 选择录音场景—and the nested list contains only 会议、访谈、课堂、电话.
+
+**Interaction verification**
+
+- Initial state selects 自动识别场景 and hides the specific-scene list.
+- Selecting 选择录音场景 deselects automatic recognition and reveals the four scenes with 会议 selected by default.
+- Selecting another scene, switching back to automatic recognition, and returning to manual restores the last specific scene.
+- Entering APP-REC-02 for a new recording resets the top-level choice to automatic recognition while retaining the last specific scene for the next manual choice.
+- A VM DOM and CSS harness passed 29 assertions covering mutual exclusion, list visibility, default/retained scene selection, route re-entry and the three corrected layer stacks.
+- `node --check app.js`, `node scripts/build-inline.js` and `git diff --check` passed.
+
+**Required fidelity surfaces**
+
+- Typography and copy: existing system typography is retained; automatic and manual labels use the same 16px hierarchy, and the nested list uses the existing 14px scene hierarchy.
+- Spacing and layout: the automatic mode keeps the 590px preparation sheet; manual mode uses the 690px sheet and scroll-contained scene region with a persistent bottom CTA.
+- Colors and tokens: existing black radio selection, neutral helper text, white sheet and red recording CTA are unchanged.
+- Image and icon fidelity: no new raster imagery or replacement icon assets were introduced.
+- Copy/content: the nested 自动 option and remember-preference row were removed; the helper copy now explains only the two mutually exclusive strategies.
+
+**Remaining blocker**
+
+- A fresh browser-rendered capture is required to certify post-fix pixel coverage and compare the same states side by side. Until that artifact is available, the Product Design visual gate remains blocked despite passing source and interaction checks.
+
+final result: blocked
+
+---
+
+## Follow-up QA — 模板直达与子弹层蒙版（2026-08-19）
+
+- Source evidence: `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-6ee595c3-fd99-4e7b-b145-929318bfafb3.png` and `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-43a92470-26d4-4212-babf-12f53efe005f.png`.
+- Implementation target: APP-REC-03 and APP-AI-02/APP-AI-03 in the existing local prototype.
+- Fresh post-fix implementation screenshot: unavailable. The in-app Browser rejected direct navigation to the local `file://` preview under its URL safety policy, so no visual pass is claimed.
+
+**Implemented changes**
+
+- APP-REC-03 now opens directly on the categorized template list; the 我的模板/探索 tab container, labels and obsolete styles were removed.
+- The template flow now returns to APP-AI-01 only, matching the current decision that recording preparation no longer selects a template.
+- The sticky file-detail navigation was lowered from z-index 8 to 2. Generic scrims remain at z-index 3 and bottom sheets at z-index 4, so audio-language, AI-model and other standard child sheets dim the entire underlying detail page instead of leaving the navigation bright.
+- APP-REC-03, APP-AI-01, APP-AI-02 and APP-AI-03 specifications were aligned with the updated flow and mask behavior.
+
+**Static and interaction verification**
+
+- `node --check app.js` passed.
+- `node scripts/build-inline.js` rebuilt `index.html` successfully.
+- `git diff --check` passed.
+- A VM DOM/CSS harness passed 9 assertions covering direct category rendering, absence of both tab labels and their styles, card rendering, and the corrected 2/3/4 navigation–scrim–sheet layer order.
+
+**Remaining blocker**
+
+- A fresh browser-rendered implementation screenshot is still required for side-by-side checking of typography, spacing, clipping, colors and final mask coverage.
+
+final result: blocked
