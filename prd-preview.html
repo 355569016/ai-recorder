@@ -473,6 +473,9 @@ flowchart LR
 <li><span class="source-highlight" style="--source-color:#0B74DE">大于 Wi-Fi 推荐门槛且存在已授权可信同网 → 后台 STA 入网、局域网鉴权和短时测速，验证通过后静默高速同步。</span></li>
 <li><span class="source-highlight" style="--source-color:#0B74DE">大于推荐门槛但不能静默 STA → 展示同步方式选择，至少包含 Wi-Fi 高速传输推荐、蓝牙同步预计耗时、当前网络名和“若当前网络不可用将引导连接录音卡热点”说明。</span></li>
 <li><span class="source-highlight" style="--source-color:#0B74DE">STA 失败、公共 Wi-Fi/Portal/企业网/单设备限制/AP 隔离或手机无 Wi-Fi → 引导 SoftAP 设备热点完成本地传输；完成后关闭热点并等待手机恢复互联网。</span></li>
+<li>进入 APP-SYNC-01 连接状态后，文件首页及同步内容统一置于蒙版下；连接弹层顶部固定提示“若已开启个人热点，你将无法连接到该设备的 Wi-Fi。请关闭后重试。”，避免用户在热点冲突发生后才理解失败原因。</li>
+<li>连接过程按顺序显示两步：第一步“AI Recorder A1 的 Wi-Fi 已打开”为完成态；第二步“连接到 AI Recorder A1 的热点”为进行态。连接中不展示独立大号加载圆环，仅在第二步末尾使用轻量动态反馈。</li>
+<li>连接中点击取消 → 中止本次高速连接、返回文件首页并继续蓝牙同步；连接失败 → 第二步切换为失败态并提供重试和取消；点击重试只重新执行手机加入设备热点，不重复开启设备 Wi-Fi。</li>
 <li><span class="source-highlight" style="--source-color:#0B74DE">App 必须分开展示“已传到手机”和“已上传云端”。文件已传到手机后可播放和进入列表；若无互联网，云上传显示等待网络恢复。</span></li>
 <li><span class="source-highlight" style="--source-color:#0B74DE">同一任务、同一 Wi-Fi 失败原因 10 分钟内不重复弹窗；同步页可展示轻提示和手动重试入口。</span></li>
 <li>未转写文件 → 显示生成按钮（引用 R07）。</li>
@@ -503,12 +506,15 @@ flowchart LR
 <p>标注点说明：</p>
 <div class="table-wrap"><table><thead><tr><th>#</th><th>内容</th><th>说明</th></tr></thead><tbody><tr><td>1</td><td>文件摘要</td><td>文件名、时长、来源</td></tr><tr><td>2</td><td>自动生成</td><td>使用默认策略生成转写和 AI 笔记</td></tr><tr><td>3</td><td>自定义生成</td><td>展示模板、说话人、语言、AI 模型配置</td></tr><tr><td>4</td><td>用量确认</td><td>预计消耗分钟、剩余额度</td></tr><tr><td>5</td><td>云端处理提示</td><td>告知音频上传云端处理</td></tr><tr><td>6</td><td>任务进度</td><td>上传、转写、AI 生成分阶段展示</td></tr></tbody></table></div>
 <p>字段定义：</p>
-<div class="table-wrap"><table><thead><tr><th>界面字段</th><th>控件</th><th>数据字段</th><th>规则</th></tr></thead><tbody><tr><td>生成方式</td><td>单选</td><td><code>generation_mode</code></td><td><code>自动生成</code> / <code>自定义生成</code></td></tr><tr><td>模板</td><td>选择器</td><td><code>template_id</code></td><td>模板列表<span class="review-tag">待确认</span></td></tr><tr><td>自动标注说话人</td><td>开关</td><td><code>speaker_diarization_enabled</code></td><td>默认开启，引用 R08</td></tr><tr><td>音频语言</td><td>选择器</td><td><code>audio_language</code></td><td>默认 English，引用 R08</td></tr><tr><td>AI 模型</td><td>选择器</td><td><code>ai_model</code></td><td>默认自动，引用 R08</td></tr><tr><td>预计消耗</td><td>数字</td><td><code>estimated_minutes</code></td><td>引用 R09</td></tr><tr><td>剩余额度</td><td>数字</td><td><code>remaining_minutes</code></td><td>引用 R09</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>界面字段</th><th>控件</th><th>数据字段</th><th>规则</th></tr></thead><tbody><tr><td>生成方式</td><td>单选</td><td><code>generation_mode</code></td><td><code>自动生成</code> / <code>自定义生成</code></td></tr><tr><td>模板</td><td>必选选择器（自定义生成）</td><td><code>template_id</code></td><td>自动生成由系统选择；自定义生成必须由用户从模板列表选择</td></tr><tr><td>模板名称</td><td>文本</td><td><code>template_name</code></td><td>未选择显示“查看全部”；选择后显示具体模板名称，不显示“自动匹配”</td></tr><tr><td>自动标注说话人</td><td>开关</td><td><code>speaker_diarization_enabled</code></td><td>默认开启，引用 R08</td></tr><tr><td>音频语言</td><td>选择器</td><td><code>audio_language</code></td><td>默认 English，引用 R08</td></tr><tr><td>AI 模型</td><td>选择器</td><td><code>ai_model</code></td><td>默认自动，引用 R08</td></tr><tr><td>预计消耗</td><td>数字</td><td><code>estimated_minutes</code></td><td>引用 R09</td></tr><tr><td>剩余额度</td><td>数字</td><td><code>remaining_minutes</code></td><td>引用 R09</td></tr></tbody></table></div>
 <p>交互行为：</p>
 <ul>
 <li>点击生成 → 打开生成方式与用量确认弹层。</li>
-<li>自动生成 → 使用默认策略，不要求用户配置。</li>
-<li>自定义生成 → 展开模板、说话人、语言、模型。</li>
+<li>首次进入 → 默认选择自动生成。</li>
+<li>自动生成 → 使用默认策略，不要求用户手动选择模板。</li>
+<li>自定义生成 → 展开模板、说话人、语言、模型，其中模板为必选项。</li>
+<li>自定义生成未选择模板 → 模板行显示“查看全部”；点击立即生成停留当前页并提示“请选择模板”。</li>
+<li>点击查看全部 → 进入模板列表；选中模板并点击使用此模板后返回，模板行显示所选模板名称。</li>
 <li>额度不足 → 禁止提交，进入用量/会员入口。</li>
 <li>提交后 → 进入任务状态页，展示上传、转写、AI 生成。</li>
 <li>上传失败 → 保留文件，可重试。</li>
@@ -629,7 +635,7 @@ flowchart LR
 <h3 id="c-业务规则完整索引">C. 业务规则完整索引</h3>
 <div class="table-wrap"><table><thead><tr><th>规则ID</th><th>规则名称</th><th>定义章节</th><th>引用章节</th></tr></thead><tbody><tr><td>R01</td><td>登录门槛</td><td>2.4</td><td>3.1 / 3.2 / 3.6</td></tr><tr><td>R02</td><td>绑定门槛</td><td>2.4</td><td>3.2 / 3.3</td></tr><tr><td>R03</td><td>设备连接门槛</td><td>2.4</td><td>3.2 / 3.4</td></tr><tr><td>R04</td><td>非手机录音</td><td>2.4</td><td>3.1 / 3.3</td></tr><tr><td>R05</td><td>录音结束后同步</td><td>2.4</td><td>3.4 / 3.5</td></tr><tr><td>R06</td><td>文件来源必显及设备区分</td><td>2.4</td><td>3.5</td></tr><tr><td>R07</td><td>未转写显示生成</td><td>2.4</td><td>3.5 / 3.6</td></tr><tr><td>R08</td><td>自定义生成默认值</td><td>2.4</td><td>3.6</td></tr><tr><td>R09</td><td>用量确认</td><td>2.4</td><td>3.6 / 3.8</td></tr><tr><td>R10</td><td>失败返还</td><td>2.4</td><td>3.7 / 3.8</td></tr><tr><td>R11</td><td>隐私授权</td><td>2.4</td><td>3.9</td></tr><tr><td>R12</td><td>美国/日本合规提示</td><td>2.4</td><td>3.9 / 4.3</td></tr><tr><td>R13</td><td><span class="source-highlight" style="--source-color:#0B74DE">BLE 控制常驻</span></td><td>2.4</td><td>3.2 / 3.5</td></tr><tr><td>R14</td><td><span class="source-highlight" style="--source-color:#0B74DE">可信同网静默优先</span></td><td>2.4</td><td>3.3 / 3.5 / 4.1</td></tr><tr><td>R15</td><td><span class="source-highlight" style="--source-color:#0B74DE">SoftAP 热点兜底</span></td><td>2.4</td><td>3.5 / 3.10</td></tr><tr><td>R16</td><td><span class="source-highlight" style="--source-color:#0B74DE">密码与可信网络边界</span></td><td>2.4</td><td>3.2 / 3.9 / 4.2</td></tr><tr><td>R17</td><td><span class="source-highlight" style="--source-color:#0B74DE">双阶段同步状态</span></td><td>2.4</td><td>2.3 / 3.5</td></tr><tr><td>R18</td><td><span class="source-highlight" style="--source-color:#0B74DE">通道切换可续传</span></td><td>2.4</td><td>2.2.3 / 3.5 / 4.1</td></tr><tr><td>R19</td><td><span class="source-highlight" style="--source-color:#0B74DE">录音中 Wi-Fi 禁止</span></td><td>2.4</td><td>2.2.3 / 3.4</td></tr></tbody></table></div>
 <h3 id="d-变更记录">D. 变更记录</h3>
-<div class="table-wrap"><table><thead><tr><th>日期</th><th>版本</th><th>变更内容</th><th>作者</th></tr></thead><tbody><tr><td>2026-08-19</td><td>v3.0</td><td>新增回收站、优化文件管理、文件同步、文件详情、音频转录等相关页面交互；</td><td>ANDY.MA</td></tr><tr><td>2026-07-20</td><td>v3.0</td><td>新增 Wi-Fi 高速同步方案：BLE/STA/SoftAP 决策、可信同网静默同步、SoftAP 兜底、双阶段同步状态、权限/异常/验收规则；</td><td>ANDY.MA</td></tr><tr><td>2026-7-16</td><td>v3.0</td><td>补充完善热力图时间展示、Ask A1 问答流、偏好设置相关功能</td><td>ANDY.MA</td></tr><tr><td>2026-07-10</td><td>v3.0</td><td>补充完善固件相关说明及优化 App PRD</td><td>ANDY.MA</td></tr><tr><td>2026-07-07</td><td>v3.0</td><td>输出 AI录音卡 App PRD</td><td>ANDY.MA</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>日期</th><th>版本</th><th>变更内容</th><th>作者</th></tr></thead><tbody><tr><td>2026-08-20</td><td>v3.0</td><td>优化 APP-SYNC-01 连接中交互：新增个人热点冲突提示、设备 Wi-Fi/热点连接两步状态及失败重试；</td><td>ANDY.MA</td></tr><tr><td>2026-08-19</td><td>v3.0</td><td>新增回收站、优化文件管理、文件同步、文件详情、音频转录等相关页面交互；</td><td>ANDY.MA</td></tr><tr><td>2026-07-20</td><td>v3.0</td><td>新增 Wi-Fi 高速同步方案：BLE/STA/SoftAP 决策、可信同网静默同步、SoftAP 兜底、双阶段同步状态、权限/异常/验收规则；</td><td>ANDY.MA</td></tr><tr><td>2026-7-16</td><td>v3.0</td><td>补充完善热力图时间展示、Ask A1 问答流、偏好设置相关功能</td><td>ANDY.MA</td></tr><tr><td>2026-07-10</td><td>v3.0</td><td>补充完善固件相关说明及优化 App PRD</td><td>ANDY.MA</td></tr><tr><td>2026-07-07</td><td>v3.0</td><td>输出 AI录音卡 App PRD</td><td>ANDY.MA</td></tr></tbody></table></div>
   </main>
   <script src="./vendor/mermaid.min.js"></script>
   <script>

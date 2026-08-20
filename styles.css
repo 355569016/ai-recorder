@@ -4377,6 +4377,14 @@ button {
   font-style: normal;
 }
 
+.generation-setting-value .required-dot {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+  border-radius: 50%;
+  background: #ef4a43;
+}
+
 .record-start-btn {
   min-height: 54px;
   margin-top: 0;
@@ -4437,6 +4445,24 @@ button {
 
 .generation-settings {
   border-bottom: 1px solid #ededed;
+}
+
+.generation-template-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 130px;
+  z-index: 5;
+  min-width: 132px;
+  padding: 12px 18px;
+  border-radius: 10px;
+  background: rgba(24, 24, 24, .9);
+  color: #fff;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.35;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .18);
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 
 .generation-setting-row {
@@ -9099,6 +9125,22 @@ button {
   color: #222;
 }
 
+.search-input input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #222;
+  font: inherit;
+  appearance: none;
+}
+
+.search-input input::placeholder {
+  color: #aaa;
+  opacity: 1;
+}
+
 .search-input span {
   width: 17px;
   height: 17px;
@@ -9252,8 +9294,15 @@ button {
 }
 
 .search-result {
+  width: 100%;
   display: grid;
   gap: 12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 .search-result strong {
@@ -11796,7 +11845,7 @@ label.prefs-row {
   max-height: none;
   overflow: visible;
   padding: 24px 22px max(26px, calc(18px + env(safe-area-inset-bottom)));
-  text-align: center;
+  text-align: left;
 }
 
 .hotspot-connecting-sheet .sheet-grabber {
@@ -11805,32 +11854,171 @@ label.prefs-row {
   margin: -12px auto 16px;
 }
 
-.hotspot-connecting-sheet .hotspot-connecting-spinner {
-  display: block;
-  width: 30px;
-  height: 30px;
-  margin: 0 auto 14px;
-  border-width: 3px;
+.sync-transfer-sheet.hotspot-connecting-sheet h2 {
+  margin: 0 0 18px;
+  color: #111;
+  font-size: 28px;
+  font-weight: 650;
+  line-height: 1.2;
 }
 
-.sync-transfer-sheet.hotspot-connecting-sheet h2 {
+.hotspot-conflict-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 20px;
+  padding: 13px 14px;
+  border-radius: 12px;
+  background: #f3f3f3;
+  color: #737373;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.hotspot-conflict-tip > p {
   margin: 0;
-  color: #111;
-  font-size: 20px;
-  font-weight: 650;
+}
+
+.hotspot-conflict-tip > i {
+  display: grid;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border: 1px solid #747474;
+  border-radius: 50%;
+  color: #555;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.hotspot-connection-steps {
+  display: flex;
+  flex-direction: column;
+  margin: 0 0 18px;
+  padding: 0;
+  list-style: none;
+}
+
+.hotspot-connection-steps > li {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 12px;
+  min-height: 58px;
+  padding: 10px 2px;
+}
+
+.hotspot-connection-steps > li + li {
+  border-top: 1px solid #ededed;
+}
+
+.hotspot-connection-steps > li > b {
+  min-width: 0;
+  color: #171717;
+  font-size: 16px;
+  font-weight: 550;
   line-height: 1.35;
 }
 
-.sync-transfer-sheet.hotspot-connecting-sheet > p {
-  margin: 4px 0 14px;
-  color: #777;
+.hotspot-step-icon {
+  position: relative;
+  display: block;
+  width: 23px;
+  height: 23px;
+  color: #161616;
+}
+
+.hotspot-step-icon.wifi-device {
+  box-sizing: border-box;
+  border: 2px solid currentColor;
+  border-radius: 4px;
+}
+
+.hotspot-step-icon.wifi-device::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 11px;
+  height: 13px;
+  border: 1.5px solid currentColor;
+  border-radius: 2px;
+}
+
+.hotspot-step-icon.wifi-signal::before,
+.hotspot-step-icon.wifi-signal::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 3px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+  border-radius: 50% 0 0 0;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.hotspot-step-icon.wifi-signal::before {
+  width: 18px;
+  height: 18px;
+}
+
+.hotspot-step-icon.wifi-signal::after {
+  width: 9px;
+  height: 9px;
+}
+
+.hotspot-step-result {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 50%;
+  background: #191919;
+  color: #fff;
   font-size: 14px;
-  line-height: 1.4;
+  font-style: normal;
+  font-weight: 750;
+}
+
+.hotspot-step-result.failed {
+  background: #d93025;
+}
+
+.hotspot-step-loading {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  height: 22px;
+}
+
+.hotspot-step-loading i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #9aa4b6;
+  animation: hotspot-step-pulse 1.05s ease-in-out infinite;
+}
+
+.hotspot-step-loading i:nth-child(2) { animation-delay: .14s; }
+.hotspot-step-loading i:nth-child(3) { animation-delay: .28s; }
+
+@keyframes hotspot-step-pulse {
+  0%, 70%, 100% { opacity: .28; transform: translateY(0); }
+  35% { opacity: 1; transform: translateY(-2px); }
+}
+
+.hotspot-retry-btn {
+  margin-top: 0 !important;
 }
 
 .hotspot-connecting-cancel {
-  min-width: 88px;
+  width: 100%;
   min-height: 44px;
+  margin-top: 8px;
   padding: 0 18px;
   border: 0;
   background: transparent;

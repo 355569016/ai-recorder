@@ -80,6 +80,9 @@ let recordingNotice = "";
 let recordingNoticeTimer = null;
 let fileDetailActiveTab = "summary";
 let fileDetailSummaryTab = "summary";
+let searchDraft = "";
+let activeSearchQuery = "";
+let activeSearchResult = null;
 let fileDetailAudioSeconds = 0;
 let fileDetailAudioPlaying = false;
 let fileDetailMarkerEditor = null;
@@ -434,13 +437,13 @@ const pages = [
     priority: "P0",
     goal: "引导手机临时加入录音卡热点，以第一版支持的方式完成高速传输。",
     entry: "APP-HOME-01 文件首页点击“快传”。",
-    fields: [["device_hotspot_ssid", "录音卡热点名称", "BLE/设备热点"], ["hotspot_join_state", "手机加入热点状态", "系统 Wi-Fi"], ["system_join_prompt", "系统加入无线局域网确认", "操作系统"], ["network_impact_tip", "联网影响提示", "本地文案"], ["fast_transfer_saved_minutes", "预计节省等待时间", "同步队列/传输速率估算"]],
-    rules: ["APP-HOME-01 点击“快传”后直接进入本页，不再展示传输方式选择。", "第一版仅支持手机临时加入录音卡热点的高速传输方案，不提供让录音卡连接手机当前 Wi-Fi 的 APP-SYNC-02 流程。", "APP 内底部弹窗蒙层下复用 APP-HOME-01 文件首页，只负责解释连接设备热点的目的、下一步系统操作和联网影响。", "连接前说明页不展示模拟系统弹窗或等待确认状态卡，只提示系统弹窗出现后选择加入。", "用户点击继续并连接后才调用系统加入热点能力；系统原生风格的取消/加入确认弹窗直接覆盖在当前连接设备引导页上，不切换或复用固件更新页面。", "系统弹窗点击取消后返回连接前说明；点击加入后关闭系统弹窗，并以轻量底部反馈展示正在连接。", "连接中仅展示加载反馈、通常只需几秒和取消操作；取消后中止本次高速连接并返回文件首页。", "连接成功后立即返回文件首页，以“已连接，开始高速传输”短提示和文件传输进度承接，不展示独立成功页或额外等待。", "Wi-Fi 快传中保留本批次整体进度、百分比、已完成数/总数和预计时间，并展示“加速快传中”与预计节省等待时间。", "点击“结束快传”后断开设备 Wi-Fi，从当前文件偏移和批次进度继续使用蓝牙传输，不重新创建批次或清零进度。", "连接热点期间手机可能暂时无法通过 Wi-Fi 上网；传输结束后恢复原网络。"],
-    states: ["连接前说明", "系统加入确认", "连接中（轻量底部反馈）", "连接成功并开始传输（首页提示）", "Wi-Fi 快传中", "结束快传并由蓝牙续传"],
+    fields: [["device_hotspot_ssid", "录音卡热点名称", "BLE/设备热点"], ["hotspot_join_state", "手机加入热点状态", "系统 Wi-Fi"], ["system_join_prompt", "系统加入无线局域网确认", "操作系统"], ["personal_hotspot_conflict_tip", "个人热点冲突提示", "本地文案"], ["hotspot_connection_step", "热点连接步骤", "设备热点/系统 Wi-Fi"], ["network_impact_tip", "联网影响提示", "本地文案"], ["fast_transfer_saved_minutes", "预计节省等待时间", "同步队列/传输速率估算"]],
+    rules: ["APP-HOME-01 点击“快传”后直接进入本页，不再展示传输方式选择。", "第一版仅支持手机临时加入录音卡热点的高速传输方案，不提供让录音卡连接手机当前 Wi-Fi 的 APP-SYNC-02 流程。", "APP 内底部弹窗蒙层下复用 APP-HOME-01 文件首页，只负责解释连接设备热点的目的、下一步系统操作和联网影响。", "连接前说明页不展示模拟系统弹窗或等待确认状态卡，只提示系统弹窗出现后选择加入。", "用户点击继续并连接后才调用系统加入热点能力；系统原生风格的取消/加入确认弹窗直接覆盖在当前连接设备引导页上，不切换或复用固件更新页面。", "系统弹窗点击取消后返回连接前说明；点击加入后关闭系统弹窗，进入底部连接状态面板。", "连接状态面板顶部常驻提示“若已开启个人热点，你将无法连接到该设备的 Wi-Fi。请关闭后重试。”，用于在连接失败前提示个人热点冲突。", "连接中按顺序展示两步：第一步“AI Recorder A1 的 Wi-Fi 已打开”为完成态；第二步“连接到 AI Recorder A1 的热点”为进行态。页面不再展示独立大号加载圆环。", "连接中底部仅保留取消；取消后中止本次高速连接并返回文件首页，继续使用蓝牙同步。", "连接失败时保留第一步完成态，第二步切换为失败态，底部提供重试和取消；重试只重新执行热点连接，不重复开启设备 Wi-Fi。", "连接成功后立即返回文件首页，以“已连接，开始高速传输”短提示和文件传输进度承接，不展示独立成功页或额外等待。", "Wi-Fi 快传中保留本批次整体进度、百分比、已完成数/总数和预计时间，并展示“加速快传中”与预计节省等待时间。", "点击“结束快传”后断开设备 Wi-Fi，从当前文件偏移和批次进度继续使用蓝牙传输，不重新创建批次或清零进度。", "连接热点期间手机可能暂时无法通过 Wi-Fi 上网；传输结束后恢复原网络。"],
+    states: ["连接前说明", "系统加入确认", "连接中（两步状态）", "连接失败（可重试）", "连接成功并开始传输（首页提示）", "Wi-Fi 快传中", "结束快传并由蓝牙续传"],
     deps: ["BLE：启动和读取录音卡 SoftAP 会话。", "iOS / Android：临时加入设备热点能力。", "设备热点鉴权和连接状态回传。"],
-    acceptance: ["APP-HOME-01 点击“快传”直接进入 APP-SYNC-01，不出现传输方式选择弹层。", "第一版导航、状态链路和页面流程中不出现 APP-SYNC-02。", "APP 引导弹窗底层为 APP-HOME-01 文件首页，并使用两步说明提示下一步在系统弹窗中选择加入。", "连接前说明不展示模拟系统弹窗或等待确认状态卡，只保留继续并连接和暂不使用。", "点击继续并连接后出现独立的系统加入无线局域网确认弹窗，弹窗下方仍为当前录音文件传输引导页，不出现固件更新内容。", "系统取消返回连接前说明；系统加入后展示轻量连接中底部反馈，包含正在连接、通常只需几秒和取消操作。", "连接成功后立即进入文件首页，不展示独立成功页；首页短提示为“已连接，开始高速传输”，文件列表显示正在传输及进度。", "Wi-Fi 快传状态显示完整进度条、Wi-Fi 快传方式、结束快传入口，以及“加速快传中 / 预计节省约 X 分钟”。", "结束快传后继续使用蓝牙传输，整体百分比、已完成数、当前任务和队列顺序均保持不变。", "右侧状态链路可独立预览连接前说明、连接中、成功后开始传输和结束快传后蓝牙续传。"],
+    acceptance: ["APP-HOME-01 点击“快传”直接进入 APP-SYNC-01，不出现传输方式选择弹层。", "第一版导航、状态链路和页面流程中不出现 APP-SYNC-02。", "APP 引导弹窗底层为 APP-HOME-01 文件首页，并使用两步说明提示下一步在系统弹窗中选择加入。", "连接前说明不展示模拟系统弹窗或等待确认状态卡，只保留继续并连接和暂不使用。", "点击继续并连接后出现独立的系统加入无线局域网确认弹窗，弹窗下方仍为当前录音文件传输引导页，不出现固件更新内容。", "系统取消返回连接前说明；系统加入后展示底部连接状态面板，文件首页及顶部内容全部处于同一蒙版下。", "连接状态面板展示个人热点冲突提示、已完成的设备 Wi-Fi 开启步骤和正在进行的热点连接步骤，不展示独立大号加载圆环。", "连接失败后可重试或取消；取消回到文件首页并继续蓝牙同步，重试时保留设备 Wi-Fi 已打开状态。", "连接成功后立即进入文件首页，不展示独立成功页；首页短提示为“已连接，开始高速传输”，文件列表显示正在传输及进度。", "Wi-Fi 快传状态显示完整进度条、Wi-Fi 快传方式、结束快传入口，以及“加速快传中 / 预计节省约 X 分钟”。", "结束快传后继续使用蓝牙传输，整体百分比、已完成数、当前任务和队列顺序均保持不变。", "右侧状态链路可独立预览连接前说明、连接中、连接失败、成功后开始传输和结束快传后蓝牙续传。"],
     prototypeLinks: [],
-    prototypeActions: [["连接前说明", "set-hotspot-state", "awaiting"], ["连接中", "set-hotspot-state", "connecting"], ["开始传输", "set-hotspot-state", "success"]]
+    prototypeActions: [["连接前说明", "set-hotspot-state", "awaiting"], ["连接中", "set-hotspot-state", "connecting"], ["连接失败", "set-hotspot-state", "failed"], ["开始传输", "set-hotspot-state", "success"]]
   },
   {
     id: "APP-HOME-01",
@@ -663,10 +666,10 @@ const pages = [
     goal: "在转写与生成前从模板库选择转写与 AI 笔记模板。",
     entry: "转写与生成页面点击模板。",
     fields: [["template_id", "模板", "本地配置/云端模板"], ["template_category", "模板分类", "本地配置/云端模板"], ["template_output", "生成内容", "AI 模板服务"]],
-    rules: ["进入页面后直接展示模板分类列表，不展示我的模板与探索标签栏。", "模板按通用、会议、演讲、通话、面试/采访等分类展示。", "未选择模板时由系统自动匹配。", "选择模板后需点击使用此模板才写回转写与生成页面。"],
+    rules: ["进入页面后直接展示模板分类列表，不展示我的模板与探索标签栏。", "模板按通用、会议、演讲、通话、面试/采访等分类展示。", "本页用于自定义生成的模板选择，必须先选中模板，再点击使用此模板写回转写与生成页面。", "未选择模板时使用此模板按钮保持禁用。"],
     states: ["未选择", "已选择", "模板加载失败"],
     deps: ["AI 模板服务或本地模板配置，接口待后端定义。"],
-    acceptance: ["进入页面即展示按分类组织的模板列表。", "页面不出现我的模板与探索标签栏。", "选中模板有清晰的选中态并可返回转写与生成页面。", "模板失败时保持自动匹配降级。"]
+    acceptance: ["进入页面即展示按分类组织的模板列表。", "页面不出现我的模板与探索标签栏。", "未选择模板时不能提交。", "选中模板有清晰的选中态，点击使用此模板后返回转写与生成页面并显示模板名称。"]
   },
   {
     id: "APP-REC-04",
@@ -901,11 +904,11 @@ const pages = [
     goal: "作为文件转写与 AI 笔记生成前的方式选择和用量确认弹层。",
     entry: "文件列表点击生成、文件详情为空点击生成。",
     prototypeLinks: [["选择模板", "APP-REC-03"], ["音频语言", "APP-AI-02"], ["AI 模型", "APP-AI-03"], ["生成中", "APP-FILE-15"]],
-    fields: [["generation_mode", "生成方式", "用户选择"], ["template_id", "生成模板", "系统匹配/用户选择"], ["estimated_minutes", "预计消耗", "用量服务"], ["remaining_minutes", "剩余额度", "用量服务"], ["speaker_diarization_enabled", "自动标注说话人", "用户选择"], ["audio_language", "音频语言", "用户选择"], ["ai_model", "AI 模型", "用户选择"]],
-    rules: ["文件列表和文件详情为空的生成入口必须先进入本页。", "点击立即生成后进入文件详情生成中页面。", "自动生成自动匹配转写模板与总结。", "自定义生成可调整模板、说话人、语言和 AI 模型。", "额度不足时立即生成按钮置灰并禁止提交。", "弹层打开时底层文件详情整体进入同一蒙版状态，包括吸顶的大纲、智能总结、转写记录等导航。", "页面不重复展示录音场景，也不在按钮上方展示云端上传说明。"],
-    states: ["自动生成", "自定义生成", "额度充足", "额度不足", "模板已选择", "语言选择", "模型选择"],
+    fields: [["generation_mode", "生成方式", "用户选择"], ["template_id", "生成模板", "自动模式系统选择/自定义模式用户必选"], ["template_name", "模板名称", "模板服务"], ["estimated_minutes", "预计消耗", "用量服务"], ["remaining_minutes", "剩余额度", "用量服务"], ["speaker_diarization_enabled", "自动标注说话人", "用户选择"], ["audio_language", "音频语言", "用户选择"], ["ai_model", "AI 模型", "用户选择"]],
+    rules: ["文件列表和文件详情为空的生成入口必须先进入本页。", "默认选择自动生成，自动生成不要求用户手动选择模板。", "选择自定义生成后展开模板、说话人、语言和 AI 模型，其中模板为必选项。", "自定义生成未选择模板时，模板行仅显示查看全部，不显示自动匹配；直接点击立即生成时停留当前页并提示请选择模板。", "从模板列表选择并确认后返回本页，模板行显示具体模板名称。", "校验通过后点击立即生成进入文件详情生成中页面。", "额度不足时立即生成按钮置灰并禁止提交。", "弹层打开时底层文件详情整体进入同一蒙版状态，包括吸顶的大纲、智能总结、转写记录等导航。", "页面不重复展示录音场景，也不在按钮上方展示云端上传说明。"],
+    states: ["自动生成（默认）", "自定义生成未选模板", "请选择模板提示", "模板已选择", "额度充足", "额度不足", "语言选择", "模型选择"],
     deps: ["用量服务：预估分钟、余额。", "会员服务：订阅等级与权益。", "支付服务：购买分钟数、升级订阅。", "AI 服务：模板列表、模型列表。", "云端文件：上传凭证。"],
-    acceptance: ["弹层展示自动与自定义生成、模板配置和用量确认。", "底层大纲导航不得穿透蒙版或保持高亮。", "选择模板进入无标签栏的分类模板列表。", "额度充足时立即生成可提交并进入文件详情生成中。"]
+    acceptance: ["首次进入默认勾选自动生成。", "选择自定义生成后模板为必选，空值显示查看全部且不出现自动匹配。", "未选择模板点击立即生成时显示请选择模板且不提交。", "选择模板进入无标签栏的分类模板列表，确认后模板行显示模板名称。", "底层大纲导航不得穿透蒙版或保持高亮。", "额度充足且配置校验通过时立即生成可提交并进入文件详情生成中。"]
   },
   {
     id: "APP-AI-02",
@@ -1506,10 +1509,11 @@ if (currentPageId === "APP-SYNC-02") currentPageId = "APP-SYNC-01";
 let previousPageId = null;
 let fileDetailTab = "transcript";
 let recordPaused = false;
-let generationMode = "custom";
+let generationMode = "auto";
 let selectedTemplateId = "";
 let draftTemplateId = "";
 let templateReturnPage = "APP-AI-01";
+let generationNotice = "";
 let recordMode = "auto";
 let selectedRecordScene = "meeting";
 let generationSpeakerDiarization = true;
@@ -2697,7 +2701,10 @@ function renderSearch() {
     <div class="statusbar"><span>9:41</span><span>5G</span><span>82%</span></div>
     <div class="search-page-top">
       <button class="icon-btn back-large" data-go="APP-HOME-01" aria-label="返回">‹</button>
-      <div class="search-input" data-go="APP-FILE-12"><span></span><b>搜索或提问</b></div>
+      <label class="search-input">
+        <span aria-hidden="true"></span>
+        <input id="searchInput" type="search" value="${h(searchDraft)}" placeholder="搜索或提问" autocomplete="off" spellcheck="false">
+      </label>
     </div>
     <main class="screen-content search-screen compact">
       <div class="search-sort-row">
@@ -2708,14 +2715,22 @@ function renderSearch() {
         <h3>最近搜索</h3>
         <button class="trash-btn" data-go="APP-FILE-14" aria-label="清空最近搜索"></button>
       </section>
-      <button class="recent-chip" data-go="APP-FILE-12">好</button>
+      <button class="recent-chip" data-action="open-search-results" data-query="好">好</button>
       <h3 class="recent-days">最近 30 天</h3>
-      <section class="search-result">
+      <button class="search-result" data-action="open-search-results" aria-label="查看相关搜索结果">
         <strong>2026-06-29 17:28:59</strong>
         <span>06-29 17:28</span>
-      </section>
+      </button>
     </main>
   `;
+}
+
+function submitSearchDraft() {
+  const query = searchDraft.trim();
+  if (!query) return;
+  searchDraft = query;
+  activeSearchQuery = query;
+  go("APP-FILE-12");
 }
 
 function renderSearchClearConfirm() {
@@ -2755,27 +2770,48 @@ function renderSearchTimeSheet() {
 }
 
 function renderSearchResults() {
-  const highlight = (text) => h(text).replaceAll("说", "<mark>说</mark>");
+  const query = activeSearchQuery || "说";
+  const highlight = (text) => String(text)
+    .split(query)
+    .map((part) => h(part))
+    .join(`<mark>${h(query)}</mark>`);
+  const results = [
+    {
+      title: "07-04 会议记录工具范式缺陷：音频与视觉信息未统一导致上下文断裂",
+      excerpt: `做关联起来的，就比如${query}，假如现在我们真的是在开一个会，上面还有投影内容需要一起记录……`,
+      type: "转写",
+      time: "7月4日 15:18"
+    },
+    {
+      title: "2026-06-29 16:31:40",
+      excerpt: `这段录音围绕${query}展开，讨论了录音内容如何通过接口转换并保留完整上下文。`,
+      type: "转写",
+      time: "6月29日 16:31"
+    },
+    {
+      title: `产品周会：${query}相关事项梳理`,
+      excerpt: `AI 笔记已整理${query}相关结论、待办事项和后续需要验证的产品细节。`,
+      type: "AI 笔记",
+      time: "6月27日 10:06"
+    }
+  ];
   return `
     <div class="statusbar"><span>9:41</span><span>5G</span><span>82%</span></div>
     <div class="search-page-top result">
       <button class="icon-btn back-large" data-go="APP-FILE-02" aria-label="返回">‹</button>
-      <div class="search-input active"><span></span><b>说</b></div>
+      <div class="search-input active"><span></span><b>${h(query)}</b></div>
     </div>
     <main class="screen-content search-screen result-screen compact">
       <div class="search-divider result"></div>
       <h3 class="result-heading">相关结果</h3>
       <section class="search-result-list">
-        <article class="search-result-item" data-go="APP-FILE-01">
-          <h4>07-04 会议记录工具范式缺陷：音频与视觉信息未统一导致上下文断裂</h4>
-          <p>${highlight("做关联起来的，就比如说哈，就你刚才说的，假如说现在我们真的是在吧吧开一个什么会，上面有那个投影...")}</p>
-          <div><span>转写</span><time>7月4日 15:18</time></div>
-        </article>
-        <article class="search-result-item" data-go="APP-FILE-01">
-          <h4>2026-06-29 16:31:40</h4>
-          <p>${highlight("就是你不管怎么样，你说出去的录，它一定是要嗯通过你刚才说的那个接口去转换的。嗯，他不可能说啊不...")}</p>
-          <div><span>转写</span><time>6月29日 16:31</time></div>
-        </article>
+        ${results.map((result) => `
+          <article class="search-result-item" data-go="APP-FILE-01">
+            <h4>${highlight(result.title)}</h4>
+            <p>${highlight(result.excerpt)}</p>
+            <div><span>${h(result.type)}</span><time>${h(result.time)}</time></div>
+          </article>
+        `).join("")}
       </section>
     </main>
   `;
@@ -2824,7 +2860,7 @@ function templateById(id) {
 }
 
 function selectedTemplateLabel() {
-  return templateById(selectedTemplateId)?.title || "自动匹配";
+  return templateById(selectedTemplateId)?.title || "";
 }
 
 const recordSceneOptions = [
@@ -4144,8 +4180,8 @@ function renderGenerationSettingRow(label, value, opts = {}) {
     : opts.go ? ` data-go="${h(opts.go)}"` : "";
   const tail = opts.toggle
     ? `<span class="toggle ${generationSpeakerDiarization ? "" : "off"}"></span>`
-    : `<span class="generation-setting-value">${h(value)}<i>›</i></span>`;
-  return `<button class="generation-setting-row"${attrs}><strong>${h(label)}</strong>${tail}</button>`;
+    : `<span class="generation-setting-value">${h(value)}${opts.required ? '<b class="required-dot" aria-label="必选"></b>' : ""}<i>›</i></span>`;
+  return `<button class="generation-setting-row${opts.required ? " required" : ""}"${attrs}><strong>${h(label)}</strong>${tail}</button>`;
 }
 
 function renderGenerate() {
@@ -4158,7 +4194,7 @@ function renderGenerate() {
       <div class="generate-sheet-title"><h2>转写与生成</h2><span>01:12:17</span></div>
       <button class="option ${generationMode === "auto" ? "selected" : ""}" data-mode="auto">
         <span class="option-dot">${generationMode === "auto" ? "✓" : ""}</span>
-        <div><strong>自动生成</strong><p class="caption">自动匹配转写模板与总结，无需手动设置</p></div>
+        <div><strong>自动生成</strong><p class="caption">自动生成转写与总结，无需手动设置</p></div>
       </button>
       <button class="option ${generationMode === "custom" ? "selected" : ""}" data-mode="custom">
         <span class="option-dot">${generationMode === "custom" ? "✓" : ""}</span>
@@ -4166,7 +4202,7 @@ function renderGenerate() {
       </button>
       ${generationMode === "custom" ? `
         <div class="generation-settings">
-          ${renderGenerationSettingRow("模板", `${selectedTemplateLabel()} · 查看全部`, { action: "open-template-library" })}
+          ${renderGenerationSettingRow("模板", selectedTemplateLabel() || "查看全部", { action: "open-template-library", required: !selectedTemplateId })}
           ${renderGenerationSettingRow("自动标注说话人", "", { action: "toggle-generation-speakers", toggle: true })}
           ${renderGenerationSettingRow("音频语言", selectedAudioLanguage, { go: "APP-AI-02" })}
           ${renderGenerationSettingRow("AI 模型", selectedAiModel, { go: "APP-AI-03" })}
@@ -4185,7 +4221,8 @@ function renderGenerate() {
           <button data-go="APP-ME-02">升级订阅会员</button>
         </div>
       ` : ""}
-      <button class="primary-btn ${quotaInsufficient ? "disabled" : ""}" ${quotaInsufficient ? "" : 'data-go="APP-FILE-15"'}>立即生成</button>
+      <button class="primary-btn ${quotaInsufficient ? "disabled" : ""}" ${quotaInsufficient ? "disabled" : 'data-action="submit-generation"'}>立即生成</button>
+      ${generationNotice ? `<div class="generation-template-toast" role="status" aria-live="polite">${h(generationNotice)}</div>` : ""}
     </section>
   `;
 }
@@ -5412,10 +5449,11 @@ function renderSyncTransferBackdrop() {
 
 function renderHotspotTransferContent(state) {
   const isAwaiting = state === "awaiting";
+  const isFailed = state === "failed";
   return `
     ${renderSyncTransferBackdrop()}
     <div class="sync-transfer-guide-scrim" aria-hidden="true"></div>
-    <section class="firmware-sheet sync-transfer-sheet hotspot-transfer-sheet ${isAwaiting ? "connection-guide-sheet" : "hotspot-connecting-sheet"}"${isAwaiting ? "" : ' role="status" aria-live="polite"'}>
+    <section class="firmware-sheet sync-transfer-sheet hotspot-transfer-sheet ${isAwaiting ? "connection-guide-sheet" : `hotspot-connecting-sheet ${isFailed ? "is-failed" : ""}`}"${isAwaiting ? "" : ' role="status" aria-live="polite"'}>
       ${isAwaiting ? `
         ${renderConnectionGuideSteps("系统确认")}
         <h2>连接设备开启高速传输</h2>
@@ -5426,9 +5464,28 @@ function renderHotspotTransferContent(state) {
         <button class="secondary-btn connection-guide-cancel" data-go="APP-HOME-01">暂不使用</button>
       ` : `
         <div class="sheet-grabber" aria-hidden="true"></div>
-        <em class="sync-state-spinner hotspot-connecting-spinner" aria-hidden="true"></em>
-        <h2>正在连接录音卡…</h2>
-        <p>通常只需几秒</p>
+        <h2>${isFailed ? "连接失败" : "连接中"}</h2>
+        <div class="hotspot-conflict-tip">
+          <i aria-hidden="true">i</i>
+          <p>若已开启个人热点，你将无法连接到该设备的 Wi-Fi。请关闭后重试。</p>
+        </div>
+        <ol class="hotspot-connection-steps" aria-label="录音卡热点连接进度">
+          <li class="done">
+            <span class="hotspot-step-icon wifi-device" aria-hidden="true"></span>
+            <b>AI Recorder A1 的 Wi-Fi 已打开</b>
+            <em class="hotspot-step-result" aria-label="已完成">✓</em>
+          </li>
+          <li class="${isFailed ? "failed" : "loading"}">
+            <span class="hotspot-step-icon wifi-signal" aria-hidden="true"></span>
+            <b>连接到 AI Recorder A1 的热点</b>
+            ${isFailed
+              ? '<em class="hotspot-step-result failed" aria-label="连接失败">!</em>'
+              : '<em class="hotspot-step-loading" aria-label="连接中"><i></i><i></i><i></i></em>'}
+          </li>
+        </ol>
+        ${isFailed
+          ? '<button class="primary-btn hotspot-retry-btn" data-action="retry-hotspot-connecting">重试</button>'
+          : ''}
         <button class="hotspot-connecting-cancel" data-action="cancel-hotspot-connecting">取消</button>
       `}
     </section>
@@ -5898,10 +5955,18 @@ document.addEventListener("click", (event) => {
   const mode = event.target.closest("[data-mode]");
   if (mode) {
     generationMode = mode.dataset.mode;
+    generationNotice = "";
     render();
     return;
   }
   const action = event.target.closest("[data-action]");
+  if (action && action.dataset.action === "open-search-results") {
+    const query = (action.dataset.query || searchDraft || activeSearchQuery || "说").trim();
+    searchDraft = query;
+    activeSearchQuery = query;
+    go("APP-FILE-12");
+    return;
+  }
   if (action && action.dataset.action === "select-record-mode") {
     recordMode = action.dataset.value === "manual" ? "manual" : "auto";
     render();
@@ -5913,6 +5978,7 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (action && action.dataset.action === "open-template-library") {
+    generationNotice = "";
     templateReturnPage = "APP-AI-01";
     draftTemplateId = selectedTemplateId;
     go("APP-REC-03");
@@ -5931,7 +5997,24 @@ document.addEventListener("click", (event) => {
   if (action && action.dataset.action === "apply-template") {
     if (!draftTemplateId) return;
     selectedTemplateId = draftTemplateId;
+    generationNotice = "";
     go(templateReturnPage);
+    return;
+  }
+  if (action && action.dataset.action === "submit-generation") {
+    if (generationMode === "custom" && !selectedTemplateId) {
+      generationNotice = "请选择模板";
+      render();
+      window.setTimeout(() => {
+        if (currentPageId === "APP-AI-01" && generationNotice === "请选择模板") {
+          generationNotice = "";
+          render();
+        }
+      }, 1800);
+      return;
+    }
+    generationNotice = "";
+    go("APP-FILE-15");
     return;
   }
   if (action && action.dataset.action === "toggle-generation-speakers") {
@@ -6279,6 +6362,29 @@ document.addEventListener("click", (event) => {
     }
     hotspotTransferState = "awaiting";
     go("APP-HOME-01");
+    return;
+  }
+  if (action && action.dataset.action === "retry-hotspot-connecting") {
+    if (syncPrototypeTimer) {
+      window.clearTimeout(syncPrototypeTimer);
+      syncPrototypeTimer = null;
+    }
+    hotspotTransferState = "connecting";
+    render();
+    syncPrototypeTimer = window.setTimeout(() => {
+      syncPrototypeTimer = null;
+      if (currentPageId !== "APP-SYNC-01" || hotspotTransferState !== "connecting") return;
+      hotspotTransferState = "success";
+      startHomeFastTransfer();
+      homeHotspotSuccessNotice = true;
+      go("APP-HOME-01");
+      if (homeHotspotSuccessNoticeTimer) window.clearTimeout(homeHotspotSuccessNoticeTimer);
+      homeHotspotSuccessNoticeTimer = window.setTimeout(() => {
+        homeHotspotSuccessNoticeTimer = null;
+        homeHotspotSuccessNotice = false;
+        if (currentPageId === "APP-HOME-01") render();
+      }, 1500);
+    }, 900);
     return;
   }
   if (action && action.dataset.action === "confirm-hotspot-join") {
@@ -7062,7 +7168,16 @@ document.addEventListener("keydown", (event) => {
   });
 });
 
+document.addEventListener("keydown", (event) => {
+  if (event.target.id !== "searchInput" || event.key !== "Enter") return;
+  event.preventDefault();
+  submitSearchDraft();
+});
+
 document.addEventListener("input", (event) => {
+  if (event.target.id === "searchInput") {
+    searchDraft = event.target.value;
+  }
   if (event.target.id === "fileDetailMarkerInput" && fileDetailMarkerEditor) {
     fileDetailMarkerEditor.draft = event.target.value;
     event.target.style.height = "auto";
