@@ -1360,14 +1360,30 @@ const pages = [
     group: "设置",
     title: "设备详情",
     priority: "P0",
-    goal: "管理已绑定设备、连接状态、移除设备、恢复出厂和固件更新。",
+    goal: "管理已绑定设备的名称、连接状态、移除设备、恢复出厂和固件更新。",
     entry: "文件首页设备卡、我的设备管理。",
-    fields: [["device_name", "设备名", "本地数据库/云端设备"], ["firmware_version", "固件版本", "BLE/云端设备"], ["firmware_update_state", "固件更新状态", "云端固件服务"], ["battery_level", "电量", "BLE 状态包"], ["storage_usage", "存储占用", "BLE 状态包"], ["sync_state", "同步状态", "本地数据库"]],
-    rules: ["设备详情显示当前选中设备的连接、电量、存储、同步状态。", "当首页已绑定多个设备时，设备详情顶部必须支持切换查看对应设备。", "断开连接设备展示离线状态，但仍允许解除账号绑定，便于设备不在身边时转交给其他人重新绑定。", "离线设备不可执行 OTA 或实时断开连接；还原所有设置、解除并清除数据允许用户选择，但设备端处理需记录为云端待执行策略。", "离线设备解除并清除数据时，账号侧立即解除绑定；设备端本地数据在设备下次绑定或联网握手时，根据云端记录的清除策略执行。", "OTA 行后置操作按钮：无新版本显示检查更新，检测到新固件或 App 主动推送时显示更新；该规则仅在说明文档展示，不在用户界面展示解释文案。", "点击更新或 App 启动主动推送更新时，进入固件更新提示弹窗。", "低电量、正在录音或设备未连接时禁止开始固件更新。", "恢复出厂触发方式待确认。"],
-    states: ["已连接", "未连接", "同步中", "低电量", "有新固件", "已是最新版本", "移除设备确认", "恢复出厂确认"],
+    fields: [["device_name", "设备名", "本地数据库/云端设备"], ["device_name_draft", "设备名编辑草稿", "用户输入"], ["recording_state", "是否正在录音", "BLE 状态包/本地录音状态"], ["firmware_version", "固件版本", "BLE/云端设备"], ["firmware_update_state", "固件更新状态", "云端固件服务"], ["battery_level", "电量", "BLE 状态包"], ["storage_usage", "存储占用", "BLE 状态包"], ["sync_state", "同步状态", "本地数据库"]],
+    rules: ["设备详情显示当前选中设备的连接、电量、存储、同步状态。", "设备名称以可点击行展示，点击进入设备名称编辑页；保存后同步更新设备详情、设备切换列表和文件首页设备名称。", "设备名称去除首尾空格后保存；名称为空时保存按钮不可用。", "当首页已绑定多个设备时，设备详情顶部必须支持切换查看对应设备。", "已连接设备的连接按钮显示刷新连接；断开连接设备的按钮显示连接设备。", "断开连接设备展示离线状态，但仍允许解除账号绑定，便于设备不在身边时转交给其他人重新绑定。", "离线设备不可执行 OTA 或实时断开连接；还原所有设置、解除并清除数据允许用户选择，但设备端处理需记录为云端待执行策略。", "离线设备解除并清除数据时，账号侧立即解除绑定；设备端本地数据在设备下次绑定或联网握手时，根据云端记录的清除策略执行。", "OTA 行后置操作按钮：无新版本显示检查更新，检测到新固件或 App 主动推送时显示更新；该规则仅在说明文档展示，不在用户界面展示解释文案。", "点击更新或 App 启动主动推送更新时，进入固件更新提示弹窗。", "录音中点击设备名称、刷新连接、连接设备、固件更新、恢复出厂或移除设备时，不进入下一步也不执行操作，统一提示：正在录音中，请结束录音后再试。", "恢复出厂触发方式待确认。"],
+    states: ["已连接", "未连接", "刷新连接中", "连接设备中", "名称编辑", "录音中操作受限", "同步中", "低电量", "有新固件", "已是最新版本", "移除设备确认", "恢复出厂确认"],
     deps: ["BLE 状态包、云端设备、固件版本能力，协议待定义。", "云端固件版本服务。"],
-    acceptance: ["重新连接、移除设备、恢复出厂入口可见。", "设备详情可在多个已绑定设备之间切换，并显示对应设备数据。", "断开连接设备仍可点击移除设备进入解绑确认页。", "离线设备可选择还原所有设置或解除并清除数据，但页面必须说明设备端处理会在下次绑定或联网时按云端策略执行。", "OTA 不再显示 P1 占位，必须有检查更新或更新按钮。", "点击更新进入固件更新提示。", "点击移除设备进入解绑二次确认弹层。", "危险操作有二次确认。"],
-    prototypeLinks: [["更新", "APP-DEV-06"], ["移除设备", "APP-DEV-10"]]
+    acceptance: ["已连接设备显示刷新连接，断开连接设备显示连接设备。", "设备详情可在多个已绑定设备之间切换，并显示对应设备数据。", "点击设备名称进入独立编辑页，空名称不可保存，保存后所有设备名称展示位置同步更新。", "断开连接设备仍可点击移除设备进入解绑确认页。", "离线设备可选择还原所有设置或解除并清除数据，但页面必须说明设备端处理会在下次绑定或联网时按云端策略执行。", "OTA 不再显示 P1 占位，必须有检查更新或更新按钮。", "非录音状态点击更新进入固件更新提示，点击移除设备进入解绑二次确认弹层。", "录音状态点击名称编辑、更新、恢复出厂、移除设备、刷新连接或连接设备均停留当前页面，并显示指定提示文案。", "危险操作有二次确认。"],
+    prototypeLinks: [["名称编辑", "APP-DEV-11"]],
+    prototypeActions: [["正常状态", "set-device-recording-state", "idle"], ["录音中", "set-device-recording-state", "recording"]]
+  },
+  {
+    id: "APP-DEV-11",
+    group: "设置",
+    title: "编辑设备名称",
+    priority: "P0",
+    goal: "修改当前设备在设备列表和详情页中显示的名称。",
+    entry: "设备详情页点击设备名称。",
+    fields: [["device_name", "当前设备名称", "本地数据库/云端设备"], ["device_name_draft", "设备名称草稿", "用户输入"]],
+    rules: ["进入页面时自动带入当前设备名称并聚焦输入框。", "清除按钮只清空当前草稿，不立即修改设备名称。", "名称去除首尾空格后为空时不可保存。", "点击保存后更新当前设备名称并返回设备详情。", "录音中禁止保存设备名称，并提示：正在录音中，请结束录音后再试。"],
+    states: ["编辑中", "空名称", "可保存", "录音中保存受限"],
+    deps: ["本地设备记录、云端设备名称同步接口待定义。"],
+    acceptance: ["输入框默认显示当前名称并可编辑。", "清除后输入框为空且保存不可用。", "输入有效名称后可保存并返回设备详情。", "保存后的新名称同步显示在设备详情、设备切换列表和文件首页。", "录音中保存不生效并显示指定提示。"],
+    prototypeLinks: [["返回设备详情", "APP-DEV-03"]],
+    prototypeActions: [["正常状态", "set-device-recording-state", "idle"], ["录音中", "set-device-recording-state", "recording"]]
   },
   {
     id: "APP-DEV-10",
@@ -1498,6 +1514,13 @@ let firmwareJoinPromptOpen = false;
 let firmwareUpdateTimer = null;
 let firmwareRetryAtConnection = false;
 let syncPrototypeTimer = null;
+let deviceRecordingActive = currentPageId === "APP-REC-04";
+let deviceNameDraft = "";
+let deviceNameError = "";
+let deviceActionNotice = "";
+let deviceActionNoticeTimer = null;
+let deviceConnectionPendingId = "";
+let deviceConnectionTimer = null;
 const boundHomeDevices = [
   { id: "a1", name: "AI Recorder A1", status: "已连接", detail: "电量 82% · 存储 12.4G", connected: true, sn: "SN-8F2A-2026", firmware: "v0.9.3", battery: "82%", storage: "68%", storageText: "12.4G", sync: "空闲", lastSync: "今天 14:22" },
   { id: "a1-pro", name: "AI Recorder A1 Pro", status: "已连接", detail: "电量 67% · 存储 8.1G", connected: true, sn: "SN-PRO-6C21", firmware: "v1.0.1", battery: "67%", storage: "44%", storageText: "8.1G", sync: "待机", lastSync: "今天 13:08" },
@@ -1554,6 +1577,29 @@ function clearFirmwareUpdateTimer() {
   if (!firmwareUpdateTimer) return;
   window.clearTimeout(firmwareUpdateTimer);
   firmwareUpdateTimer = null;
+}
+
+function clearDeviceConnectionTimer() {
+  if (!deviceConnectionTimer) return;
+  window.clearTimeout(deviceConnectionTimer);
+  deviceConnectionTimer = null;
+}
+
+function showDeviceActionNotice(message) {
+  deviceActionNotice = message;
+  if (deviceActionNoticeTimer) window.clearTimeout(deviceActionNoticeTimer);
+  render();
+  deviceActionNoticeTimer = window.setTimeout(() => {
+    deviceActionNoticeTimer = null;
+    deviceActionNotice = "";
+    if (["APP-DEV-03", "APP-DEV-11"].includes(currentPageId)) render();
+  }, 1800);
+}
+
+function blockDeviceActionWhileRecording() {
+  if (!deviceRecordingActive) return false;
+  showDeviceActionNotice("正在录音中，请结束录音后再试。");
+  return true;
 }
 
 function scheduleFirmwareUpdateStep(callback, delay = 3000) {
@@ -1616,6 +1662,13 @@ function go(id) {
   clearFirmwareUpdateTimer();
   previousPageId = currentPageId;
   currentPageId = id === "APP-HOME-02" ? "APP-HOME-01" : id === "APP-SYNC-02" ? "APP-SYNC-01" : id;
+  if (currentPageId === "APP-REC-04") deviceRecordingActive = true;
+  if (currentPageId === "APP-DEV-11" && previousPageId !== "APP-DEV-11") {
+    const activeDevice = boundHomeDevices.find((device) => device.id === activeHomeDeviceId) || boundHomeDevices[0];
+    deviceNameDraft = activeDevice.name;
+    deviceNameError = "";
+  }
+  if (currentPageId !== "APP-DEV-11") deviceNameError = "";
   if (currentPageId === "APP-REC-02" && previousPageId !== "APP-REC-02") {
     recordMode = "auto";
   }
@@ -1709,6 +1762,8 @@ function chip(label, tone = "") {
 function appTop(title, action = "", back = null) {
   const actionNode = action === "search"
     ? `<button class="icon-btn search-top-btn" data-go="APP-FILE-02" aria-label="搜索"></button>`
+    : action === "save-device-name"
+      ? `<button class="text-btn device-name-save ${deviceNameDraft.trim() ? "" : "disabled"}" data-action="save-device-name" ${deviceNameDraft.trim() ? "" : "disabled"}>保存</button>`
     : action ? `<button class="text-btn">${h(action)}</button>` : `<span style="width:34px"></span>`;
   return `
     <div class="statusbar"><span>9:41</span><span>5G</span><span>82%</span></div>
@@ -5155,6 +5210,10 @@ function renderUsageRecords() {
 
 function renderDeviceDetail() {
   const activeDevice = boundHomeDevices.find((device) => device.id === activeHomeDeviceId) || boundHomeDevices[0];
+  const connectionPending = deviceConnectionPendingId === activeDevice.id;
+  const connectionLabel = connectionPending
+    ? (activeDevice.connected ? "刷新中…" : "连接中…")
+    : (activeDevice.connected ? "刷新连接" : "连接设备");
   return screen(`
     <section class="device-detail-switcher" aria-label="切换已绑定设备">
       <div class="device-detail-switcher-title">已绑定设备</div>
@@ -5169,19 +5228,45 @@ function renderDeviceDetail() {
         </button>
       `).join("")}
     </section>
-    ${card(activeDevice.name, `${row("状态", activeDevice.status)}${row("SN", activeDevice.sn)}${row("固件版本", activeDevice.firmware)}${row("最近同步", activeDevice.lastSync)}`, activeDevice.connected ? "soft" : "warn")}
+    ${card("设备信息", `
+      <button class="device-name-row" data-action="open-device-name-editor" aria-label="编辑设备名称 ${h(activeDevice.name)}">
+        <span>设备名称</span>
+        <strong>${h(activeDevice.name)}</strong>
+        <i aria-hidden="true">›</i>
+      </button>
+      ${row("状态", activeDevice.status)}
+      ${row("SN", activeDevice.sn)}
+      ${row("固件版本", activeDevice.firmware)}
+      ${row("最近同步", activeDevice.lastSync)}
+    `, activeDevice.connected ? "soft" : "warn")}
     ${metrics([["电量", activeDevice.battery], ["存储", activeDevice.storage], ["同步", activeDevice.sync]])}
     ${card("设备操作", `
       ${row("自动同步", activeDevice.connected ? "开启" : "离线不可用")}
-      ${row("恢复出厂", "触发方式待确认")}
-      <div class="row action-row"><span>OTA</span><button class="mini-action-btn ${activeDevice.connected ? "" : "disabled"}" ${activeDevice.connected ? 'data-go="APP-DEV-06"' : "disabled"}>${activeDevice.connected ? "更新" : "离线"}</button></div>
+      <div class="row action-row"><span>恢复出厂</span><button class="mini-action-btn light" data-action="restore-device-settings">还原</button></div>
+      <div class="row action-row"><span>OTA</span><button class="mini-action-btn ${activeDevice.connected ? "" : "disabled"}" ${activeDevice.connected ? 'data-action="open-device-firmware-update"' : "disabled"}>${activeDevice.connected ? "更新" : "离线"}</button></div>
     `)}
     ${activeDevice.connected ? "" : `<p class="device-offline-hint">该设备当前未连接。仍可选择还原设置或解除并清除数据；账号侧会立即记录处理策略，设备端在下次绑定或联网时按云端策略执行。</p>`}
     <div class="button-row compact-device-actions">
-      <button class="secondary-btn">${activeDevice.connected ? "重新连接" : "连接设备"}</button>
-      <button class="danger-btn" data-go="APP-DEV-10">移除设备</button>
+      <button class="secondary-btn ${connectionPending ? "disabled" : ""}" data-action="refresh-device-connection" ${connectionPending ? "disabled" : ""}>${connectionLabel}</button>
+      <button class="danger-btn" data-action="open-device-removal">移除设备</button>
     </div>
+    ${deviceActionNotice ? `<div class="device-action-toast" role="status" aria-live="polite">${h(deviceActionNotice)}</div>` : ""}
   `, { title: "设备详情", action: "帮助", back: "APP-HOME-01", bottom: false });
+}
+
+function renderDeviceNameEditor() {
+  const activeDevice = boundHomeDevices.find((device) => device.id === activeHomeDeviceId) || boundHomeDevices[0];
+  return screen(`
+    <section class="device-name-editor" aria-label="编辑 ${h(activeDevice.name)} 的设备名称">
+      <div class="device-name-input-wrap ${deviceNameError ? "error" : ""}">
+        <input id="deviceNameInput" value="${h(deviceNameDraft)}" maxlength="40" autocomplete="off" aria-label="设备名称">
+        <button type="button" class="device-name-clear" data-action="clear-device-name" aria-label="清除设备名称" ${deviceNameDraft ? "" : "disabled"}><img src="./assets/icons/device-name-clear.png" alt=""></button>
+      </div>
+      <p>自定义设备名称，将显示在设备列表中</p>
+      ${deviceNameError ? `<small class="device-name-error" role="alert">${h(deviceNameError)}</small>` : ""}
+    </section>
+    ${deviceActionNotice ? `<div class="device-action-toast" role="status" aria-live="polite">${h(deviceActionNotice)}</div>` : ""}
+  `, { title: "设备名称", action: "save-device-name", back: "APP-DEV-03", bottom: false });
 }
 
 function renderDeviceRemoveConfirmSheet() {
@@ -5542,6 +5627,7 @@ const renderers = {
   "APP-DEV-08": renderFirmwareUpdating,
   "APP-DEV-09": renderFirmwareConnectionFailed,
   "APP-DEV-10": renderDeviceRemoveConfirmSheet,
+  "APP-DEV-11": renderDeviceNameEditor,
   "APP-SYNC-01": renderHotspotTransfer,
   "APP-HOME-01": renderHome,
   "APP-HOME-03": renderHomeTrashToast,
@@ -5630,7 +5716,7 @@ function renderNav() {
 }
 
 function renderFlow() {
-  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-07", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-DEV-05", "APP-HOME-01", "APP-SYNC-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-REC-03", "APP-AI-02", "APP-AI-03", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-02", "APP-ME-16", "APP-ME-26", "APP-ME-27", "APP-ME-28", "APP-ME-29", "APP-ME-30", "APP-ME-31", "APP-ME-32", "APP-ME-33", "APP-ME-34", "APP-ME-35", "APP-ME-36", "APP-ME-37", "APP-ME-38", "APP-ME-40", "APP-ME-39", "APP-ME-17", "APP-ME-18", "APP-ME-41", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-23", "APP-ME-10", "APP-ME-11", "APP-ME-12", "APP-DEV-03", "APP-DEV-10", "APP-ME-04", "APP-ME-24", "APP-ME-25", "APP-DEV-06", "APP-DEV-07", "APP-DEV-08", "APP-DEV-09"];
+  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-07", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-DEV-05", "APP-HOME-01", "APP-SYNC-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-REC-03", "APP-AI-02", "APP-AI-03", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-02", "APP-ME-16", "APP-ME-26", "APP-ME-27", "APP-ME-28", "APP-ME-29", "APP-ME-30", "APP-ME-31", "APP-ME-32", "APP-ME-33", "APP-ME-34", "APP-ME-35", "APP-ME-36", "APP-ME-37", "APP-ME-38", "APP-ME-40", "APP-ME-39", "APP-ME-17", "APP-ME-18", "APP-ME-41", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-23", "APP-ME-10", "APP-ME-11", "APP-ME-12", "APP-DEV-03", "APP-DEV-11", "APP-DEV-10", "APP-ME-04", "APP-ME-24", "APP-ME-25", "APP-DEV-06", "APP-DEV-07", "APP-DEV-08", "APP-DEV-09"];
   flow.splice(flow.indexOf("APP-FILE-03") + 1, 0, "APP-FILE-23");
   document.getElementById("flowStrip").innerHTML = flow.map((id, index) => {
     const page = pageById(id);
@@ -5649,7 +5735,8 @@ function renderPrototypeLinks(page) {
       const active = (action === "set-sync-transport" && homeSyncStage !== "idle" && value === homeSyncTransport)
         || (action === "home-show-no-device" && !homeDeviceAdded)
         || (action === "home-show-no-sync-tasks" && homeDeviceAdded && homeSyncStage === "idle")
-        || (action === "set-hotspot-state" && value === (hotspotTransferState === "systemPrompt" ? "awaiting" : hotspotTransferState));
+        || (action === "set-hotspot-state" && value === (hotspotTransferState === "systemPrompt" ? "awaiting" : hotspotTransferState))
+        || (action === "set-device-recording-state" && value === (deviceRecordingActive ? "recording" : "idle"));
       return `<button class="${active ? "active" : ""}" data-action="${h(action)}"${value ? ` data-value="${h(value)}"` : ""}>${h(label)}</button>`;
     }).join("")}
   ` : "";
@@ -5873,6 +5960,13 @@ function render() {
   if (page.id === "APP-FILE-01" && fileDetailActiveTab === "summary") {
     requestAnimationFrame(setupFileDetailSummarySectionSpy);
   }
+  if (page.id === "APP-DEV-11") {
+    requestAnimationFrame(() => {
+      const input = document.getElementById("deviceNameInput");
+      input?.focus();
+      input?.setSelectionRange(input.value.length, input.value.length);
+    });
+  }
 }
 
 document.addEventListener("click", (event) => {
@@ -5896,6 +5990,85 @@ document.addEventListener("click", (event) => {
     return;
   }
   const action = event.target.closest("[data-action]");
+  if (action && action.dataset.action === "set-device-recording-state") {
+    deviceRecordingActive = action.dataset.value === "recording";
+    deviceActionNotice = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "open-device-name-editor") {
+    if (blockDeviceActionWhileRecording()) return;
+    const activeDevice = boundHomeDevices.find((device) => device.id === activeHomeDeviceId) || boundHomeDevices[0];
+    deviceNameDraft = activeDevice.name;
+    deviceNameError = "";
+    go("APP-DEV-11");
+    return;
+  }
+  if (action && action.dataset.action === "clear-device-name") {
+    deviceNameDraft = "";
+    deviceNameError = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "save-device-name") {
+    if (blockDeviceActionWhileRecording()) return;
+    const nextName = (document.getElementById("deviceNameInput")?.value || deviceNameDraft).trim();
+    if (!nextName) {
+      deviceNameError = "请输入设备名称";
+      render();
+      return;
+    }
+    const activeDevice = boundHomeDevices.find((device) => device.id === activeHomeDeviceId) || boundHomeDevices[0];
+    activeDevice.name = nextName;
+    deviceNameDraft = nextName;
+    deviceNameError = "";
+    go("APP-DEV-03");
+    showDeviceActionNotice("设备名称已更新");
+    return;
+  }
+  if (action && action.dataset.action === "refresh-device-connection") {
+    if (blockDeviceActionWhileRecording()) return;
+    const activeDevice = boundHomeDevices.find((device) => device.id === activeHomeDeviceId) || boundHomeDevices[0];
+    const wasConnected = activeDevice.connected;
+    const deviceId = activeDevice.id;
+    clearDeviceConnectionTimer();
+    deviceConnectionPendingId = deviceId;
+    deviceActionNotice = "";
+    render();
+    deviceConnectionTimer = window.setTimeout(() => {
+      deviceConnectionTimer = null;
+      const device = boundHomeDevices.find((item) => item.id === deviceId);
+      if (!device) return;
+      if (!wasConnected) {
+        device.connected = true;
+        device.status = "已连接";
+        device.detail = "电量 76% · 存储 10.2G";
+        device.battery = "76%";
+        device.storage = "57%";
+        device.storageText = "10.2G";
+        device.sync = "空闲";
+        device.lastSync = "刚刚";
+      }
+      deviceConnectionPendingId = "";
+      showDeviceActionNotice(wasConnected ? "连接已刷新" : "设备已连接");
+    }, 900);
+    return;
+  }
+  if (action && action.dataset.action === "open-device-firmware-update") {
+    if (blockDeviceActionWhileRecording()) return;
+    go("APP-DEV-06");
+    return;
+  }
+  if (action && action.dataset.action === "restore-device-settings") {
+    if (blockDeviceActionWhileRecording()) return;
+    showDeviceActionNotice("恢复出厂触发方式待确认");
+    return;
+  }
+  if (action && action.dataset.action === "open-device-removal") {
+    if (blockDeviceActionWhileRecording()) return;
+    go("APP-DEV-10");
+    return;
+  }
   if (action && action.dataset.action === "open-search-results") {
     const query = (action.dataset.query || searchDraft || activeSearchQuery || "说").trim();
     searchDraft = query;
@@ -6588,6 +6761,7 @@ document.addEventListener("click", (event) => {
     recordingEditor = null;
     recordingCameraOpen = false;
     recordingPhotoViewerId = "";
+    deviceRecordingActive = false;
     startSingleHomeSyncBatch();
     homeSyncTransport = "ble";
     go("APP-HOME-01");
@@ -7110,9 +7284,27 @@ document.addEventListener("keydown", (event) => {
   submitSearchDraft();
 });
 
+document.addEventListener("keydown", (event) => {
+  if (event.target.id !== "deviceNameInput" || event.key !== "Enter") return;
+  event.preventDefault();
+  document.querySelector("[data-action='save-device-name']")?.click();
+});
+
 document.addEventListener("input", (event) => {
   if (event.target.id === "searchInput") {
     searchDraft = event.target.value;
+  }
+  if (event.target.id === "deviceNameInput") {
+    deviceNameDraft = event.target.value;
+    deviceNameError = "";
+    const saveButton = document.querySelector("[data-action='save-device-name']");
+    const clearButton = document.querySelector("[data-action='clear-device-name']");
+    const canSave = Boolean(deviceNameDraft.trim());
+    if (saveButton) {
+      saveButton.disabled = !canSave;
+      saveButton.classList.toggle("disabled", !canSave);
+    }
+    if (clearButton) clearButton.disabled = !deviceNameDraft;
   }
   if (event.target.id === "fileDetailMarkerInput" && fileDetailMarkerEditor) {
     fileDetailMarkerEditor.draft = event.target.value;

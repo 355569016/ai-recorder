@@ -150,6 +150,57 @@ final result: blocked
 
 ---
 
+## Current QA gate — APP-DEV-03 设备名称与录音中操作限制（2026-08-21）
+
+- Source visual truth: `/Users/andyma/Downloads/IMG_5625.PNG` for the clickable device-name row and `/Users/andyma/Downloads/IMG_5624.PNG` for the device-name editor.
+- Source dimensions: 1320 × 2868 px for each competitor reference.
+- Browser-rendered APP-DEV-03 evidence: `implementation-app-dev-03-device-actions.png`.
+- Browser-rendered APP-DEV-11 evidence: `implementation-app-dev-11-device-name-editor.png`.
+- Focused 1:1 comparison: `design-qa-app-dev-11-comparison.png`; the source and implementation app-owned upper regions are normalized to 390 × 502 px and placed side by side.
+- Browser viewport: 1280 × 720 CSS px, devicePixelRatio 2. The project phone is 390 × 844 CSS px; browser screenshots are normalized to CSS-pixel dimensions.
+- States: APP-DEV-03 connected, disconnected, refreshing, connecting, recording-blocked; APP-DEV-11 editing, cleared, saved, and recording-blocked save.
+
+**Full-view and focused comparison evidence**
+
+- APP-DEV-03 keeps the existing device switcher, information card, metrics and device-operation hierarchy. The device name is now a full-width row with the current value and disclosure affordance, matching the competitor's detail-page pattern without redesigning adjacent product UI.
+- APP-DEV-11 matches the reference's white surface, back action, black save control, outlined single-line input, right-side clear icon and muted helper copy.
+- The implementation intentionally keeps the product's standard centered page title `设备名称`; the competitor reference leaves that header position blank. This is an accepted product-shell difference rather than an interaction or fidelity defect.
+- The focused comparison keeps the input, save control, back action, typography and helper copy clearly legible; no additional crop was required.
+
+**Comparison history**
+
+- Initial [P2] icon finding: the editor used a text `清除` action while the reference uses a compact clear icon. Fix: cropped the clear icon from the supplied reference into `assets/icons/device-name-clear.png` and used it inside the accessible clear button.
+- Post-fix evidence: `design-qa-app-dev-11-comparison.png`. No actionable P0, P1 or P2 finding remains.
+
+**Required fidelity surfaces**
+
+- Typography: the existing system sans-serif hierarchy is retained; the input, title, save label and helper copy follow the reference's weight and size relationships.
+- Spacing and layout: the editor uses the same single-column composition, generous white space, outlined input, right-aligned clear affordance and top-right save action as the reference.
+- Colors and tokens: white surface, black primary controls, neutral border and muted helper text match the supplied direction and existing prototype tokens.
+- Image and icon quality: the clear icon is a sharp local asset cropped from the supplied competitor reference. No placeholder, emoji, CSS drawing or handcrafted SVG was introduced.
+- Copy: `设备名称`, `保存`, and `自定义设备名称，将显示在设备列表中` are consistent between the approved behavior and the reference intent.
+
+**Primary interactions tested**
+
+- Device-name editor opened with `AI Recorder A1`, focused the input, saved `会议室录音卡`, returned to APP-DEV-03, and updated the displayed device name.
+- Clearing the draft produced an empty input, disabled save, and returning preserved the previously saved name.
+- Connected devices displayed `刷新连接`; refresh transitioned through `刷新中…` and ended with `连接已刷新`.
+- The disconnected device displayed `连接设备`; connection transitioned through `连接中…`, updated the device to connected, and changed the button to `刷新连接`.
+- Recording-state guards passed for name edit, firmware update, restore, refresh, removal and disconnected-device connection. Each remained on APP-DEV-03 and displayed `正在录音中，请结束录音后再试。`.
+- APP-DEV-11 save was separately blocked after recording became active; the draft remained visible and the stored device name was unchanged.
+- Navigating from APP-REC-04 to APP-DEV-03 retained the real recording state and blocked refresh with the same copy.
+- Browser console returned zero warnings and zero errors.
+- `node --check app.js`, both build-script checks, inline build, 91-page/91-renderer integrity check and `git diff --check` passed.
+
+**Findings**
+
+- No actionable P0, P1 or P2 finding remains.
+- [P3] The implementation title is centered while the competitor leaves the header center empty; it is intentionally retained for consistency with this prototype's page shell.
+
+final result: passed
+
+---
+
 ## Current QA gate — APP-FILE-23 回收站列表与批量操作（2026-08-19）
 
 - Source visual references:
@@ -440,3 +491,13 @@ final result: blocked
 - Blocker: fresh browser-rendered comparison and console evidence remain unavailable because the managed browser security policy denied access to the local preview. No visual pass is claimed.
 
 final result: blocked
+
+---
+
+## Latest QA result — APP-DEV-03 / APP-DEV-11（2026-08-21）
+
+- The complete current evidence, normalized comparison, interaction coverage, console check, findings and fidelity review are recorded above under `Current QA gate — APP-DEV-03 设备名称与录音中操作限制（2026-08-21）`.
+- Latest visual evidence: `implementation-app-dev-03-device-actions.png`, `implementation-app-dev-11-device-name-editor.png`, and `design-qa-app-dev-11-comparison.png`.
+- No actionable P0, P1 or P2 finding remains for the current APP-DEV-03 scope.
+
+final result: passed
