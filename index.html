@@ -106,8 +106,16 @@ let fileDetailDockInteraction = false;
 let fileDetailContent = {
   summary: "本次会议围绕拼团营销工具的需求评审展开，重点确认了功能范围、简化方案、标准商城与积分商城的拼团功能 MVP，以及后续大商品库项目的启动安排。",
   transcript: [
-    "我们先确认这次评审的目标，主要聚焦拼团营销工具的 MVP 范围。",
-    "图片、标注和商品关联需要先做最小可用链路，复杂规则放到下一版。"
+    {
+      time: "00:00:03",
+      speaker: "说话人 1",
+      text: "我们先确认这次评审的目标，主要聚焦拼团营销工具的 MVP 范围。"
+    },
+    {
+      time: "00:01:18",
+      speaker: "说话人 2",
+      text: "图片、标注和商品关联需要先做最小可用链路，复杂规则放到下一版。"
+    }
   ]
 };
 let fileDetailPhotoViewerId = "";
@@ -692,11 +700,11 @@ const pages = [
     priority: "P0",
     goal: "集中播放音频、查看并原位编辑录音标记、转写内容和智能总结，同时查看大纲、待办事项和思维导图。",
     entry: "文件列表点击文件、同步完成通知、任务完成通知。",
-    fields: [["display_title", "展示标题", "文件名/云端同步数据/AI 摘要"], ["title_source", "标题来源", "本地数据库/云端/AI"], ["ai_tags", "AI 标签", "AI 会议总结"], ["audio_progress", "播放进度", "本地播放器"], ["skip_silence_enabled", "跳过空白片段", "播放器设置"], ["playback_rate", "播放倍速", "播放器设置"], ["ai_sections", "AI 内容结构", "AI 模板"], ["marker_list", "文件标记列表", "录音标记/本地数据库"], ["marker_anchor_map", "标记锚点映射", "录音标记/播放时间戳"], ["marker_generation_role", "标记生成作用", "AI 生成任务快照"], ["note_question", "笔记提问", "AI 问答"], ["share_state", "分享状态", "云端分享"]],
-    rules: ["开启同步云端时，标题优先根据云端同步数据提炼。", "未开启同步云端时，标题默认使用文件名称。", "生成 AI 会议摘要后，标题根据 AI 会议内容重新提炼总结。", "生成 AI 会议总结后，根据会议内容提取关键标签。", "播放器进度条支持点击和拖动调整音频进度。", "播放器控制区包含音频设置、快退 15 秒、播放、快进 15 秒、倍速，不展示额外方向箭头。", "已转写文件的一级标签统一为标记、总结和转写记录，一级标签按内容宽度左对齐排列，负责切换内容类型；标记和转写记录内容区不再重复显示同名标题。", "点击总结后展示智能总结、章节大纲、待办事项和思维导图四个二级标签；四块内容在同一长页面中按此顺序连续展示，二级标签只负责快速定位，页面滚动时同步更新选中态。", "未转写和生成中状态仅保留标记、总结两个一级标签，不提前展示转写记录或总结二级标签。", "录音中产生的文字、时间和照片标记在录音结束后完整继承到文件详情，不能依赖转写或 AI 生成状态。", "录音结束后不再允许新增标记，只能维护录音过程中已经产生的标记。", "点击标记时间或播放图标定位到对应音频时间并开始播放。", "点击标记文本、照片说明、转写记录或智能总结时，原文字直接出现光标并唤起系统键盘；不打开弹窗、新页面，不增加边框、下划线、取消或保存按钮。", "智能总结和转写记录使用系统键盘上方的轻量格式工具栏，至少包含标题/正文、列表、对齐、引用、撤销和重做；普通标记与照片说明保持纯文本键盘，不展示格式工具栏。", "编辑内容实时记录，输入框失焦、收起键盘或切换其他标签时自动保存。", "照片可打开和删除；标记时间与来源保持只读。", "生成 AI 内容时读取当时的标记快照作为辅助笔记；生成后继续编辑标记不会静默改写既有 AI 内容，重新生成时再读取最新标记。", "页面底部固定展示对此笔记提问输入框。", "右上角分享按钮打开分享弹窗，三个点打开更多操作浮层。"],
+    fields: [["display_title", "展示标题", "文件名/云端同步数据/AI 摘要"], ["title_source", "标题来源", "本地数据库/云端/AI"], ["ai_tags", "AI 标签", "AI 会议总结"], ["audio_progress", "播放进度", "本地播放器"], ["skip_silence_enabled", "跳过空白片段", "播放器设置"], ["playback_rate", "播放倍速", "播放器设置"], ["transcript_segments", "对话转写片段", "转写服务"], ["transcript_start_time", "录音相对时间 HH:MM:SS", "转写片段索引"], ["speaker_label", "说话人编号或名称", "说话人分离/本地命名"], ["transcript_text", "转写正文", "转写服务/用户编辑"], ["ai_sections", "AI 内容结构", "AI 模板"], ["marker_list", "文件标记列表", "录音标记/本地数据库"], ["marker_anchor_map", "标记锚点映射", "录音标记/播放时间戳"], ["marker_generation_role", "标记生成作用", "AI 生成任务快照"], ["note_question", "笔记提问", "AI 问答"], ["share_state", "分享状态", "云端分享"]],
+    rules: ["开启同步云端时，标题优先根据云端同步数据提炼。", "未开启同步云端时，标题默认使用文件名称。", "生成 AI 会议摘要后，标题根据 AI 会议内容重新提炼总结。", "生成 AI 会议总结后，根据会议内容提取关键标签。", "播放器进度条支持点击和拖动调整音频进度。", "播放器控制区包含音频设置、快退 15 秒、播放、快进 15 秒、倍速，不展示额外方向箭头。", "已转写文件的一级标签统一为标记、总结和转写记录，一级标签按内容宽度左对齐排列，负责切换内容类型；标记和转写记录内容区不再重复显示同名标题。", "转写记录按对话片段展示；每段先显示录音相对时间和说话人，正文另起一行。时间统一为 HH:MM:SS，不足一小时也补齐小时位。", "默认说话人按分离结果显示为说话人 1、说话人 2，并继续递增；同一说话人在不同时间片段保持相同编号，保存自定义名称后同步更新对应片段。", "转写时间和说话人只读，只有正文进入原位编辑。", "点击总结后展示智能总结、章节大纲、待办事项和思维导图四个二级标签；四块内容在同一长页面中按此顺序连续展示，二级标签只负责快速定位，页面滚动时同步更新选中态。", "未转写和生成中状态仅保留标记、总结两个一级标签，不提前展示转写记录或总结二级标签。", "录音中产生的文字、时间和照片标记在录音结束后完整继承到文件详情，不能依赖转写或 AI 生成状态。", "录音结束后不再允许新增标记，只能维护录音过程中已经产生的标记。", "点击标记时间或播放图标定位到对应音频时间并开始播放。", "点击标记文本、照片说明、转写记录或智能总结时，原文字直接出现光标并唤起系统键盘；不打开弹窗、新页面，不增加边框、下划线、取消或保存按钮。", "智能总结和转写记录使用系统键盘上方的轻量格式工具栏，至少包含标题/正文、列表、对齐、引用、撤销和重做；普通标记与照片说明保持纯文本键盘，不展示格式工具栏。", "编辑内容实时记录，输入框失焦、收起键盘或切换其他标签时自动保存。", "照片可打开和删除；标记时间与来源保持只读。", "生成 AI 内容时读取当时的标记快照作为辅助笔记；生成后继续编辑标记不会静默改写既有 AI 内容，重新生成时再读取最新标记。", "页面底部固定展示对此笔记提问输入框。", "右上角分享按钮打开分享弹窗，三个点打开更多操作浮层。"],
     states: ["标记一级标签", "总结一级标签", "转写记录一级标签", "智能总结二级标签", "章节大纲二级标签", "待办事项二级标签", "思维导图二级标签", "标记原位编辑", "转写原位编辑", "总结原位编辑", "照片预览", "未生成 AI 摘要", "AI 已生成", "音频设置", "倍速选择", "分享", "更多操作", "文件损坏", "删除确认"],
-    deps: ["本地播放器：进度、跳转、快退快进、倍速。", "音频分析：静音/无声片段识别。", "转写服务：转写记录和时间戳。", "本地数据库：录音标记、备注、照片附件。", "AI 服务：标题、标签、大纲、总结、待办、思维导图、笔记问答。", "云端分享：分享链接和权限。"],
-    acceptance: ["已转写详情必须展示左对齐的标记、总结、转写记录三个一级标签，且同一时刻只展示一个一级内容；标记与转写记录内容区不得重复出现同名标题，标记页不得显示标记数量与生成状态说明。", "总结一级标签内必须展示智能总结、章节大纲、待办事项、思维导图四个二级标签；点击可定位到同页对应区块，继续下滑可依次阅读全部四块内容，滚动时选中态同步变化。", "未转写和生成中详情只展示标记、总结两个一级标签，不显示转写记录和总结二级标签。", "录音期间的全部标记在已生成文件详情中完整展示，并可继续编辑。", "录音结束后的文件详情不得出现新增标记入口。", "点击标记时间定位音频；点击标记内容、转写记录和智能总结均在原文字位置直接输入，仅显示光标和系统键盘，不出现独立窗口或显式保存操作。", "总结和转写编辑时格式栏可切换标题、列表、对齐和引用；标记编辑时不显示格式栏。", "失焦、收起键盘或切换标签后内容自动保存。", "照片可查看或删除，时间与来源只读。", "思维导图按卡片预览呈现。", "音频设置和倍速按钮能打开对应弹窗。", "底部有对此笔记提问输入框。", "标题和标签规则在字段与交互说明中明确。"],
+    deps: ["本地播放器：进度、跳转、快退快进、倍速。", "音频分析：静音/无声片段识别。", "转写服务：转写记录和时间戳。", "说话人分离与命名：片段说话人编号和自定义名称。", "本地数据库：录音标记、备注、照片附件。", "AI 服务：标题、标签、大纲、总结、待办、思维导图、笔记问答。", "云端分享：分享链接和权限。"],
+    acceptance: ["已转写详情必须展示左对齐的标记、总结、转写记录三个一级标签，且同一时刻只展示一个一级内容；标记与转写记录内容区不得重复出现同名标题，标记页不得显示标记数量与生成状态说明。", "每段转写必须显示 HH:MM:SS 录音相对时间、对应说话人和正文；时间与说话人只读，正文保持原位编辑，同一说话人跨片段编号一致。", "总结一级标签内必须展示智能总结、章节大纲、待办事项、思维导图四个二级标签；点击可定位到同页对应区块，继续下滑可依次阅读全部四块内容，滚动时选中态同步变化。", "未转写和生成中详情只展示标记、总结两个一级标签，不显示转写记录和总结二级标签。", "录音期间的全部标记在已生成文件详情中完整展示，并可继续编辑。", "录音结束后的文件详情不得出现新增标记入口。", "点击标记时间定位音频；点击标记内容、转写记录和智能总结均在原文字位置直接输入，仅显示光标和系统键盘，不出现独立窗口或显式保存操作。", "总结和转写编辑时格式栏可切换标题、列表、对齐和引用；标记编辑时不显示格式栏。", "失焦、收起键盘或切换标签后内容自动保存。", "照片可查看或删除，时间与来源只读。", "思维导图按卡片预览呈现。", "音频设置和倍速按钮能打开对应弹窗。", "底部有对此笔记提问输入框。", "标题和标签规则在字段与交互说明中明确。"],
     prototypeLinks: [["文件详情已转写", "APP-FILE-01"], ["文件详情为空", "APP-FILE-10"]]
   },
   {
@@ -3579,7 +3587,7 @@ function persistFileDetailContentEdit(showNotice = false) {
     if (fileDetailContentEditor.kind === "summary") fileDetailContent.summary = draft;
     if (fileDetailContentEditor.kind === "transcript") {
       const index = Number(fileDetailContentEditor.key.split("-")[1]);
-      fileDetailContent.transcript[index] = draft;
+      if (fileDetailContent.transcript[index]) fileDetailContent.transcript[index].text = draft;
     }
   }
   fileDetailContentEditor = null;
@@ -3763,6 +3771,21 @@ function renderFileDetailSummaryContent(editingSection) {
   `;
 }
 
+function renderFileDetailTranscriptItem(item, index) {
+  const time = item?.time || "00:00:00";
+  const speaker = item?.speaker || "说话人";
+  const text = item?.text || "";
+  return `
+    <article class="transcript-line">
+      <div class="transcript-meta">
+        <time datetime="PT${fileDetailTimeToSeconds(time)}S">${h(time)}</time>
+        <strong>${h(speaker)}</strong>
+      </div>
+      ${renderFileDetailEditableContent("transcript", text, { key: `transcript-${index}`, label: `${time} ${speaker} 转写内容`, rows: 4 })}
+    </article>
+  `;
+}
+
 function updateFileDetailSummaryTab(target) {
   const allowed = ["summary", "outline", "todos", "mindmap"];
   fileDetailSummaryTab = allowed.includes(target) ? target : "summary";
@@ -3834,8 +3857,7 @@ function renderFileDetail() {
           </section>
         ` : activeTab === "transcript" ? `
           <section class="file-detail-section ai-section ${editingSection === "transcript" ? "is-editing-section" : ""}" data-detail-section="transcript" id="detail-transcript">
-            <div class="transcript-line"><b>00:03</b>${renderFileDetailEditableContent("transcript", fileDetailContent.transcript[0], { key: "transcript-0", label: "00:03 转写内容", rows: 4 })}</div>
-            <div class="transcript-line"><b>01:18</b>${renderFileDetailEditableContent("transcript", fileDetailContent.transcript[1], { key: "transcript-1", label: "01:18 转写内容", rows: 4 })}</div>
+            ${fileDetailContent.transcript.map((item, index) => renderFileDetailTranscriptItem(item, index)).join("")}
           </section>
         ` : `
           ${renderFileDetailSummaryTabs()}
@@ -6778,7 +6800,7 @@ document.addEventListener("click", (event) => {
     if (kind === "summary") draft = fileDetailContent.summary;
     if (kind === "transcript") {
       const index = Number(key.split("-")[1]);
-      draft = fileDetailContent.transcript[index] || "";
+      draft = fileDetailContent.transcript[index]?.text || "";
     }
     fileDetailFormatPanel = "main";
     fileDetailFormatState = { ...defaultFileDetailFormatState(), ...(fileDetailContentFormats[key] || {}) };

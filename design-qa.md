@@ -117,6 +117,44 @@ final result: passed
 
 ---
 
+## Current QA gate — APP-FILE-01 转写时间与说话人（2026-08-21）
+
+- Source visual truth: `/Users/andyma/Downloads/IMG_5638.PNG`（1320 × 2868 px）。
+- Browser-rendered implementation: `implementation-app-file-01-transcript-speakers.png`（1280 × 720 px）。
+- Browser viewport: 1280 × 720 CSS px，deviceScaleFactor 1；原型手机为 390 × 844 CSS px。本轮只复刻参考图中的转写片段结构，未将竞品整页视觉替换为当前产品页面。
+- State: APP-FILE-01 已转写，`转写记录`一级标签选中。
+
+**Full-view and focused comparison evidence**
+
+- 参考图和实现图已在同一视觉比较输入中打开。两者均采用“录音相对时间 + 说话人”元信息行，正文另起一行，并以段落间距区分不同对话片段。
+- 实现沿用当前原型的播放器、一级标签、系统字体和 390 px 手机内容宽度；焦点区域中的时间、说话人、正文换行和片段间距清晰可读，因此不需要额外放大裁切。
+- `00:00:03 / 说话人 1` 与 `00:01:18 / 说话人 2` 均完整显示。字段说明面板同步出现 `transcript_segments`、`transcript_start_time`、`speaker_label` 和 `transcript_text`。
+
+**Required fidelity surfaces**
+
+- Typography: 保留现有系统字体；时间使用弱化色和等宽数字，说话人使用正文黑色与中等字重，正文维持 16 px / 1.65 行高。
+- Spacing and layout: 元信息行使用固定时间列和弹性说话人列；正文占满内容宽度，片段之间保留 28 px 间距。
+- Colors and tokens: 继续使用当前页面的白色背景、深色正文和灰色辅助信息，没有引入竞品品牌色或新的视觉体系。
+- Image and asset fidelity: 本次调整不包含新增图片或图标；播放器和页面资产保持原样。
+- Copy and content: 时间统一为 `HH:MM:SS`；默认显示“说话人 1”“说话人 2”，正文内容与原型会议场景一致。
+
+**Primary interactions tested**
+
+- 点击第一段正文后，在原位置显示文本输入与既有格式栏；时间和说话人仍保持可见、不可编辑。
+- 收起键盘后正文自动保存，编辑器退出；两段时间与说话人未被正文保存覆盖。
+- 重建后重新加载页面，转写结构、字段说明和两段内容均正确显示。
+- `node scripts/build-inline.js`、`node scripts/build-prd-preview.js`、`node --check app.js` 和 `git diff --check` 均通过。
+- 浏览器记录到原型外层环境的 `MutationObserver` 参数错误；项目源码中没有 `MutationObserver` 调用，APP-FILE-01 的渲染、标签切换和正文编辑均未受影响，本轮未发现由改动引入的控制台错误。
+
+**Findings**
+
+- No actionable P0, P1 or P2 finding remains.
+- [P3] 参考图的正文更长、纵向留白更大；实现按当前原型的信息密度保留较短的会议示例，不影响本次时间与说话人结构验收。
+
+final result: passed
+
+---
+
 ## Follow-up QA — APP-FILE-01 去除一级标签同名内容标题（2026-08-19）
 
 - Source evidence: `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-8df3881b-3f9c-4d85-9c61-45e535c35c76.png`.

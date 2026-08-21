@@ -3453,20 +3453,38 @@ button {
 }
 
 .transcript-line {
-  display: grid;
-  grid-template-columns: 58px 1fr;
-  gap: 12px;
-  margin: 14px 0;
+  margin: 0 0 28px;
 }
 
-.transcript-line b {
+.transcript-line:last-child {
+  margin-bottom: 0;
+}
+
+.transcript-meta {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 12px;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.transcript-meta time {
   color: #8c929c;
   font-size: 13px;
+  font-variant-numeric: tabular-nums;
 }
 
-.transcript-line p {
-  margin: 0;
+.transcript-meta strong {
+  color: #1b1b1d;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.transcript-line .file-inline-content {
+  padding: 0;
+  color: #292b30;
   font-size: 16px;
+  line-height: 1.65;
 }
 
 .mindmap {
@@ -4271,7 +4289,7 @@ button {
 
 .transcript-line .file-inline-content,
 .transcript-line .file-inline-content-edit {
-  flex: 1;
+  width: 100%;
 }
 
 .file-marker-viewer {
