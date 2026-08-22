@@ -123,10 +123,19 @@ let fileDetailGeneratingInitialized = false;
 let fileDetailNotice = "";
 let fileDetailNoticeTimer = null;
 let sharePermissionState = {
-  recording: false,
-  transcript: false,
-  marks: false,
-  summary: false
+  recording: true,
+  transcript: true,
+  marks: true,
+  summary: true
+};
+let activeExportFormatMenu = "";
+let exportNotice = "";
+let exportSheetState = {
+  audio: { format: "MP3" },
+  transcript: { format: "TXT", includeTimestamps: false, includeSpeakers: false },
+  marks: { format: "DOCX", includeTimestamps: true },
+  summary: { format: "Markdown" },
+  mindmap: { format: "JPEG" }
 };
 let moveFolderFolders = [
   { id: "andy", name: "Andy", count: 0, tone: "" },
@@ -768,11 +777,76 @@ const pages = [
     priority: "P0",
     goal: "从文件详情分享当前文件的链接、文本内容或导出文件。",
     entry: "文件详情右上角点击分享按钮。",
-    fields: [["share_target", "分享目标", "用户选择"], ["share_link_state", "分享链接状态", "云端分享"], ["copy_content_type", "复制内容", "转写/笔记"], ["export_content_type", "导出内容", "录音/转写/笔记/思维导图"]],
-    rules: ["分享按钮打开底部分享弹窗。", "分享链接进入分享链接设置页。", "复制到剪贴板按内容类型区分转写和笔记。", "导出文件支持录音、转写、笔记和思维导图。"],
+    fields: [["share_target", "分享目标", "用户选择"], ["share_link_state", "分享链接状态", "云端分享"], ["copy_content_type", "复制内容", "转写/标记/总结"], ["export_content_type", "导出内容", "录音/转写/标记/总结/思维导图"], ["export_format", "导出格式", "用户选择"], ["export_include_options", "导出附加内容", "用户选择"]],
+    rules: ["分享按钮打开底部分享弹窗。", "分享链接进入分享链接设置页。", "复制到剪贴板包含复制转写、复制标记和复制总结三个选项，右侧均使用复制按钮。", "导出文件支持录音、转写、标记、总结和思维导图；转写可选择时间戳和自动标注说话人，标记可选择时间戳。", "导出总结时仅包含总结部分，不含思维导图；思维导图支持单独导出。", "所有导出项均进入对应底部弹窗，格式可选择，点击导出后给出已生成反馈。"],
     states: ["默认", "分享链接", "复制到剪贴板", "导出文件"],
     deps: ["云端分享链接。", "剪贴板权限。", "导出文件生成。"],
-    acceptance: ["分享弹窗包含分享链接、复制到剪贴板和导出文件三组内容。"]
+    acceptance: ["分享弹窗包含分享链接、复制到剪贴板和导出文件三组内容；复制到剪贴板包含转写、标记、总结三个选项，右侧不显示右转箭头。", "导出文件组按录音、转写、标记、总结、思维导图顺序展示，五项均能打开对应导出弹窗；格式、开关、关闭和导出反馈可操作。"]
+  },
+  {
+    id: "APP-FILE-24",
+    group: "文件",
+    title: "导出录音",
+    priority: "P0",
+    goal: "选择录音文件格式并导出当前录音。",
+    entry: "分享弹窗点击导出录音。",
+    fields: [["export_format", "导出格式", "用户选择"], ["export_state", "导出状态", "本地任务状态"]],
+    rules: ["支持 MP3 和 WAV 格式，默认 MP3。", "关闭返回分享弹窗，导出后展示已生成反馈。"],
+    states: ["默认", "格式选择", "已生成"],
+    deps: ["本地音频文件。", "系统文件导出/分享能力。"],
+    acceptance: ["可切换 MP3/WAV 并发起导出。"]
+  },
+  {
+    id: "APP-FILE-25",
+    group: "文件",
+    title: "导出转写",
+    priority: "P0",
+    goal: "选择转写附加内容和格式后导出。",
+    entry: "分享弹窗点击导出转写。",
+    fields: [["include_timestamps", "包含时间戳", "用户选择"], ["include_speakers", "包含自动标注说话人", "用户选择"], ["export_format", "导出格式", "用户选择"]],
+    rules: ["支持时间戳和自动标注说话人两个独立开关。", "支持 TXT、SRT、DOCX、PDF，默认 TXT。"],
+    states: ["默认", "包含项切换", "格式选择", "已生成"],
+    deps: ["转写内容和说话人信息。", "系统文件导出/分享能力。"],
+    acceptance: ["两个包含项与格式均可独立切换。"]
+  },
+  {
+    id: "APP-FILE-26",
+    group: "文件",
+    title: "导出标记",
+    priority: "P0",
+    goal: "选择标记附加内容和格式后导出。",
+    entry: "分享弹窗点击导出标记。",
+    fields: [["include_timestamps", "包含时间戳", "用户选择"], ["export_format", "导出格式", "用户选择"]],
+    rules: ["时间戳默认包含。", "支持 DOCX 和 PDF，默认 DOCX。"],
+    states: ["默认", "时间戳切换", "格式选择", "已生成"],
+    deps: ["录音标记和时间戳。", "系统文件导出/分享能力。"],
+    acceptance: ["可切换时间戳并以 DOCX/PDF 导出标记。"]
+  },
+  {
+    id: "APP-FILE-27",
+    group: "文件",
+    title: "导出总结",
+    priority: "P0",
+    goal: "选择总结格式并只导出总结内容。",
+    entry: "分享弹窗点击导出总结。",
+    fields: [["export_content", "导出内容", "固定为总结"], ["export_format", "导出格式", "用户选择"]],
+    rules: ["仅导出总结，不包含思维导图。", "支持 TXT、Markdown、DOCX、PDF，默认 Markdown。"],
+    states: ["默认", "格式选择", "已生成"],
+    deps: ["AI 总结内容。", "系统文件导出/分享能力。"],
+    acceptance: ["总结内容与思维导图单独导出，格式可选择。"]
+  },
+  {
+    id: "APP-FILE-28",
+    group: "文件",
+    title: "导出思维导图",
+    priority: "P0",
+    goal: "选择思维导图格式并单独导出。",
+    entry: "分享弹窗点击导出思维导图。",
+    fields: [["export_content", "导出内容", "思维导图/总结结构"], ["export_format", "导出格式", "用户选择"]],
+    rules: ["思维导图可单独导出。", "支持 JPEG 和 Markdown，默认 JPEG。"],
+    states: ["默认", "格式选择", "已生成"],
+    deps: ["思维导图数据。", "系统文件导出/分享能力。"],
+    acceptance: ["可切换 JPEG/Markdown 并发起思维导图导出。"]
   },
   {
     id: "APP-FILE-07",
@@ -860,7 +934,7 @@ const pages = [
     goal: "选择分享链接中允许查看的文件内容。",
     entry: "分享链接页点击选择包含内容。",
     fields: [["recording_allowed", "录音", "用户选择"], ["transcript_allowed", "转写", "用户选择"], ["marks_allowed", "标记", "用户选择"], ["summary_allowed", "总结", "用户选择"]],
-    rules: ["进入查看权限时默认未选择内容，用户至少勾选一项后才可点击更新。", "点击权限项可勾选或取消勾选录音、转写、标记、总结。", "点击更新后保存查看权限设置并返回已生成分享链接页。", "未做任何选择时，更新按钮置灰不可点击。"],
+    rules: ["进入查看权限时默认全选录音、转写、标记、总结。", "点击权限项可移除或恢复对应的录音、转写、标记、总结内容。", "点击更新后保存查看权限设置并返回已生成分享链接页。", "至少保留一项内容时更新按钮可点击；全部移除时更新按钮置灰不可点击。"],
     states: ["未选择", "部分内容", "全部内容", "已更新"],
     deps: ["云端分享权限。"],
     acceptance: ["查看权限弹窗包含录音、转写、标记、总结四项和更新按钮。", "未勾选任何权限时更新按钮不可点击。", "勾选至少一项权限后更新按钮可点击，点击后返回已生成分享链接页。"]
@@ -3985,14 +4059,94 @@ function renderShareSheet() {
       <button class="share-row" data-go="APP-FILE-08"><span class="share-icon link"></span><b>分享链接</b><i>›</i></button>
       <h3>复制到剪贴板</h3>
       <button class="share-row"><span class="share-icon doc"></span><b>转写</b><i>□</i></button>
-      <button class="share-row"><span class="share-icon doc"></span><b>笔记</b><i>›</i></button>
+      <button class="share-row"><span class="share-icon doc"></span><b>标记</b><i>□</i></button>
+      <button class="share-row"><span class="share-icon doc"></span><b>总结</b><i>□</i></button>
       <h3>导出文件</h3>
-      <button class="share-row"><span class="share-icon audio"></span><b>录音</b><i>›</i></button>
-      <button class="share-row"><span class="share-icon doc"></span><b>转写</b><i>›</i></button>
-      <button class="share-row"><span class="share-icon doc"></span><b>笔记</b><i>›</i></button>
-      <button class="share-row"><span class="share-icon map"></span><b>思维导图</b><i>›</i></button>
+      <button class="share-row" data-go="APP-FILE-24"><span class="share-icon audio"></span><b>录音</b><i>›</i></button>
+      <button class="share-row" data-go="APP-FILE-25"><span class="share-icon doc"></span><b>转写</b><i>›</i></button>
+      <button class="share-row" data-go="APP-FILE-26"><span class="share-icon mark"></span><b>标记</b><i>›</i></button>
+      <button class="share-row" data-go="APP-FILE-27"><span class="share-icon doc"></span><b>总结</b><i>›</i></button>
+      <button class="share-row" data-go="APP-FILE-28"><span class="share-icon map"></span><b>思维导图</b><i>›</i></button>
     </section>
   `;
+}
+
+const exportSheetConfigs = {
+  audio: { pageId: "APP-FILE-24", title: "录音", formats: ["MP3", "WAV"] },
+  transcript: {
+    pageId: "APP-FILE-25",
+    title: "转写",
+    sectionTitle: "包含",
+    formats: ["TXT", "SRT", "DOCX", "PDF"],
+    options: [
+      { key: "includeTimestamps", label: "时间戳", control: "switch" },
+      { key: "includeSpeakers", label: "自动标注说话人", control: "switch" }
+    ]
+  },
+  marks: {
+    pageId: "APP-FILE-26",
+    title: "标记",
+    sectionTitle: "包含",
+    formats: ["DOCX", "PDF"],
+    options: [{ key: "includeTimestamps", label: "时间戳", control: "switch" }]
+  },
+  summary: {
+    pageId: "APP-FILE-27",
+    title: "总结",
+    formats: ["TXT", "Markdown", "DOCX", "PDF"],
+    options: [{ key: "summaryOnly", label: "总结", control: "radio" }]
+  },
+  mindmap: {
+    pageId: "APP-FILE-28",
+    title: "思维导图",
+    formats: ["JPEG", "Markdown"],
+    options: [{ key: "summaryStructure", label: "总结", control: "radio" }]
+  }
+};
+
+function renderExportSheet(type) {
+  const config = exportSheetConfigs[type];
+  const state = exportSheetState[type];
+  const hasOptions = Boolean(config.options?.length);
+  const formatMenuOpen = activeExportFormatMenu === type;
+  return `
+    ${renderFileDetail()}
+    <div class="scrim light" data-action="close-export-sheet"></div>
+    <section class="export-sheet" aria-label="导出${h(config.title)}">
+      <div class="export-sheet-head">
+        <h2>导出${h(config.title)}</h2>
+        <button class="export-close" data-action="close-export-sheet" aria-label="关闭">×</button>
+      </div>
+      <div class="export-divider"></div>
+      ${hasOptions ? `
+        ${config.sectionTitle ? `<h3>${h(config.sectionTitle)}</h3>` : ""}
+        <div class="export-option-list">
+          ${config.options.map((option) => {
+            const selected = option.control === "radio" || Boolean(state[option.key]);
+            return `<button class="export-option" ${option.control === "switch" ? `data-action="toggle-export-option" data-export-type="${type}" data-export-option="${option.key}" aria-pressed="${selected}"` : "disabled"}>
+              <span>${h(option.label)}</span>
+              <i class="${option.control === "switch" ? `export-switch ${selected ? "is-on" : ""}` : "export-radio is-selected"}" aria-hidden="true"></i>
+            </button>`;
+          }).join("")}
+        </div>
+        <div class="export-divider section-divider"></div>
+      ` : ""}
+      <button class="export-format-row" data-action="toggle-export-format-menu" data-export-type="${type}" aria-expanded="${formatMenuOpen}">
+        <span>导出格式</span><b>${h(state.format)}</b><i aria-hidden="true">⌄</i>
+      </button>
+      ${formatMenuOpen ? `<div class="export-format-menu" role="listbox" aria-label="选择导出格式">
+        ${config.formats.map((format) => `<button data-action="select-export-format" data-export-type="${type}" data-export-format="${format}" role="option" aria-selected="${state.format === format}"><span>${h(format)}</span><i>${state.format === format ? "◉" : "○"}</i></button>`).join("")}
+      </div>` : ""}
+      ${exportNotice ? `<p class="export-notice" role="status">${h(exportNotice)}</p>` : ""}
+      <button class="export-submit" data-action="submit-export" data-export-type="${type}">导出</button>
+    </section>
+  `;
+}
+
+function closeExportSheet() {
+  activeExportFormatMenu = "";
+  exportNotice = "";
+  go("APP-FILE-06");
 }
 
 function renderMoreMenu() {
@@ -4122,8 +4276,15 @@ function renderSpeakerNamingSheet() {
 }
 
 function renderShareControls() {
+  const selectedLabels = [
+    ["recording", "录音"],
+    ["transcript", "转写"],
+    ["marks", "标记"],
+    ["summary", "总结"]
+  ].filter(([key]) => sharePermissionState[key]).map(([, label]) => label);
+  const includeLabel = selectedLabels.length === 4 ? "全部内容" : selectedLabels.length ? selectedLabels.join("、") : "未选择内容";
   return `
-    <button class="include-row" data-go="APP-FILE-09"><span>选择包含内容</span><b>全部内容 ›</b></button>
+    <button class="include-row" data-go="APP-FILE-09"><span>选择包含内容</span><b>${includeLabel} ›</b></button>
     <button class="include-row expiry-row" data-go="APP-FILE-21"><span>链接有效期</span><b>永久有效 ⌄</b></button>
   `;
 }
@@ -5727,6 +5888,11 @@ const renderers = {
   "APP-FILE-04": renderAudioSettings,
   "APP-FILE-05": renderSpeedSheet,
   "APP-FILE-06": renderShareSheet,
+  "APP-FILE-24": () => renderExportSheet("audio"),
+  "APP-FILE-25": () => renderExportSheet("transcript"),
+  "APP-FILE-26": () => renderExportSheet("marks"),
+  "APP-FILE-27": () => renderExportSheet("summary"),
+  "APP-FILE-28": () => renderExportSheet("mindmap"),
   "APP-FILE-07": renderMoreMenu,
   "APP-FILE-16": renderMoveFolderSheet,
   "APP-FILE-17": renderFindReplace,
@@ -5802,7 +5968,7 @@ function renderNav() {
 }
 
 function renderFlow() {
-  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-07", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-DEV-05", "APP-HOME-01", "APP-SYNC-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-REC-03", "APP-AI-02", "APP-AI-03", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-02", "APP-ME-16", "APP-ME-26", "APP-ME-27", "APP-ME-28", "APP-ME-29", "APP-ME-30", "APP-ME-31", "APP-ME-32", "APP-ME-33", "APP-ME-34", "APP-ME-35", "APP-ME-36", "APP-ME-37", "APP-ME-38", "APP-ME-40", "APP-ME-39", "APP-ME-17", "APP-ME-18", "APP-ME-41", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-23", "APP-ME-10", "APP-ME-11", "APP-ME-12", "APP-DEV-03", "APP-DEV-11", "APP-DEV-10", "APP-ME-04", "APP-ME-24", "APP-ME-25", "APP-DEV-06", "APP-DEV-07", "APP-DEV-08", "APP-DEV-09"];
+  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-07", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-DEV-05", "APP-HOME-01", "APP-SYNC-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-REC-03", "APP-AI-02", "APP-AI-03", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-24", "APP-FILE-25", "APP-FILE-26", "APP-FILE-27", "APP-FILE-28", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-02", "APP-ME-16", "APP-ME-26", "APP-ME-27", "APP-ME-28", "APP-ME-29", "APP-ME-30", "APP-ME-31", "APP-ME-32", "APP-ME-33", "APP-ME-34", "APP-ME-35", "APP-ME-36", "APP-ME-37", "APP-ME-38", "APP-ME-40", "APP-ME-39", "APP-ME-17", "APP-ME-18", "APP-ME-41", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-23", "APP-ME-10", "APP-ME-11", "APP-ME-12", "APP-DEV-03", "APP-DEV-11", "APP-DEV-10", "APP-ME-04", "APP-ME-24", "APP-ME-25", "APP-DEV-06", "APP-DEV-07", "APP-DEV-08", "APP-DEV-09"];
   flow.splice(flow.indexOf("APP-FILE-03") + 1, 0, "APP-FILE-23");
   document.getElementById("flowStrip").innerHTML = flow.map((id, index) => {
     const page = pageById(id);
@@ -7189,6 +7355,46 @@ document.addEventListener("click", (event) => {
   }
   if (action && action.dataset.action === "save-share-permission") {
     if (Object.values(sharePermissionState).some(Boolean)) go("APP-FILE-20");
+    return;
+  }
+  if (action && action.dataset.action === "close-export-sheet") {
+    closeExportSheet();
+    return;
+  }
+  if (action && action.dataset.action === "toggle-export-format-menu") {
+    const type = action.dataset.exportType;
+    if (!exportSheetConfigs[type]) return;
+    activeExportFormatMenu = activeExportFormatMenu === type ? "" : type;
+    exportNotice = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "select-export-format") {
+    const type = action.dataset.exportType;
+    const format = action.dataset.exportFormat;
+    if (!exportSheetConfigs[type]?.formats.includes(format)) return;
+    exportSheetState[type] = { ...exportSheetState[type], format };
+    activeExportFormatMenu = "";
+    exportNotice = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "toggle-export-option") {
+    const type = action.dataset.exportType;
+    const option = action.dataset.exportOption;
+    if (!Object.prototype.hasOwnProperty.call(exportSheetState[type] || {}, option)) return;
+    exportSheetState[type] = { ...exportSheetState[type], [option]: !exportSheetState[type][option] };
+    exportNotice = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "submit-export") {
+    const type = action.dataset.exportType;
+    const config = exportSheetConfigs[type];
+    if (!config) return;
+    activeExportFormatMenu = "";
+    exportNotice = `已生成${config.title}，可通过系统分享保存或发送`;
+    render();
     return;
   }
   if (action && action.dataset.action === "open-create-folder") {

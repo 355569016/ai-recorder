@@ -7472,6 +7472,30 @@ button {
   box-shadow: 0 5px 0 #111;
 }
 
+.share-icon.mark::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 3px;
+  width: 14px;
+  height: 17px;
+  border: 2px solid #111;
+  border-radius: 1px;
+}
+
+.share-icon.mark::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  bottom: 1px;
+  width: 8px;
+  height: 8px;
+  background: #fff;
+  border-left: 2px solid #111;
+  border-top: 2px solid #111;
+  transform: rotate(-45deg);
+}
+
 .share-icon.audio::before {
   content: "";
   position: absolute;
@@ -7503,6 +7527,218 @@ button {
   height: 16px;
   border-top: 2px solid #111;
   border-bottom: 2px solid #111;
+}
+
+.export-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 6;
+  min-height: 44%;
+  max-height: 78%;
+  overflow: auto;
+  padding: 30px 26px 28px;
+  border-radius: 14px 14px 0 0;
+  background: #fff;
+  box-shadow: 0 -20px 54px rgba(0, 0, 0, .2);
+}
+
+.export-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.export-sheet h2 {
+  margin: 0;
+  color: #111;
+  font-size: 31px;
+  font-weight: 700;
+  letter-spacing: -.6px;
+}
+
+.export-close {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  background: transparent;
+  color: #111;
+  font-size: 35px;
+  font-weight: 300;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.export-divider {
+  height: 1px;
+  margin: 24px 0 28px;
+  background: #eceef0;
+}
+
+.export-sheet h3 {
+  margin: 0 0 20px;
+  color: #1a1a1a;
+  font-size: 23px;
+  font-weight: 600;
+}
+
+.export-option-list {
+  display: grid;
+  gap: 12px;
+}
+
+.export-option,
+.export-format-row {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #383838;
+  font-size: 18px;
+  text-align: left;
+}
+
+.export-option:not(:disabled),
+.export-format-row {
+  cursor: pointer;
+}
+
+.export-option:disabled {
+  opacity: 1;
+}
+
+.export-switch {
+  width: 44px;
+  height: 26px;
+  position: relative;
+  border-radius: 999px;
+  background: #d8d8d8;
+  transition: background .18s ease;
+}
+
+.export-switch::after {
+  content: "";
+  width: 22px;
+  height: 22px;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .16);
+  transition: transform .18s ease;
+}
+
+.export-switch.is-on {
+  background: #171717;
+}
+
+.export-switch.is-on::after {
+  transform: translateX(18px);
+}
+
+.export-radio {
+  width: 28px;
+  height: 28px;
+  border: 3px solid #111;
+  border-radius: 50%;
+  position: relative;
+}
+
+.export-radio.is-selected::after {
+  content: "";
+  width: 12px;
+  height: 12px;
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  border-radius: 50%;
+  background: #111;
+}
+
+.export-sheet .section-divider {
+  margin: 20px 0 10px;
+}
+
+.export-format-row {
+  min-height: 58px;
+  font-size: 19px;
+}
+
+.export-format-row b {
+  margin-left: auto;
+  color: #aaaeb3;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.export-format-row i {
+  margin-left: 8px;
+  color: #c3c6ca;
+  font-size: 24px;
+  font-style: normal;
+}
+
+.export-format-menu {
+  width: calc(100% - 52px);
+  position: absolute;
+  right: 26px;
+  bottom: 94px;
+  z-index: 2;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, .16);
+}
+
+.export-format-menu button {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 0;
+  border-bottom: 1px solid #eceef0;
+  padding: 0 18px;
+  background: #fff;
+  color: #484848;
+  font-size: 19px;
+  cursor: pointer;
+}
+
+.export-format-menu button:last-child {
+  border-bottom: 0;
+}
+
+.export-format-menu i {
+  color: #111;
+  font-size: 24px;
+  font-style: normal;
+}
+
+.export-notice {
+  margin: 0 0 14px;
+  color: #5d6570;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.export-submit {
+  width: 100%;
+  min-height: 58px;
+  border: 0;
+  border-radius: 6px;
+  background: #1c1c1c;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .more-popover {

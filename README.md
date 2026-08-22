@@ -13,9 +13,8 @@
 | `AI录音卡App页面效果设计需求文档_v3.0.md` | 给开发看的页面效果设计需求文档 |
 | `scripts/build-inline.js` | 将 `app.js` 同步内联到 `index.html` |
 | `scripts/build-prd-preview.js` | 将上级目录的 `AI录音卡App需求文档_v3.0.md` 转换为 `prd-preview.html` |
-| `qa-home-http.png` | 首页渲染验证截图 |
-| `qa-generate-http.png` | 生成弹层渲染验证截图 |
-| `design-qa.md` | 本轮设计 QA 记录 |
+| `../AI录音卡App原型设计QA与过程证据_v3.0/design-qa-evidence/` | 本地设计 QA、实现截图、对比图与渲染验证证据归档；不参与原型运行或 GitHub Pages 展示 |
+| `../AI录音卡App原型设计QA与过程证据_v3.0/current-work-in-progress/` | 本地未提交的计划、过程截图和候选资源归档；不参与原型运行或 GitHub Pages 展示 |
 
 ## 打开方式
 
