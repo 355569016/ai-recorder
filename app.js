@@ -51,6 +51,16 @@ let fileDetailContent = {
       time: "00:01:18",
       speaker: "说话人 2",
       text: "图片、标注和商品关联需要先做最小可用链路，复杂规则放到下一版。"
+    },
+    {
+      time: "00:02:46",
+      speaker: "说话人 1",
+      text: "标准商城与积分商城先共用基础的拼团能力，差异化规则在后续方案中再确认。"
+    },
+    {
+      time: "00:04:12",
+      speaker: "说话人 3",
+      text: "原型评审完成后，产品、研发和设计分别补齐 PRD、技术方案与关键页面，进入灰度测试准备。"
     }
   ]
 };
@@ -645,12 +655,13 @@ const pages = [
     priority: "P0",
     goal: "集中播放音频、查看并原位编辑录音标记、转写内容和智能总结，同时查看大纲、待办事项和思维导图。",
     entry: "文件列表点击文件、同步完成通知、任务完成通知。",
-    fields: [["display_title", "展示标题", "文件名/云端同步数据/AI 摘要"], ["title_source", "标题来源", "本地数据库/云端/AI"], ["ai_tags", "AI 标签", "AI 会议总结"], ["audio_progress", "播放进度", "本地播放器"], ["skip_silence_enabled", "跳过空白片段", "播放器设置"], ["playback_rate", "播放倍速", "播放器设置"], ["transcript_segments", "对话转写片段", "转写服务"], ["transcript_start_time", "录音相对时间 HH:MM:SS", "转写片段索引"], ["speaker_label", "说话人编号或名称", "说话人分离/本地命名"], ["transcript_text", "转写正文", "转写服务/用户编辑"], ["ai_sections", "AI 内容结构", "AI 模板"], ["marker_list", "文件标记列表", "录音标记/本地数据库"], ["marker_anchor_map", "标记锚点映射", "录音标记/播放时间戳"], ["marker_generation_role", "标记生成作用", "AI 生成任务快照"], ["note_question", "笔记提问", "AI 问答"], ["share_state", "分享状态", "云端分享"]],
-    rules: ["开启同步云端时，标题优先根据云端同步数据提炼。", "未开启同步云端时，标题默认使用文件名称。", "生成 AI 会议摘要后，标题根据 AI 会议内容重新提炼总结。", "生成 AI 会议总结后，根据会议内容提取关键标签。", "播放器进度条支持点击和拖动调整音频进度。", "播放器控制区包含音频设置、快退 15 秒、播放、快进 15 秒、倍速，不展示额外方向箭头。", "已转写文件的一级标签统一为标记、总结和转写记录，一级标签按内容宽度左对齐排列，负责切换内容类型；标记和转写记录内容区不再重复显示同名标题。", "转写记录按对话片段展示；每段先显示录音相对时间和说话人，正文另起一行。时间统一为 HH:MM:SS，不足一小时也补齐小时位。", "默认说话人按分离结果显示为说话人 1、说话人 2，并继续递增；同一说话人在不同时间片段保持相同编号，保存自定义名称后同步更新对应片段。", "转写时间和说话人只读，只有正文进入原位编辑。", "点击总结后展示智能总结、章节大纲、待办事项和思维导图四个二级标签；四块内容在同一长页面中按此顺序连续展示，二级标签只负责快速定位，页面滚动时同步更新选中态。", "未转写和生成中状态仅保留标记、总结两个一级标签，不提前展示转写记录或总结二级标签。", "录音中产生的文字、时间和照片标记在录音结束后完整继承到文件详情，不能依赖转写或 AI 生成状态。", "录音结束后不再允许新增标记，只能维护录音过程中已经产生的标记。", "点击标记时间或播放图标定位到对应音频时间并开始播放。", "点击标记文本、照片说明、转写记录或智能总结时，原文字直接出现光标并唤起系统键盘；不打开弹窗、新页面，不增加边框、下划线、取消或保存按钮。", "智能总结和转写记录使用系统键盘上方的轻量格式工具栏，至少包含标题/正文、列表、对齐、引用、撤销和重做；普通标记与照片说明保持纯文本键盘，不展示格式工具栏。", "编辑内容实时记录，输入框失焦、收起键盘或切换其他标签时自动保存。", "照片可打开和删除；标记时间与来源保持只读。", "生成 AI 内容时读取当时的标记快照作为辅助笔记；生成后继续编辑标记不会静默改写既有 AI 内容，重新生成时再读取最新标记。", "页面底部固定展示对此笔记提问输入框。", "右上角分享按钮打开分享弹窗，三个点打开更多操作浮层。"],
-    states: ["标记一级标签", "总结一级标签", "转写记录一级标签", "智能总结二级标签", "章节大纲二级标签", "待办事项二级标签", "思维导图二级标签", "标记原位编辑", "转写原位编辑", "总结原位编辑", "照片预览", "未生成 AI 摘要", "AI 已生成", "音频设置", "倍速选择", "分享", "更多操作", "文件损坏", "删除确认"],
+    fields: [["display_title", "展示标题", "文件名/云端同步数据/AI 摘要"], ["title_source", "标题来源", "本地数据库/云端/AI"], ["ai_tags", "AI 标签", "AI 会议总结"], ["audio_progress", "播放进度", "本地播放器"], ["skip_silence_enabled", "跳过空白片段", "播放器设置"], ["playback_rate", "播放倍速", "播放器设置"], ["transcript_segments", "对话转写片段", "转写服务"], ["transcript_start_time", "录音相对时间 HH:MM:SS", "转写片段索引"], ["speaker_label", "说话人编号或名称", "说话人分离/本地命名"], ["transcript_text", "转写正文", "转写服务/用户编辑"], ["ai_sections", "AI 内容结构", "AI 模板"], ["marker_list", "文件标记列表", "录音标记/本地数据库"], ["marker_anchor_map", "标记锚点映射", "录音标记/播放时间戳"], ["marker_generation_role", "标记生成作用", "AI 生成任务快照"], ["note_question", "文件提问", "用户输入/AI 问答"], ["answer_source_refs", "回答引用来源", "转写片段索引"], ["share_state", "分享状态", "云端分享"]],
+    rules: ["开启同步云端时，标题优先根据云端同步数据提炼。", "未开启同步云端时，标题默认使用文件名称。", "生成 AI 会议摘要后，标题根据 AI 会议内容重新提炼总结。", "生成 AI 会议总结后，根据会议内容提取关键标签。", "播放器进度条支持点击和拖动调整音频进度。", "播放器控制区包含音频设置、快退 15 秒、播放、快进 15 秒、倍速，不展示额外方向箭头。", "已转写文件的一级标签统一为标记、总结和转写记录，一级标签按内容宽度左对齐排列，负责切换内容类型；标记和转写记录内容区不再重复显示同名标题。", "转写记录按对话片段展示；每段先显示录音相对时间和说话人，正文另起一行。时间统一为 HH:MM:SS，不足一小时也补齐小时位。", "默认说话人按分离结果显示为说话人 1、说话人 2，并继续递增；同一说话人在不同时间片段保持相同编号，保存自定义名称后同步更新对应片段。", "转写时间和说话人只读，只有正文进入原位编辑。", "点击总结后展示智能总结、章节大纲、待办事项和思维导图四个二级标签；四块内容在同一长页面中按此顺序连续展示，二级标签只负责快速定位，页面滚动时同步更新选中态。", "未转写和生成中状态仅保留标记、总结两个一级标签，不提前展示转写记录或总结二级标签。", "录音中产生的文字、时间和照片标记在录音结束后完整继承到文件详情，不能依赖转写或 AI 生成状态。", "录音结束后不再允许新增标记，只能维护录音过程中已经产生的标记。", "点击标记时间或播放图标定位到对应音频时间并开始播放。", "点击标记文本、照片说明、转写记录或智能总结时，原文字直接出现光标并唤起系统键盘；不打开弹窗、新页面，不增加边框、下划线、取消或保存按钮。", "智能总结和转写记录使用系统键盘上方的轻量格式工具栏，至少包含标题/正文、列表、对齐、引用、撤销和重做；普通标记与照片说明保持纯文本键盘，不展示格式工具栏。", "编辑内容实时记录，输入框失焦、收起键盘或切换其他标签时自动保存。", "照片可打开和删除；标记时间与来源保持只读。", "生成 AI 内容时读取当时的标记快照作为辅助笔记；生成后继续编辑标记不会静默改写既有 AI 内容，重新生成时再读取最新标记。", "页面底部固定展示“对此文件提问”输入框；普通输入不显示快捷能力标签，只有点击当前模型和模板提供的快速入口后才显示对应标签并直接开始分析。", "普通提问与快捷分析都自动经历 2 秒思考中、2 秒思考过程，再显示思考完成后的答案；手机内不放阶段推进或暂停按钮，不同阶段仅由右侧状态链路预览。", "回答中的来源仅显示可点击的圈号数字；点击后打开标题为“来源”的完整转写对话流，相关片段高亮，面板内可下拉、加载更多并点击任一片段播放，播放片段的说话人右侧显示小喇叭。", "回答操作区暂不提供加入笔记图标入口。", "右上角分享按钮打开分享弹窗，三个点打开更多操作浮层。"],
+    states: ["标记一级标签", "总结一级标签", "转写记录一级标签", "智能总结二级标签", "章节大纲二级标签", "待办事项二级标签", "思维导图二级标签", "文件提问默认", "普通提问思考中", "普通提问思考过程", "快捷入口分析中", "思考暂停", "思考完成并显示答案", "打开来源完整转写", "来源片段播放", "标记原位编辑", "转写原位编辑", "总结原位编辑", "照片预览", "未生成 AI 摘要", "AI 已生成", "音频设置", "倍速选择", "分享", "更多操作", "文件损坏", "删除确认"],
     deps: ["本地播放器：进度、跳转、快退快进、倍速。", "音频分析：静音/无声片段识别。", "转写服务：转写记录和时间戳。", "说话人分离与命名：片段说话人编号和自定义名称。", "本地数据库：录音标记、备注、照片附件。", "AI 服务：标题、标签、大纲、总结、待办、思维导图、笔记问答。", "云端分享：分享链接和权限。"],
-    acceptance: ["已转写详情必须展示左对齐的标记、总结、转写记录三个一级标签，且同一时刻只展示一个一级内容；标记与转写记录内容区不得重复出现同名标题，标记页不得显示标记数量与生成状态说明。", "每段转写必须显示 HH:MM:SS 录音相对时间、对应说话人和正文；时间与说话人只读，正文保持原位编辑，同一说话人跨片段编号一致。", "总结一级标签内必须展示智能总结、章节大纲、待办事项、思维导图四个二级标签；点击可定位到同页对应区块，继续下滑可依次阅读全部四块内容，滚动时选中态同步变化。", "未转写和生成中详情只展示标记、总结两个一级标签，不显示转写记录和总结二级标签。", "录音期间的全部标记在已生成文件详情中完整展示，并可继续编辑。", "录音结束后的文件详情不得出现新增标记入口。", "点击标记时间定位音频；点击标记内容、转写记录和智能总结均在原文字位置直接输入，仅显示光标和系统键盘，不出现独立窗口或显式保存操作。", "总结和转写编辑时格式栏可切换标题、列表、对齐和引用；标记编辑时不显示格式栏。", "失焦、收起键盘或切换标签后内容自动保存。", "照片可查看或删除，时间与来源只读。", "思维导图按卡片预览呈现。", "音频设置和倍速按钮能打开对应弹窗。", "底部有对此笔记提问输入框。", "标题和标签规则在字段与交互说明中明确。"],
-    prototypeLinks: [["文件详情已转写", "APP-FILE-01"], ["文件详情为空", "APP-FILE-10"]]
+    acceptance: ["已转写详情必须展示左对齐的标记、总结、转写记录三个一级标签，且同一时刻只展示一个一级内容；标记与转写记录内容区不得重复出现同名标题，标记页不得显示标记数量与生成状态说明。", "每段转写必须显示 HH:MM:SS 录音相对时间、对应说话人和正文；时间与说话人只读，正文保持原位编辑，同一说话人跨片段编号一致。", "总结一级标签内必须展示智能总结、章节大纲、待办事项、思维导图四个二级标签；点击可定位到同页对应区块，继续下滑可依次阅读全部四块内容，滚动时选中态同步变化。", "未转写和生成中详情只展示标记、总结两个一级标签，不显示转写记录和总结二级标签。", "录音期间的全部标记在已生成文件详情中完整展示，并可继续编辑。", "录音结束后的文件详情不得出现新增标记入口。", "点击标记时间定位音频；点击标记内容、转写记录和智能总结均在原文字位置直接输入，仅显示光标和系统键盘，不出现独立窗口或显式保存操作。", "总结和转写编辑时格式栏可切换标题、列表、对齐和引用；标记编辑时不显示格式栏。", "失焦、收起键盘或切换标签后内容自动保存。", "照片可查看或删除，时间与来源只读。", "思维导图按卡片预览呈现。", "音频设置和倍速按钮能打开对应弹窗。", "普通输入提问不显示快捷能力标签；快捷入口仅按当前模型与模板的可用能力展示，点击后立即开始对应分析。", "实际提问会自动经历 2 秒思考中、2 秒思考过程并显示答案，手机内没有完成、查看或暂停等阶段切换按钮；右侧状态链路可独立预览各阶段。", "回答来源仅显示可点击的数字圈号；来源面板标题为“来源”，展示可滚动、可加载的完整转写对话，相关文本高亮，点击任一片段开始播放且该说话人右侧显示小喇叭。", "回答操作区不显示加入笔记图标入口。", "标题和标签规则在字段与交互说明中明确。"],
+    prototypeLinks: [["文件详情已转写", "APP-FILE-01"], ["文件详情为空", "APP-FILE-10"]],
+    prototypeActions: [["普通提问", "set-ask-demo-state", "direct"], ["获取洞察", "set-ask-demo-state", "insight"], ["思考中", "set-ask-demo-state", "thinking"], ["思考过程", "set-ask-demo-state", "process"], ["思考完成", "set-ask-demo-state", "complete"], ["暂停思考", "set-ask-demo-state", "paused"]]
   },
   {
     id: "APP-FILE-10",
@@ -1555,8 +1566,13 @@ let selectedAudioLanguage = "自动";
 let selectedAiModel = "自动";
 let askPlaudMode = "closed";
 let askPlaudPrompt = "";
-let askPlaudSkill = "获取洞察";
+let askPlaudSkill = "";
 let askPlaudTipVisible = true;
+let askPlaudSourceIndex = null;
+let askPlaudThinkingStage = "idle";
+let askPlaudThinkingTimer = null;
+let askPlaudSourceVisibleCount = 3;
+let askPlaudSourcePlayingIndex = null;
 let deviceSnTipOpen = false;
 let homeSyncStage = "finishing";
 let homeSyncTransport = new URLSearchParams(window.location.search).get("sync") === "hotspot" ? "hotspot" : "ble";
@@ -1744,6 +1760,13 @@ function go(id) {
   clearFirmwareUpdateTimer();
   previousPageId = currentPageId;
   currentPageId = id === "APP-HOME-02" ? "APP-HOME-01" : id === "APP-SYNC-02" ? "APP-SYNC-01" : id;
+  if (currentPageId !== "APP-FILE-01") {
+    clearAskPlaudThinkingTimer();
+    askPlaudMode = "closed";
+    askPlaudThinkingStage = "idle";
+    askPlaudSourceIndex = null;
+    askPlaudSourcePlayingIndex = null;
+  }
   if (currentPageId === "APP-REC-04") deviceRecordingActive = true;
   if (currentPageId === "APP-DEV-11" && previousPageId !== "APP-DEV-11") {
     const activeDevice = boundHomeDevices.find((device) => device.id === activeHomeDeviceId) || boundHomeDevices[0];
@@ -3257,62 +3280,139 @@ function renderRecording() {
 }
 
 const askPlaudSuggestions = [
-  "What are the primary drivers of demand and supply volatility in manufacturing?",
-  "What unspoken concerns might underlie Maya's apprehension about core hours?",
-  "What is the underlying reason for Marcus deferring flexible working discussion?"
+  "本次会议确认的 MVP 范围是什么？",
+  "图片、标注和商品关联应如何安排？",
+  "哪些规则被放到下一版本处理？"
 ];
 
 const askPlaudFollowups = [
-  "在制造业中，数字孪生如何具体帮助企业应对劳动力短缺的问题？",
-  "除了数字孪生，还有哪些关键因素能帮助制造企业在波动中保持竞争力？",
-  "在推行灵活工作制时，团队通常会面临哪些具体的沟通挑战？"
+  "标准商城和积分商城的拼团功能需要如何区分？",
+  "这次评审后，下一步需要谁来推进？",
+  "复杂规则在下一版前需要先确认哪些边界？"
 ];
+
+const askPlaudQuickActionCatalog = [
+  { id: "insight", label: "获取洞察", icon: "skill-1" },
+  { id: "brief", label: "团队简报", icon: "skill-2" },
+  { id: "actions", label: "确认行动项", icon: "skill-3" }
+];
+
+const askPlaudRuntimeCapabilities = {
+  model: "自动",
+  template: "会议总结",
+  quickActionIds: ["insight", "brief", "actions"]
+};
+
+const askPlaudSources = [
+  { number: 1, transcriptIndex: 0, highlight: "拼团营销工具的 MVP 范围" },
+  { number: 2, transcriptIndex: 1, highlight: "图片、标注和商品关联需要先做最小可用链路" }
+];
+
+function getAskPlaudQuickActions() {
+  return askPlaudQuickActionCatalog.filter((item) => askPlaudRuntimeCapabilities.quickActionIds.includes(item.id));
+}
+
+function clearAskPlaudThinkingTimer() {
+  if (!askPlaudThinkingTimer) return;
+  window.clearTimeout(askPlaudThinkingTimer);
+  askPlaudThinkingTimer = null;
+}
+
+function startAskPlaudThinking({ stage = "thinking", auto = true } = {}) {
+  clearAskPlaudThinkingTimer();
+  askPlaudMode = "thinking";
+  askPlaudThinkingStage = stage;
+  askPlaudSourceIndex = null;
+  if (!auto || stage === "paused") {
+    render();
+    return;
+  }
+  askPlaudThinkingTimer = window.setTimeout(() => {
+    if (askPlaudMode !== "thinking" || askPlaudThinkingStage !== "thinking") return;
+    askPlaudThinkingStage = "process";
+    render();
+    askPlaudThinkingTimer = window.setTimeout(() => {
+      if (askPlaudMode !== "thinking" || askPlaudThinkingStage !== "process") return;
+      askPlaudThinkingTimer = null;
+      askPlaudThinkingStage = "complete";
+      askPlaudMode = "answer";
+      render();
+    }, 2000);
+  }, 2000);
+  render();
+}
+
+function renderAskQuestionBubble() {
+  return askPlaudPrompt ? `<p class="ask-question-bubble">${h(askPlaudPrompt)}</p>` : "";
+}
 
 function renderAskPlaudInput() {
   const thinking = askPlaudMode === "thinking";
   return `
     <form class="ask-input-bar" data-action="ask-submit">
       <span>Beta</span>
-      <input id="askPlaudInput" placeholder="对此笔记提问" value="${h(askPlaudPrompt)}" aria-label="对此笔记提问">
-      <button type="submit" class="${thinking ? "stop" : ""}" aria-label="${thinking ? "停止生成" : "发送问题"}">${thinking ? "■" : "↑"}</button>
+      <input id="askPlaudInput" placeholder="对此文件提问" value="${h(askPlaudPrompt)}" aria-label="对此文件提问" ${thinking ? "disabled" : ""}>
+      <button type="${thinking ? "button" : "submit"}" class="${thinking ? "thinking" : ""}" aria-label="${thinking ? "正在思考" : "发送问题"}" ${thinking ? "disabled" : ""}>${thinking ? "…" : "↑"}</button>
     </form>
   `;
 }
 
 function renderAskPlaudSkills() {
+  const actions = getAskPlaudQuickActions();
+  if (!actions.length) return "";
   return `
-    <div class="ask-skill-row" aria-label="AI 技能">
-      ${["获取洞察", "团队简报", "确认行动项"].map((label, index) => `
-        <button class="${askPlaudSkill === label ? "selected" : ""}" data-action="ask-use-skill" data-skill="${h(label)}">
-          <i class="skill-${index + 1}"></i>${h(label)}
+    <div class="ask-skill-row" aria-label="根据当前模型和模板提供的快速入口">
+      ${actions.map((item) => `
+        <button data-action="ask-use-skill" data-skill-id="${h(item.id)}">
+          <i class="${h(item.icon)}"></i>${h(item.label)}
         </button>
       `).join("")}
     </div>
   `;
 }
 
+function renderAskCitation(sourceNumber) {
+  const source = askPlaudSources.find((item) => item.number === sourceNumber);
+  if (!source) return "";
+  return `<button class="ask-citation" data-action="ask-open-source" data-source-number="${source.number}" aria-label="打开来源 ${source.number}">${source.number}</button>`;
+}
+
 function renderAskPlaudAnswer() {
+  const quickAction = askPlaudSkill ? `<span class="ask-selected-skill"><i></i>${h(askPlaudSkill)}</span>` : "";
+  const answerLead = askPlaudPrompt
+    ? `关于“${h(askPlaudPrompt)}”，当前转写明确提到：`
+    : askPlaudSkill === "团队简报"
+      ? "团队已对本次评审形成如下共识："
+      : askPlaudSkill === "确认行动项"
+        ? "根据本次评审，可确认以下行动方向："
+        : "本次评审的核心洞察是：";
+  const answerParagraphs = askPlaudSkill === "团队简报"
+    ? [
+      `本次评审已确认拼团营销工具以 <strong>MVP 范围</strong> 为第一优先级，先打通核心链路，再逐步扩展。${renderAskCitation(1)}`,
+      `图片、标注和商品关联先按 <strong>最小可用链路</strong> 推进；复杂规则由后续方案继续细化。${renderAskCitation(2)}`
+    ]
+    : askPlaudSkill === "确认行动项"
+      ? [
+        `产品、研发和设计需围绕已确认的 <strong>MVP 范围</strong> 补齐 PRD、技术方案与关键页面。${renderAskCitation(1)}`,
+        `复杂规则暂不进入本期，先完成图片、标注和商品关联的 <strong>最小可用链路</strong> 并准备灰度测试。${renderAskCitation(2)}`
+      ]
+      : [
+        `这次评审首先确认了拼团营销工具的 <strong>MVP 范围</strong>，重点是先把核心链路跑通。${renderAskCitation(1)}`,
+        `图片、标注和商品关联会先按 <strong>最小可用链路</strong> 落地，复杂规则留到下一版再处理。${renderAskCitation(2)}`
+      ];
   return `
     <section class="ask-answer">
-      <p class="ask-answer-intro">以下是回答内容</p>
-      <article>
-        <h3>🎯 战略的真正考验在于其与现实碰撞后的生存能力</h3>
-        <blockquote>"Create a plan that can deliver on that strategy and then can be moved to execution and achieves, sorry, survives contact with reality as you try and execute that in the factory.<sup>1</sup>"</blockquote>
-      </article>
-      <article>
-        <h3>🎯 数字孪生的核心价值在于模拟优化与过程强化的双重结合</h3>
-        <blockquote>"A genuine digital twin that can then be used to both model your processes when you're trying to achieve optimum plans and schedules. Then also to enforce those processes during manufacture to achieve the outcomes you want to achieve.<sup>2</sup>"</blockquote>
-      </article>
-      <article>
-        <h3>🎯 深度研判是进行建设性讨论的前提</h3>
-        <blockquote>"I think we all need time to read through Paul's proposal in more detail before discussing it any further.<sup>3</sup>"</blockquote>
+      ${renderAskQuestionBubble()}
+      <p class="ask-thinking-status">深度思考已完成${quickAction}</p>
+      <p class="ask-answer-intro">基于当前转写内容，回答如下</p>
+      <article class="ask-answer-main">
+        <p>${answerLead}${answerParagraphs[0]}</p>
+        <p>${answerParagraphs[1]}</p>
       </article>
       <div class="ask-answer-actions">
-        <button aria-label="复制">□</button>
+        <button data-action="ask-copy-answer" aria-label="复制">□</button>
         <button aria-label="赞">👍</button>
         <button aria-label="踩">👎</button>
-        <button aria-label="更多">…</button>
-        <button aria-label="加入笔记">▣＋</button>
       </div>
       <section class="ask-followups">
         <h3>继续提问</h3>
@@ -3323,16 +3423,17 @@ function renderAskPlaudAnswer() {
 }
 
 function renderAskPlaudThinking() {
+  const quickAction = askPlaudSkill ? `<span class="ask-selected-skill"><i></i>${h(askPlaudSkill)}</span>` : "";
+  const stage = askPlaudThinkingStage === "process"
+    ? `<div class="ask-thinking-copy"><p>思考过程</p><b>分析提问内容</b><p>正在识别问题中的关键对象，并限定检索范围为当前文件的转写记录。</p><b>检索对应转写</b><p>已定位到与问题相关的对话片段，正在核对上下文。</p></div>`
+    : askPlaudThinkingStage === "paused"
+      ? `<div class="ask-thinking-copy"><p>思考已暂停</p><b>分析进度已保留</b><p>可通过右侧状态链路继续查看思考过程或分析完成结果。</p></div>`
+      : `<div class="ask-thinking-copy"><p>深度思考中 <span>⌃</span></p><p>正在阅读当前文件的转写内容并建立问题与片段之间的关联。</p></div>`;
   return `
     <section class="ask-thinking">
-      <button class="ask-current-skill" data-action="ask-complete-thinking"><i></i>${h(askPlaudSkill)}</button>
-      <div class="ask-thinking-copy" data-action="ask-complete-thinking">
-        <p>深度思考中 <span>⌃</span></p>
-        <b>提取关键见解</b>
-        <p>我目前正在仔细研读这份转写记录，重点在于提炼出 3 到 5 条与制造业演示相关的关键见解。我的工作流程包括仔细阅读并理解讨论的核心内容。</p>
-        <b>提炼核心要点</b>
-        <p>我目前正专注于提炼制造业演示文稿的精髓，旨在寻找值得引用且能转换视角的深刻见解。</p>
-      </div>
+      ${renderAskQuestionBubble()}
+      ${quickAction}
+      ${stage}
     </section>
   `;
 }
@@ -3340,16 +3441,44 @@ function renderAskPlaudThinking() {
 function renderAskPlaudIntro() {
   return `
     <section class="ask-suggestions">
+      <p class="ask-intro-copy">可针对当前文件的转写内容提问</p>
       ${askPlaudSuggestions.map((question) => `<button data-action="ask-suggestion" data-question="${h(question)}">${h(question)}</button>`).join("")}
     </section>
     ${askPlaudTipVisible ? `
       <aside class="ask-skill-tip">
         <button data-action="ask-hide-tip" aria-label="关闭技能说明">×</button>
-        <h3>认识全新“技能”</h3>
-        <p>一键调用 AI，高效处理重复工作。</p>
-        <p>你可以直接使用现成技能，也可以为常用流程创建专属技能。</p>
+        <h3>基于转写回答</h3>
+        <p>回答会标注对应的来源圈号。</p>
+        <p>点击圈号即可查看完整转写与相关高亮片段。</p>
       </aside>
     ` : ""}
+  `;
+}
+
+function renderAskSourceSheet() {
+  if (askPlaudSourceIndex === null) return "";
+  const source = askPlaudSources.find((item) => item.number === askPlaudSourceIndex);
+  if (!source) return "";
+  const visibleTranscript = fileDetailContent.transcript.slice(0, askPlaudSourceVisibleCount);
+  return `
+    <section class="ask-source-sheet" aria-label="来源">
+      <button class="ask-source-scrim" data-action="ask-close-source" aria-label="关闭来源"></button>
+      <div class="ask-source-card">
+        <header><h2>来源</h2><button data-action="ask-close-source" aria-label="关闭">×</button></header>
+        <div class="ask-source-transcript-list">
+          ${visibleTranscript.map((item, index) => {
+            const isHighlighted = index === source.transcriptIndex;
+            const isPlaying = index === askPlaudSourcePlayingIndex;
+            const highlightedText = isHighlighted ? h(item.text).replace(h(source.highlight), `<mark>${h(source.highlight)}</mark>`) : h(item.text);
+            return `<button class="ask-source-transcript ${isHighlighted ? "is-highlighted" : ""}" data-action="ask-play-source-segment" data-transcript-index="${index}" aria-label="播放 ${h(item.time)} ${h(item.speaker)} 的转写片段">
+              <div><time>${h(item.time)}</time><strong>${h(item.speaker)}${isPlaying ? '<i class="ask-source-playing" aria-label="正在播放">▮▮▮</i>' : ""}</strong></div>
+              <p>${highlightedText}</p>
+            </button>`;
+          }).join("")}
+        </div>
+        ${askPlaudSourceVisibleCount < fileDetailContent.transcript.length ? `<button class="ask-source-load-more" data-action="ask-load-source-more">加载更多转写</button>` : `<p class="ask-source-loaded">已加载全部转写内容</p>`}
+      </div>
+    </section>
   `;
 }
 
@@ -3359,11 +3488,11 @@ function renderAskPlaudSheet() {
     ? renderAskPlaudThinking()
     : askPlaudMode === "answer" ? renderAskPlaudAnswer() : renderAskPlaudIntro();
   return `
-    <section class="ask-plaud-panel" aria-label="Ask A1">
+    <section class="ask-plaud-panel" aria-label="文件提问">
       <div class="ask-panel-card">
         <header class="ask-topbar">
           <button class="ask-trash" data-action="ask-reset" aria-label="清空对话">⌫</button>
-          <h2>Ask A1</h2>
+          <h2>文件提问</h2>
           <button class="ask-close" data-action="close-ask-plaud" aria-label="关闭">×</button>
         </header>
         <div class="ask-scroll">
@@ -3374,6 +3503,7 @@ function renderAskPlaudSheet() {
           ${renderAskPlaudInput()}
         </div>
       </div>
+      ${renderAskSourceSheet()}
     </section>
   `;
 }
@@ -3786,7 +3916,7 @@ function renderFileDetailTranscriptItem(item, index) {
   const speaker = item?.speaker || "说话人";
   const text = item?.text || "";
   return `
-    <article class="transcript-line">
+    <article class="transcript-line" data-transcript-index="${index}">
       <div class="transcript-meta">
         <time datetime="PT${fileDetailTimeToSeconds(time)}S">${h(time)}</time>
         <strong>${h(speaker)}</strong>
@@ -5924,7 +6054,8 @@ function renderPrototypeLinks(page) {
         || (action === "home-show-no-device" && !homeDeviceAdded)
         || (action === "home-show-no-sync-tasks" && homeDeviceAdded && homeSyncStage === "idle")
         || (action === "set-hotspot-state" && value === (hotspotTransferState === "systemPrompt" ? "awaiting" : hotspotTransferState))
-        || (action === "set-device-recording-state" && value === (deviceRecordingActive ? "recording" : "idle"));
+        || (action === "set-device-recording-state" && value === (deviceRecordingActive ? "recording" : "idle"))
+        || (action === "set-ask-demo-state" && ((value === "complete" && askPlaudMode === "answer") || (value === "insight" && askPlaudMode === "thinking" && askPlaudSkill === "获取洞察") || (value === "direct" && askPlaudMode === "thinking" && !askPlaudSkill) || (value === askPlaudThinkingStage)));
       return `<button class="${active ? "active" : ""}" data-action="${h(action)}"${value ? ` data-value="${h(value)}"` : ""}>${h(label)}</button>`;
     }).join("")}
   ` : "";
@@ -6160,7 +6291,11 @@ function render() {
 document.addEventListener("click", (event) => {
   const askInput = event.target.closest(".note-question-bar");
   if (askInput) {
+    clearAskPlaudThinkingTimer();
     askPlaudMode = "intro";
+    askPlaudSkill = "";
+    askPlaudPrompt = "";
+    askPlaudThinkingStage = "idle";
     render();
     return;
   }
@@ -6728,20 +6863,33 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (action && action.dataset.action === "open-ask-plaud") {
+    clearAskPlaudThinkingTimer();
     askPlaudMode = "intro";
+    askPlaudSkill = "";
+    askPlaudPrompt = "";
+    askPlaudThinkingStage = "idle";
+    askPlaudSourceIndex = null;
     render();
     return;
   }
   if (action && action.dataset.action === "close-ask-plaud") {
+    clearAskPlaudThinkingTimer();
     askPlaudMode = "closed";
+    askPlaudThinkingStage = "idle";
+    askPlaudSourceIndex = null;
+    askPlaudSourcePlayingIndex = null;
     render();
     return;
   }
   if (action && action.dataset.action === "ask-reset") {
+    clearAskPlaudThinkingTimer();
     askPlaudMode = "intro";
     askPlaudPrompt = "";
-    askPlaudSkill = "获取洞察";
+    askPlaudSkill = "";
     askPlaudTipVisible = true;
+    askPlaudThinkingStage = "idle";
+    askPlaudSourceIndex = null;
+    askPlaudSourcePlayingIndex = null;
     render();
     return;
   }
@@ -6751,19 +6899,61 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (action && action.dataset.action === "ask-use-skill") {
-    askPlaudSkill = action.dataset.skill || "获取洞察";
-    askPlaudMode = "thinking";
-    render();
+    const quickAction = getAskPlaudQuickActions().find((item) => item.id === action.dataset.skillId);
+    if (!quickAction) return;
+    askPlaudSkill = quickAction.label;
+    askPlaudPrompt = "";
+    startAskPlaudThinking();
     return;
   }
   if (action && action.dataset.action === "ask-suggestion") {
+    askPlaudSkill = "";
     askPlaudPrompt = action.dataset.question || "";
-    askPlaudMode = "thinking";
+    startAskPlaudThinking();
+    return;
+  }
+  if (action && action.dataset.action === "ask-copy-answer") {
+    showFileDetailNotice("已复制到剪贴板");
     render();
     return;
   }
-  if (action && action.dataset.action === "ask-complete-thinking") {
-    askPlaudMode = "answer";
+  if (action && action.dataset.action === "ask-open-source") {
+    askPlaudSourceIndex = Number(action.dataset.sourceNumber);
+    askPlaudSourceVisibleCount = 3;
+    askPlaudSourcePlayingIndex = null;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "ask-close-source") {
+    askPlaudSourceIndex = null;
+    askPlaudSourcePlayingIndex = null;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "ask-load-source-more") {
+    askPlaudSourceVisibleCount = Math.min(fileDetailContent.transcript.length, askPlaudSourceVisibleCount + 2);
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "ask-play-source-segment") {
+    const transcriptIndex = Number(action.dataset.transcriptIndex);
+    const transcript = fileDetailContent.transcript[transcriptIndex];
+    if (!transcript) return;
+    askPlaudSourcePlayingIndex = transcriptIndex;
+    fileDetailAudioSeconds = fileDetailTimeToSeconds(transcript.time);
+    fileDetailAudioPlaying = true;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "set-ask-demo-state") {
+    const stage = action.dataset.value || "thinking";
+    clearAskPlaudThinkingTimer();
+    askPlaudSourceIndex = null;
+    askPlaudSourcePlayingIndex = null;
+    askPlaudPrompt = stage === "direct" ? "本次会议确认的 MVP 范围是什么？" : "";
+    askPlaudSkill = stage === "insight" ? "获取洞察" : "";
+    askPlaudMode = stage === "complete" ? "answer" : "thinking";
+    askPlaudThinkingStage = stage === "complete" ? "complete" : stage === "process" ? "process" : stage === "paused" ? "paused" : "thinking";
     render();
     return;
   }
@@ -7522,6 +7712,9 @@ document.addEventListener("input", (event) => {
   if (event.target.id === "searchInput") {
     searchDraft = event.target.value;
   }
+  if (event.target.id === "askPlaudInput") {
+    askPlaudPrompt = event.target.value;
+  }
   if (event.target.id === "deviceNameInput") {
     deviceNameDraft = event.target.value;
     deviceNameError = "";
@@ -7799,13 +7992,10 @@ document.addEventListener("submit", (event) => {
   const form = event.target.closest("[data-action='ask-submit']");
   if (!form) return;
   event.preventDefault();
-  if (askPlaudMode === "thinking") {
-    askPlaudMode = "answer";
-  } else {
-    askPlaudPrompt = form.querySelector("#askPlaudInput")?.value.trim() || askPlaudPrompt || askPlaudSuggestions[0];
-    askPlaudMode = "thinking";
-  }
-  render();
+  if (askPlaudMode === "thinking") return;
+  askPlaudSkill = "";
+  askPlaudPrompt = form.querySelector("#askPlaudInput")?.value.trim() || askPlaudPrompt || askPlaudSuggestions[0];
+  startAskPlaudThinking();
 });
 
 if (currentPageId === "APP-DEV-08") {
