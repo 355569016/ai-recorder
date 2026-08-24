@@ -521,7 +521,7 @@ const pages = [
       "正常文件长按约 500ms 打开单文件快捷菜单，菜单包含适用的生成、移动到文件夹、重命名和移至回收站。",
       "选择模式顶部显示已选数量和完成，底部操作根据单选/多选和文件生成状态动态启用；合并文件暂不纳入本轮。",
       "重命名使用底部弹层和系统键盘；名称为空、仅空格、含换行或超过 80 个字符时不可保存。",
-      "没有正常文件且没有同步中/等待传输/失败文件时显示首页空状态；筛选结果为空使用独立的筛选空状态。"
+      "没有正常文件且没有同步中/等待传输/失败文件时显示首页空状态；空状态不展示列表下方导入按钮，导入仍从标题栏入口进入；筛选结果为空使用独立的筛选空状态。"
     ],
     criticalRules: [
       "交互调整：等待传输行不恢复右侧常驻按钮；点击或长按“等待传输”状态打开轻量浮层，确认后状态改为“已优先”，并以底部 Toast 提示“已设为优先，将在当前文件后传输”。",
@@ -2131,8 +2131,8 @@ function renderHomeEmptyState(filtered = false) {
     <section class="home-file-empty-state ${filtered ? "filtered" : ""}" aria-label="${filtered ? "筛选结果为空" : "全部文件为空"}">
       <div class="home-file-empty-icon" aria-hidden="true"><span></span><i></i></div>
       <h2>${filtered ? "没有符合条件的文件" : "暂无文件"}</h2>
-      <p>${filtered ? "清除筛选后查看全部文件" : "完成一次录音卡录音或导入音频后，文件会显示在这里。"}</p>
-      ${filtered ? `<button class="home-empty-secondary" data-action="clear-home-file-filter">清除筛选</button>` : `<button class="home-empty-primary" data-go="APP-FILE-13">导入音频</button>`}
+      <p>${filtered ? "清除筛选后查看全部文件" : "完成一次录音卡录音后，文件会显示在这里。"}</p>
+      ${filtered ? `<button class="home-empty-secondary" data-action="clear-home-file-filter">清除筛选</button>` : ""}
     </section>
   `;
 }
