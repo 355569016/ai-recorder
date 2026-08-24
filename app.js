@@ -452,7 +452,12 @@ const pages = [
       "正常文件行不显示“生成”“详情”或“优先同步”等右侧按钮，整行作为进入文件详情的点击区域；未转写文件进入 APP-FILE-10 后再执行生成，AI 已生成文件进入 APP-FILE-01。",
       "只有达到自动重试限额的同步失败文件在右侧保留轻量“同步失败 · 重试”操作，其他状态不占用独立操作列。",
       "点击导入音频打开导入音频弹层，可从文件或相册调起系统选择器。",
-      "底部中间录音按钮是全局主按钮，不是普通 Tab。"
+      "底部中间录音按钮是全局主按钮，不是普通 Tab。",
+      "正常文件左滑直接进入全部文件选择模式，并默认选中当前文件；不再露出二次“选择”按钮。",
+      "正常文件长按约 500ms 打开单文件快捷菜单，菜单包含适用的生成、移动到文件夹、重命名和移至回收站。",
+      "选择模式顶部显示已选数量和完成，底部操作根据单选/多选和文件生成状态动态启用；合并文件暂不纳入本轮。",
+      "重命名使用底部弹层和系统键盘；名称为空、仅空格、含换行或超过 80 个字符时不可保存。",
+      "没有正常文件且没有同步中/等待传输/失败文件时显示首页空状态；筛选结果为空使用独立的筛选空状态。"
     ],
     criticalRules: [
       "交互调整：等待传输行不恢复右侧常驻按钮；点击或长按“等待传输”状态打开轻量浮层，确认后状态改为“已优先”，并以底部 Toast 提示“已设为优先，将在当前文件后传输”。",
@@ -462,7 +467,7 @@ const pages = [
       "当前没有同步任务时，首页不显示同步状态条，也不显示正在传输或等待传输的置灰文件记录；全部文件直接展示已完成同步的正常文件列表。",
       "同步失败处理强规则：传输失败后先由系统自动重试，不立即向用户显示失败；设备重新连接后自动继续重试。只有达到自动重试限额后，文件才显示轻量“同步失败 · 重试”操作。自动重试限额及退避间隔由同步重试策略配置。"
     ],
-    states: ["未添加录音卡", "未绑定/未连接", "设备已连接", "当前无同步任务", "录音中持续同步", "单任务同步中", "多任务同步中", "Wi-Fi 快传中", "结束快传并由蓝牙续传", "文件正在传输且不可点击", "文件等待传输状态可操作", "已优先", "同步失败自动重试", "设备重连后自动重试", "达到自动重试限额后失败可重试", "单个任务同步完成", "本批次同步完成", "新同步批次", "空文件", "加载更多"],
+    states: ["未添加录音卡", "未绑定/未连接", "设备已连接", "当前无同步任务", "录音中持续同步", "单任务同步中", "多任务同步中", "Wi-Fi 快传中", "结束快传并由蓝牙续传", "文件正在传输且不可点击", "文件等待传输状态可操作", "已优先", "同步失败自动重试", "设备重连后自动重试", "达到自动重试限额后失败可重试", "单个任务同步完成", "本批次同步完成", "新同步批次", "全部文件空状态", "筛选结果空状态", "左滑直接进入选择模式", "文件选择模式", "单文件快捷菜单", "重命名弹层", "移至回收站确认", "加载更多"],
     deps: ["BLE 状态包：电量、存储、录音状态。", "BLE 分片传输：录音过程中的增量音频、偏移量和校验值。", "本地数据库：文件列表、同步队列、转写状态。", "本地临时缓存：录音未结束前的已同步分片。", "同步重试策略：重试限额、退避间隔、设备重连触发。", "云端文件：上传/删除/状态，接口待后端定义。"],
     acceptance: [
       "打开 App 默认处于硬件录音场景时，首页只展示设备录音中状态，不展示同步进度模块。",
@@ -491,14 +496,14 @@ const pages = [
       "点击设备状态旁下拉箭头展开添加设备和多个已绑定设备。",
       "已绑定设备示例至少包含两个已连接设备和一个已断开设备，点击设备行可以切换当前设备。",
       "标题显示为全部文件，倒三角筛选/排序入口与导入音频按钮位于同一标题栏。",
-      "正常文件行不显示生成、详情或右箭头，整行点击进入对应详情状态；未转写文件进入 APP-FILE-10 并保留详情页内生成入口，AI 已生成文件进入 APP-FILE-01。",
+      "正常文件行不显示生成、详情或右箭头，整行点击进入对应详情状态；左滑直接切换到全部文件选择模式并选中当前行；未转写文件进入 APP-FILE-10 并保留详情页内生成入口，AI 已生成文件进入 APP-FILE-01。",
       "仅达到自动重试限额的同步失败行显示轻量“同步失败 · 重试”，点击后进入正在重试状态。",
       "导入音频弹层包含从文件里导入和从相册里导入两个系统选择入口。",
       "下拉/继续滚动可加载更多文件。",
       "录音主按钮点击前执行登录/绑定/连接检查。"
     ],
     prototypeLinks: [["设备详情", "APP-DEV-03"], ["添加设备", "APP-DEV-01"]],
-    prototypeActions: [["未添加录音卡", "home-show-no-device"], ["蓝牙同步", "set-sync-transport", "ble"], ["Wi-Fi 快传", "set-sync-transport", "hotspot"], ["结束快传", "end-home-fast-transfer"], ["当前无同步任务", "home-show-no-sync-tasks"], ["完成当前任务", "home-complete-sync"], ["单任务新批次", "home-start-single-sync-batch"], ["重置多任务同步", "home-reset-sync-batch"]]
+    prototypeActions: [["未添加录音卡", "home-show-no-device"], ["蓝牙同步", "set-sync-transport", "ble"], ["Wi-Fi 快传", "set-sync-transport", "hotspot"], ["结束快传", "end-home-fast-transfer"], ["当前无同步任务", "home-show-no-sync-tasks"], ["全部文件空状态", "home-show-empty-files"], ["恢复文件示例", "home-reset-file-demo"], ["全部文件选择模式", "home-show-selection-mode"], ["完成当前任务", "home-complete-sync"], ["单任务新批次", "home-start-single-sync-batch"], ["重置多任务同步", "home-reset-sync-batch"]]
   },
   {
     id: "APP-HOME-03",
@@ -611,15 +616,15 @@ const pages = [
     group: "录音",
     title: "准备录音",
     priority: "P0",
-    goal: "点击底部中间录音按钮后确认自动识别策略，并可选录音场景后开始录音。",
+    goal: "点击录音按钮后确认自动识别策略，并可选录音场景后开始录音；也可开启快捷录音。",
     entry: "文件首页或任意底部导航页面点击录音主按钮。",
-    prototypeActions: [["自动识别", "select-record-mode", "auto"], ["指定场景", "select-record-mode", "manual"]],
+    prototypeActions: [["自动识别", "select-record-mode", "auto"], ["指定场景", "select-record-mode", "manual"], ["切换快捷录音", "toggle-quick-record"]],
     prototypeLinks: [["录音中", "APP-REC-04"]],
-    fields: [["record_mode", "自动识别/指定场景", "用户选择"], ["record_scene", "指定录音场景", "用户选择/上次选择"], ["device_state", "设备可录音状态", "BLE 状态包"]],
-    rules: ["进入弹层前已完成登录、绑定、设备连接、电量、存储检查。", "自动识别场景与选择录音场景互斥，默认选择自动识别场景。", "选择录音场景后直接在当前弹层展示会议、访谈、课堂和电话，不进入二级页面。", "首次选择录音场景默认勾选会议；切回自动识别后再次选择录音场景，继续勾选上一次的具体场景。", "只有点击开始录音按钮才向硬件发送开始录音命令。"],
-    states: ["自动识别场景", "指定录音场景", "会议", "访谈", "课堂", "电话", "设备未连接", "低电量", "存储不足"],
+    fields: [["record_mode", "自动识别/指定场景", "用户选择"], ["record_scene", "指定录音场景", "用户选择/上次选择"], ["quick_record_enabled", "点击录音按钮直接开始", "本地偏好"], ["device_state", "设备可录音状态", "BLE 状态包"]],
+    rules: ["进入弹层前已完成登录、绑定、设备连接、电量、存储检查。", "自动识别场景与选择录音场景互斥，默认选择自动识别场景。", "选择录音场景后直接在当前弹层展示会议、访谈、课堂和电话，不进入二级页面。", "首次选择录音场景默认勾选会议；切回自动识别后再次选择录音场景，继续勾选上一次的具体场景。", "快捷录音默认关闭，仅在自动识别场景下展示；开启后普通点击录音按钮直接以自动识别场景开始录音。", "长按录音按钮约 500ms 始终打开准备录音弹层，快捷录音开启时不改变其偏好。", "只有点击开始录音按钮或快捷录音入口通过设备检查后才向硬件发送开始录音命令。"],
+    states: ["自动识别场景", "指定录音场景", "快捷录音关闭", "快捷录音开启", "长按召回选择", "会议", "访谈", "课堂", "电话", "设备未连接", "低电量", "存储不足"],
     deps: ["BLE 命令包：开始录音，协议待固件定义。", "AI 场景识别服务或本地场景配置。"],
-    acceptance: ["弹层展示当前连接的录音设备。", "两种场景选择方式只能勾选一个。", "指定场景在当前弹层展开且不包含自动选项。", "重新选择指定场景时恢复上次选择。", "录音面板和遮罩完整覆盖文件列表状态，不出现等待传输文字穿透。", "点击开始录音后进入录音中页。"]
+    acceptance: ["弹层展示当前连接的录音设备。", "两种场景选择方式只能勾选一个。", "指定场景在当前弹层展开且不包含自动选项。", "重新选择指定场景时恢复上次选择。", "自动识别场景下展示快捷录音分组，默认开关关闭。", "开启后普通点击底部录音按钮直接进入录音中页；长按录音按钮约 500ms 打开本弹层。", "录音面板和遮罩完整覆盖文件列表状态，不出现等待传输文字穿透。", "点击开始录音后进入录音中页。"]
   },
   {
     id: "APP-REC-03",
@@ -643,10 +648,10 @@ const pages = [
     entry: "硬件开始录音成功后。",
     prototypeActions: [["默认", "reset-recording-demo"], ["输入态", "start-recording-input"], ["相机", "open-recording-camera"], ["AI 照片说明", "simulate-recording-photo-ai"]],
     fields: [["record_duration", "录音时长", "BLE 状态包/本地计时"], ["record_state", "录音状态", "BLE 状态包"], ["live_sync_offset", "已同步偏移量", "BLE 分片传输"], ["pending_sync_size", "待补传大小", "同步队列"], ["battery_level", "电量", "BLE 状态包"], ["storage_remaining", "存储", "BLE 状态包"], ["marker_list", "标记记录", "BLE 标记包/本地数据库"], ["marker_type", "标记类型", "输入/拍照/时间标记"], ["marker_source", "标记来源", "APP/录音卡"], ["marker_text", "标记文本", "用户输入/默认标记文本"], ["marker_assets", "标记附件", "系统相机/本地照片"], ["marker_photo_caption", "照片说明", "用户输入/AI 图片识别"], ["marker_caption_source", "照片说明来源", "empty/user/ai"], ["disconnect_timer_mode", "断连计时模式", "本地时钟"]],
-    rules: ["暂停后停留录音中页。", "录音过程中 App 持续从硬件接收音频分片，实时更新首页同步队列，但正式文件需等结束录音和补传完成后生成。", "结束录音后回到文件首页，在首页展示同步传送中状态；完成 CRC/时长/标记校验后新增到文件列表。", "未进入编辑状态时，录音面板底部常驻输入、拍照、标记三个核心辅助功能按钮；键盘输入状态隐藏该功能栏，只展示文本编辑栏和系统键盘。", "点击输入先进入键盘输入状态；点击完成后才新增输入标记，并记录当前录音时间戳、来源 APP 与文本内容。", "点击标记立即新增时间标记，默认记录当前录音时间、来源 APP 与默认文本重点标记；录音卡短按标记记录来源录音卡。", "普通标记直接展示文本，不显示右侧箭头；仅文本超长时折叠并提供展开/收起。", "点击输入标记或时间标记文本进入编辑；时间与来源为只读锚点，时间标记支持删除文本但保留时间锚点。", "点击拍照先唤起系统相机；拍照完成后新增照片标记，记录当前录音时间、来源 APP 和照片附件。", "照片标记展示可点击的小图预览，点击照片打开大图；右上角删除图标删除整条照片标记。", "照片下方说明默认空，点击可编辑；转写完成后若说明仍为空且用户未编辑，AI 可结合图片与录音内容生成说明，用户编辑内容不得被 AI 自动覆盖。", "用户点击添加标记或拍照标记时，必须记录当前录音时间戳、标记类型、来源、备注或照片附件，并随音频分片一起进入同步队列。", "录音标记必须在文件详情中形成锚点映射，例如在转写记录 05:12 对应文字右侧内嵌当时拍摄的照片或备注。", "蓝牙断连时硬件仍在本地录音，App 波形图置灰，计时器继续以手机本地时钟模拟增长。", "蓝牙断连期间显示轻微呼吸红点和文案：蓝牙已断开，硬件仍安全录音中，靠近后自动恢复同步。", "蓝牙恢复后根据硬件录音状态包校准本地模拟计时、同步偏移量和标记时间戳。"],
-    states: ["录音中", "暂停中", "输入标记键盘态", "编辑标记键盘态", "系统相机态", "照片标记已插入", "照片大图预览", "照片说明为空", "AI 生成照片说明", "标记文本已删除", "设备断连但仍录音", "本地模拟计时", "蓝牙恢复同步", "低电量", "存储不足"],
+    rules: ["暂停后停留录音中页。", "录音过程中 App 持续从硬件接收音频分片，实时更新首页同步队列，但正式文件需等结束录音和补传完成后生成。", "结束录音后回到文件首页，在首页展示同步传送中状态；完成 CRC/时长/标记校验后新增到文件列表。", "未进入编辑状态时，录音面板底部常驻输入、拍照、标记三个核心辅助功能按钮；进入编辑后只保留原位置输入框和系统键盘，不再增加额外编辑操作栏。", "点击输入先在时间轴末尾插入原位置输入框并展示系统键盘；用户收起键盘或按回车后自动保存，空白的新输入不新增标记。", "点击标记立即新增时间标记，默认记录当前录音时间、来源 APP 与默认文本重点标记；录音卡短按标记记录来源录音卡。", "普通标记直接展示文本，不显示右侧箭头；仅文本超长时折叠并提供展开/收起。", "点击输入标记或时间标记文本进入原位置编辑；时间与来源为只读锚点，时间标记支持删除文本但保留时间锚点。", "点击拍照先唤起系统相机；拍照完成后新增照片标记，记录当前录音时间、来源 APP 和照片附件。", "照片标记展示可点击的小图预览，点击照片打开大图；右上角删除图标删除整条照片标记。", "照片下方说明默认空，点击后在原位置编辑并展示系统键盘；收起键盘或按回车自动保存，转写完成后若说明仍为空且用户未编辑，AI 可结合图片与录音内容生成说明，用户编辑内容不得被 AI 自动覆盖。", "用户点击添加标记或拍照标记时，必须记录当前录音时间戳、标记类型、来源、备注或照片附件，并随音频分片一起进入同步队列。", "录音标记必须在文件详情中形成锚点映射，例如在转写记录 05:12 对应文字右侧内嵌当时拍摄的照片或备注。", "蓝牙断连时硬件仍在本地录音，App 波形图置灰，计时器继续以手机本地时钟模拟增长。", "蓝牙断连期间显示轻微呼吸红点和文案：蓝牙已断开，硬件仍安全录音中，靠近后自动恢复同步。", "蓝牙恢复后根据硬件录音状态包校准本地模拟计时、同步偏移量和标记时间戳。"],
+    states: ["录音中", "暂停中", "输入标记原位编辑态", "编辑标记原位编辑态", "系统键盘展示态", "系统相机态", "照片标记已插入", "照片大图预览", "照片说明为空", "AI 生成照片说明", "标记文本已删除", "设备断连但仍录音", "本地模拟计时", "蓝牙恢复同步", "低电量", "存储不足"],
     deps: ["BLE 命令包：暂停、继续、结束、添加标记。", "BLE 状态包：录音状态、电量、存储。", "BLE 分片传输：实时音频片段、偏移量、校验值。", "系统相机与照片访问权限。", "本地数据库：标记时间戳、类型、来源、文本、照片附件和照片说明。", "AI 图片识别：转写后结合照片与录音内容生成说明，接口待定义。", "同步队列：结束录音后的待补传片段。", "文件详情：转写记录锚点映射。"],
-    acceptance: ["计时、连接、电量、存储、标记和结束按钮清晰可见。", "点击暂停后按钮变为继续。", "未编辑时底部输入、拍照、标记三个按钮常驻可见；键盘态不得重复展示这三个页面功能按钮。", "点击输入进入可实际输入的键盘状态；点击完成后新增包含时间、来源 APP 与输入内容的标记，取消不新增。", "点击标记立即新增时间标记，并展示时间、来源 APP 和默认文本。", "录音卡标记展示来源录音卡；所有普通标记不显示右侧箭头，超长文本才出现展开/收起。", "点击输入标记和时间标记可编辑文本；时间标记可删除文本但保留时间与来源。", "点击拍照必须先表达唤起相机，拍照完成后插入带缩略图、时间和来源 APP 的照片标记。", "照片缩略图可打开大图，右上角删除图标可删除照片标记。", "照片说明默认空且可点击编辑；AI 说明只在转写完成且用户未编辑时生成，不覆盖用户内容。", "点击结束后必须回到文件首页并展示同步传送中状态，而不是直接静默生成文件。", "补传完成后首页文件列表必须新增本次录音。", "录音中的文字、时间和拍照标记必须能在文件详情转写记录中按时间戳定位展示。", "蓝牙断连时界面必须置灰波形、持续模拟计时并给出安全录音提示。"]
+    acceptance: ["计时、连接、电量、存储、标记和结束按钮清晰可见。", "点击暂停后按钮变为继续。", "未编辑时底部输入、拍照、标记三个按钮常驻可见；进入编辑后只展示原位置输入框和系统键盘，不出现输入/取消/完成操作栏。", "点击输入后时间轴末尾出现可实际输入的原位置输入框并展示系统键盘；收起键盘或按回车后自动保存，空白的新输入不新增。", "点击标记立即新增时间标记，并展示时间、来源 APP 和默认文本。", "录音卡标记展示来源录音卡；所有普通标记不显示右侧箭头，超长文本才出现展开/收起。", "点击输入标记和时间标记可在原位置编辑文本；时间标记可删除文本但保留时间与来源。", "点击拍照必须先表达唤起相机，拍照完成后插入带缩略图、时间和来源 APP 的照片标记。", "照片缩略图可打开大图，右上角删除图标可删除照片标记。", "照片说明默认空且可点击编辑；编辑时在照片说明原位置展示输入框和系统键盘，收起键盘或按回车自动保存；AI 说明只在转写完成且用户未编辑时生成，不覆盖用户内容。", "点击结束后必须回到文件首页并展示同步传送中状态，而不是直接静默生成文件。", "补传完成后首页文件列表必须新增本次录音。", "录音中的文字、时间和拍照标记必须能在文件详情转写记录中按时间戳定位展示。", "蓝牙断连时界面必须置灰波形、持续模拟计时并给出安全录音提示。"]
   },
   {
     id: "APP-FILE-01",
@@ -1561,6 +1566,10 @@ let templateReturnPage = "APP-AI-01";
 let generationNotice = "";
 let recordMode = "auto";
 let selectedRecordScene = "meeting";
+const quickRecordPreferenceKey = "ai-recorder.quick-record-enabled";
+let quickRecordEnabled = readQuickRecordPreference();
+let recordFabLongPressTimer = null;
+let recordFabLongPressTriggered = false;
 let generationSpeakerDiarization = true;
 let selectedAudioLanguage = "自动";
 let selectedAiModel = "自动";
@@ -1606,6 +1615,29 @@ let homePriorityMenuTimer = null;
 let homePriorityNotice = "";
 let homePriorityNoticeTimer = null;
 let homePriorityLongPressTimer = null;
+const defaultHomeFileItems = [
+  { id: "home-file-board", name: "Board meeting", meta: "今天 14:20 · 01:12:17 · 3 个标记", source: "硬件录音", state: "未转写", tone: "amber", go: "APP-FILE-10", generationState: "untranscribed" },
+  { id: "home-file-interview", name: "Interview import", meta: "昨天 19:10 · 00:34:02", source: "导入文件", state: "AI 已生成", tone: "green", go: "APP-FILE-01", generationState: "generated" },
+  { id: "home-file-review", name: "Product review", meta: "07-04 · 00:26:44 · 2 个标记", source: "导入文件", state: "未转写", tone: "amber", go: "APP-FILE-10", generationState: "untranscribed" }
+];
+let homeFileItems = defaultHomeFileItems.map((item) => ({ ...item }));
+let homeSavedFileName = "周一项目复盘";
+let homeFileSelectionMode = false;
+let selectedHomeFileIds = new Set();
+let homeSwipeOpenId = "";
+let homeQuickMenuFileId = "";
+let homeFileRenameId = "";
+let homeFileRenameDraft = "";
+let homeFileRenameError = "";
+let homeFileRecycleConfirmOpen = false;
+let homeFileRecycleIds = new Set();
+let homeFileMoveSheetOpen = false;
+let homeFileMoveIds = new Set();
+let homeFileNotice = "";
+let homeFileNoticeTimer = null;
+let homeFilePointer = null;
+let homeFileLongPressTimer = null;
+let homeFileSuppressClick = false;
 let firmwareUpdateStep = "download";
 let firmwareUpdateTransport = "wifi";
 let firmwareJoinPromptOpen = false;
@@ -1813,6 +1845,9 @@ function go(id) {
     homePriorityMenuTaskId = "";
     clearHomePriorityMenuTimer();
     clearHomePriorityLongPressTimer();
+    homeFileSelectionMode = false;
+    selectedHomeFileIds = new Set();
+    clearHomeFileInteractionState();
   }
   if (!["APP-DEV-02", "APP-DEV-04", "APP-DEV-05"].includes(currentPageId)) {
     deviceSnTipOpen = false;
@@ -1860,6 +1895,33 @@ function go(id) {
   render();
 }
 
+function readQuickRecordPreference() {
+  try {
+    return window.localStorage.getItem(quickRecordPreferenceKey) === "true";
+  } catch (error) {
+    return false;
+  }
+}
+
+function persistQuickRecordPreference() {
+  try {
+    window.localStorage.setItem(quickRecordPreferenceKey, String(quickRecordEnabled));
+  } catch (error) {
+    // File previews may disable storage access; keep the preference in memory.
+  }
+}
+
+function openRecordEntry({ longPress = false } = {}) {
+  recordMode = "auto";
+  go(longPress || !quickRecordEnabled ? "APP-REC-02" : "APP-REC-04");
+}
+
+function clearRecordFabLongPressTimer() {
+  if (!recordFabLongPressTimer) return;
+  window.clearTimeout(recordFabLongPressTimer);
+  recordFabLongPressTimer = null;
+}
+
 function chip(label, tone = "") {
   return `<span class="chip ${tone}">${h(label)}</span>`;
 }
@@ -1867,6 +1929,8 @@ function chip(label, tone = "") {
 function appTop(title, action = "", back = null) {
   const actionNode = action === "search"
     ? `<button class="icon-btn search-top-btn" data-go="APP-FILE-02" aria-label="搜索"></button>`
+    : action === "home-selection-done"
+      ? `<button class="text-btn home-selection-done" data-action="finish-home-file-selection">完成</button>`
     : action === "save-device-name"
       ? `<button class="text-btn device-name-save ${deviceNameDraft.trim() ? "" : "disabled"}" data-action="save-device-name" ${deviceNameDraft.trim() ? "" : "disabled"}>保存</button>`
     : action ? `<button class="text-btn">${h(action)}</button>` : `<span style="width:34px"></span>`;
@@ -1900,8 +1964,26 @@ function wave() {
   return `<div class="wave">${waveHeights.map((height) => `<i style="height:${height}px"></i>`).join("")}</div>`;
 }
 
+function getHomeFileById(fileId) {
+  if (!fileId) return null;
+  const saved = homeSyncStage === "saved" || homeSyncStage === "idle"
+    ? { id: "home-file-saved", name: homeSavedFileName, meta: "刚刚 · 00:43:52", source: "硬件录音", state: "未转写", tone: "amber", go: "APP-FILE-10", generationState: "untranscribed" }
+    : null;
+  return [...homeFileItems, ...(saved ? [saved] : [])].find((item) => item.id === fileId) || null;
+}
+
+function getHomeVisibleFileItems() {
+  const saved = homeSyncStage === "saved" || homeSyncStage === "idle"
+    ? [{ id: "home-file-saved", name: homeSavedFileName, meta: "刚刚 · 00:43:52", source: "硬件录音", state: "未转写", tone: "amber", go: "APP-FILE-10", generationState: "untranscribed" }]
+    : [];
+  return [...saved, ...homeFileItems];
+}
+
 function fileCard(file) {
   const disabled = file.transferState === "syncing" || file.transferState === "pending";
+  const fileId = file.homeFile ? (file.fileId || file.id || "") : "";
+  const selectionActive = Boolean(fileId && homeFileSelectionMode);
+  const selected = selectionActive && selectedHomeFileIds.has(fileId);
   const statusNode = disabled
     ? file.transferState === "pending" && file.taskId
       ? `<div class="file-transfer-status-wrap ${homePriorityMenuTaskId === file.taskId ? "menu-open" : ""}">
@@ -1914,16 +1996,20 @@ function fileCard(file) {
     : file.errorText
       ? `<button class="file-card-recovery" ${file.actionKey ? `data-action="${h(file.actionKey)}"` : `data-go="${file.go}"`} aria-label="${h(file.errorText)}，${h(file.action)}"><span>${h(file.errorText)}</span><b aria-hidden="true">·</b><strong>${h(file.action)}</strong></button>`
       : "";
-  const content = `
-    <div>
+  const copy = `
+    <span class="home-file-copy">
       <p class="file-name">${h(file.name)}</p>
-      <div class="file-meta">${h(file.meta)}</div>
-      <div class="file-tags">${chip(file.source, file.source === "硬件录音" ? "blue" : "purple")}${file.state ? chip(file.state, file.tone) : ""}</div>
-    </div>
+      <span class="file-meta">${h(file.meta)}</span>
+      <span class="file-tags">${chip(file.source, file.source === "硬件录音" ? "blue" : "purple")}${file.state ? chip(file.state, file.tone) : ""}</span>
+    </span>
   `;
+  const content = `${selectionActive ? `<span class="home-file-check ${selected ? "selected" : ""}" aria-hidden="true">${selected ? "✓" : ""}</span>` : ""}${copy}`;
+  const main = selectionActive
+    ? `<button class="file-card-main home-file-selection-target" data-action="toggle-home-file-selection" data-file-id="${h(fileId)}" aria-pressed="${selected ? "true" : "false"}" aria-label="${selected ? "取消选择" : "选择"}${h(file.name)}">${content}</button>`
+    : `<button class="file-card-main" data-go="${h(file.go)}" data-file-id="${h(fileId)}" aria-label="打开${h(file.name)}详情">${content}</button>`;
   return `
-    <div class="file-card ${file.featured ? "featured" : ""} ${disabled ? `file-card-transfer-disabled ${file.transferState}` : ""} ${file.errorText ? "file-card-has-recovery" : ""}"${file.transferState === "syncing" ? ' aria-disabled="true"' : ""}>
-      ${disabled || file.errorText ? `${content}${statusNode}` : `<button class="file-card-main" data-go="${h(file.go)}" aria-label="打开${h(file.name)}详情">${content}</button>`}
+    <div class="file-card ${file.featured ? "featured" : ""} ${disabled ? `file-card-transfer-disabled ${file.transferState}` : ""} ${file.errorText ? "file-card-has-recovery" : ""} ${fileId ? "home-file-card" : ""}"${fileId ? ` data-file-id="${h(fileId)}"` : ""}${file.transferState === "syncing" ? ' aria-disabled="true"' : ""}>
+      ${disabled || file.errorText ? `${content}${statusNode}` : fileId && !selectionActive ? `<div class="home-file-swipe-shell">${main}</div>` : main}
     </div>
   `;
 }
@@ -1960,6 +2046,153 @@ function renderHomeTransferFileCards() {
       isPriority: Boolean(task.priority)
     }))
   ].join("");
+}
+
+function showHomeFileNotice(message) {
+  homeFileNotice = message;
+  if (homeFileNoticeTimer) window.clearTimeout(homeFileNoticeTimer);
+  homeFileNoticeTimer = window.setTimeout(() => {
+    homeFileNoticeTimer = null;
+    homeFileNotice = "";
+    if (currentPageId === "APP-HOME-01") render();
+  }, 1800);
+}
+
+function homeHasTransferRows() {
+  return homeSyncStage === "finishing" && homeSyncQueue.some((task) => ["syncing", "pending"].includes(task.status));
+}
+
+function renderHomeEmptyState(filtered = false) {
+  return `
+    <section class="home-file-empty-state ${filtered ? "filtered" : ""}" aria-label="${filtered ? "筛选结果为空" : "全部文件为空"}">
+      <div class="home-file-empty-icon" aria-hidden="true"><span></span><i></i></div>
+      <h2>${filtered ? "没有符合条件的文件" : "暂无文件"}</h2>
+      <p>${filtered ? "清除筛选后查看全部文件" : "完成一次录音卡录音或导入音频后，文件会显示在这里。"}</p>
+      ${filtered ? `<button class="home-empty-secondary" data-action="clear-home-file-filter">清除筛选</button>` : `<button class="home-empty-primary" data-go="APP-FILE-13">导入音频</button>`}
+    </section>
+  `;
+}
+
+function renderHomeNormalFileCards() {
+  const files = getHomeVisibleFileItems();
+  return files.length
+    ? files.map((file) => fileCard({ ...file, homeFile: true })).join("")
+    : renderHomeEmptyState();
+}
+
+function renderHomeQuickMenu() {
+  const file = getHomeFileById(homeQuickMenuFileId);
+  if (!file) return "";
+  const canGenerate = file.generationState === "untranscribed";
+  return `
+    <div class="scrim home-file-menu-scrim" data-action="close-home-file-menu"></div>
+    <section class="home-file-quick-menu" role="dialog" aria-modal="true" aria-label="文件快捷操作">
+      <div class="home-file-quick-summary">
+        <strong>${h(file.name)}</strong>
+        <span>${h(file.meta)}</span>
+      </div>
+      ${canGenerate ? `<button data-action="generate-home-file" data-file-id="${h(file.id)}"><span class="quick-menu-icon">✦</span>生成</button>` : ""}
+      <button data-action="open-home-file-move" data-file-id="${h(file.id)}"><span class="quick-menu-icon">⇥</span>移至文件夹</button>
+      <button data-action="open-home-file-rename" data-file-id="${h(file.id)}"><span class="quick-menu-icon">↗</span>重命名</button>
+      <button class="danger" data-action="request-home-file-recycle" data-file-id="${h(file.id)}"><span class="quick-menu-icon">▥</span>移至回收站</button>
+    </section>
+  `;
+}
+
+function renderHomeRenameSheet() {
+  const file = getHomeFileById(homeFileRenameId);
+  if (!file) return "";
+  const renameInlineError = homeFileRenameDraft.length > 80
+    ? "文件名最多 80 个字符"
+    : /[\r\n]/.test(homeFileRenameDraft)
+      ? "文件名不能包含换行"
+      : !homeFileRenameDraft.trim()
+        ? "请输入文件名"
+        : homeFileRenameError;
+  const canSave = Boolean(homeFileRenameDraft.trim())
+    && homeFileRenameDraft.trim() !== file.name
+    && homeFileRenameDraft.length <= 80
+    && !/[\r\n]/.test(homeFileRenameDraft);
+  return `
+    <div class="scrim home-file-rename-scrim" data-action="close-home-file-rename"></div>
+    <section class="home-file-rename-sheet" role="dialog" aria-modal="true" aria-label="重命名文件">
+      <header><h2>重命名文件</h2><button data-action="close-home-file-rename" aria-label="关闭">×</button></header>
+      <div class="sheet-line"></div>
+      <input id="homeFileRenameInput" maxlength="80" value="${h(homeFileRenameDraft)}" aria-label="文件名" autocomplete="off">
+      <p id="homeFileRenameHint" class="${renameInlineError ? "home-file-rename-error" : "home-file-rename-hint"}">${h(renameInlineError || "文件名最多 80 个字符")}</p>
+      <div class="home-file-rename-actions">
+        <button class="outline" data-action="close-home-file-rename">取消</button>
+        <button class="primary-btn ${canSave ? "" : "disabled"}" data-action="save-home-file-rename" ${canSave ? "" : "disabled"}>保存</button>
+      </div>
+    </section>
+  `;
+}
+
+function renderHomeFileRecycleConfirm() {
+  if (!homeFileRecycleConfirmOpen) return "";
+  const count = homeFileRecycleIds.size;
+  return `
+    <div class="scrim home-file-recycle-scrim" data-action="cancel-home-file-recycle"></div>
+    <section class="home-file-recycle-confirm" role="dialog" aria-modal="true" aria-label="移至回收站确认">
+      <h2>移至回收站？</h2>
+      <p>将${count > 1 ? `选中的 ${count} 个文件` : "这个文件"}及其转写、AI 笔记和标记移至回收站，30 天内可以恢复。</p>
+      <button class="danger-fill" data-action="confirm-home-file-recycle">移至回收站</button>
+      <button class="outline" data-action="cancel-home-file-recycle">取消</button>
+    </section>
+  `;
+}
+
+function renderHomeMoveFolderSheet() {
+  if (!homeFileMoveSheetOpen) return "";
+  const selectedFolder = moveFolderFolders.find((folder) => folder.id === selectedMoveFolderId);
+  const count = homeFileMoveIds.size;
+  return `
+    <div class="scrim home-file-move-scrim" data-action="close-home-file-move"></div>
+    <section class="home-file-move-sheet" role="dialog" aria-modal="true" aria-label="移动文件">
+      <header><h2>移动${count > 1 ? ` ${count} 个文件` : "文件"}</h2><button data-action="close-home-file-move" aria-label="关闭">×</button></header>
+      <div class="sheet-line"></div>
+      <p class="home-file-move-hint">选择目标文件夹，文件将从当前列表移入该文件夹。</p>
+      ${moveFolderFolders.map((folder) => `
+        <button class="home-file-move-row ${folder.id === selectedMoveFolderId ? "selected" : ""}" data-action="select-home-file-move-folder" data-folder-id="${h(folder.id)}">
+          <span class="file-icon folder"></span><b>${h(folder.name)}</b><i>${folder.id === selectedMoveFolderId ? "✓" : ""}</i>
+        </button>
+      `).join("")}
+      <button class="primary-btn ${selectedFolder ? "" : "disabled"}" data-action="confirm-home-file-move" ${selectedFolder ? "" : "disabled"}>${selectedFolder ? `移动到${h(selectedFolder.name)}` : "移动到"}</button>
+    </section>
+  `;
+}
+
+function renderHomeSelectionActionBar() {
+  const selected = [...selectedHomeFileIds].map(getHomeFileById).filter(Boolean);
+  const count = selected.length;
+  const canGenerate = count === 1 && selected[0].generationState === "untranscribed";
+  const canRename = count === 1;
+  return `
+    <nav class="home-file-selection-actions" aria-label="文件批量操作">
+      <button class="${canGenerate ? "" : "disabled"}" data-action="generate-selected-home-file" ${canGenerate ? "" : "disabled"}><span>✦</span><b>生成</b></button>
+      <button data-action="move-selected-home-files"><span>⇥</span><b>移动到</b></button>
+      <button class="${canRename ? "" : "disabled"}" data-action="rename-selected-home-file" ${canRename ? "" : "disabled"}><span>↗</span><b>重命名</b></button>
+      <button class="danger" data-action="request-selected-home-file-recycle"><span>▥</span><b>删除</b></button>
+    </nav>
+  `;
+}
+
+function renderHomeSelectionScreen() {
+  const count = selectedHomeFileIds.size;
+  const files = getHomeVisibleFileItems();
+  return `
+    ${appTop(`已选中（${count}）`, "home-selection-done")}
+    <main class="screen-content home-file-selection-page">
+      <section class="home-file-selection-list" aria-label="选择文件">
+        ${files.length ? files.map((file) => fileCard({ ...file, homeFile: true })).join("") : renderHomeEmptyState()}
+      </section>
+    </main>
+    ${count ? renderHomeSelectionActionBar() : ""}
+    ${renderHomeRenameSheet()}
+    ${renderHomeFileRecycleConfirm()}
+    ${renderHomeMoveFolderSheet()}
+    ${homeFileNotice ? `<div class="toast-message home-file-toast" role="status">${h(homeFileNotice)}</div>` : ""}
+  `;
 }
 
 function clearHomePriorityMenuTimer() {
@@ -2170,11 +2403,119 @@ function showNoHomeDevice() {
   closeHomePriorityMenu();
 }
 
+function clearHomeFileInteractionState() {
+  clearHomeFileLongPressTimer();
+  homeSwipeOpenId = "";
+  homeQuickMenuFileId = "";
+  homeFileRenameId = "";
+  homeFileRenameDraft = "";
+  homeFileRenameError = "";
+  homeFileRecycleConfirmOpen = false;
+  homeFileRecycleIds = new Set();
+  homeFileMoveSheetOpen = false;
+  homeFileMoveIds = new Set();
+}
+
+function startHomeFileSelection(fileId) {
+  if (!getHomeFileById(fileId)) return;
+  homeFileSelectionMode = true;
+  selectedHomeFileIds = new Set([fileId]);
+  clearHomeFileInteractionState();
+  render();
+}
+
+function showHomeSelectionModeDemo() {
+  const firstFile = getHomeVisibleFileItems()[0];
+  if (!firstFile) resetHomeFileDemo();
+  const targetFile = getHomeVisibleFileItems()[0];
+  if (targetFile) startHomeFileSelection(targetFile.id);
+}
+
+function finishHomeFileSelection() {
+  homeFileSelectionMode = false;
+  selectedHomeFileIds = new Set();
+  clearHomeFileInteractionState();
+  render();
+}
+
+function toggleHomeFileSelection(fileId) {
+  if (!getHomeFileById(fileId)) return;
+  const next = new Set(selectedHomeFileIds);
+  if (next.has(fileId)) next.delete(fileId);
+  else next.add(fileId);
+  selectedHomeFileIds = next;
+  render();
+}
+
+function openHomeFileRename(fileId) {
+  const file = getHomeFileById(fileId);
+  if (!file) return;
+  homeQuickMenuFileId = "";
+  homeFileRenameId = fileId;
+  homeFileRenameDraft = file.name;
+  homeFileRenameError = "";
+  render();
+}
+
+function openHomeFileMove(fileIds) {
+  const ids = [...fileIds].filter((id) => getHomeFileById(id));
+  if (!ids.length) return;
+  homeQuickMenuFileId = "";
+  homeFileMoveIds = new Set(ids);
+  selectedMoveFolderId = "";
+  moveFolderCreateOpen = false;
+  homeFileMoveSheetOpen = true;
+  render();
+}
+
+function requestHomeFileRecycle(fileIds) {
+  const ids = [...fileIds].filter((id) => getHomeFileById(id));
+  if (!ids.length) return;
+  homeQuickMenuFileId = "";
+  homeFileRecycleIds = new Set(ids);
+  homeFileRecycleConfirmOpen = true;
+  render();
+}
+
+function completeHomeFileRecycle() {
+  const ids = homeFileRecycleIds;
+  if (!ids.size) return;
+  homeFileItems = homeFileItems.filter((file) => !ids.has(file.id));
+  homeFileRecycleConfirmOpen = false;
+  homeFileRecycleIds = new Set();
+  homeFileSelectionMode = false;
+  selectedHomeFileIds = new Set();
+  clearHomeFileInteractionState();
+  showHomeFileNotice(`已移至回收站，30天内可以恢复`);
+  render();
+}
+
+function showHomeEmptyFiles() {
+  homeFileItems = [];
+  homeSyncQueue = [];
+  homeSyncStage = "empty";
+  homeFailedFileState = "none";
+  homeFileSelectionMode = false;
+  selectedHomeFileIds = new Set();
+  clearHomeFileInteractionState();
+}
+
+function resetHomeFileDemo() {
+  homeFileItems = defaultHomeFileItems.map((item) => ({ ...item }));
+  homeSavedFileName = "周一项目复盘";
+  homeSyncQueue = createDefaultHomeSyncQueue();
+  homeSyncStage = "finishing";
+  homeFailedFileState = "failed";
+  homeFileSelectionMode = false;
+  selectedHomeFileIds = new Set();
+  clearHomeFileInteractionState();
+}
+
 function bottom(active = "files") {
   return `
     <nav class="bottom-nav">
       <button class="${active === "files" ? "active" : ""}" data-go="APP-HOME-01">文件</button>
-      <button class="record-fab ${active === "record" ? "recording" : ""}" data-go="APP-REC-02" aria-label="录音">
+      <button class="record-fab ${active === "record" ? "recording" : ""}" data-action="open-record-entry" aria-label="录音，长按可选择场景">
         <span class="record-fab-icon" aria-hidden="true"><i></i><i></i><i></i><b></b></span>
       </button>
       <button class="${active === "me" ? "active" : ""}" data-go="APP-ME-02">我的</button>
@@ -2521,11 +2862,11 @@ function renderDeviceUnbindHelp() {
 }
 
 function renderHomeContent({ showSync = true } = {}) {
-  const savedRecordingCard = homeSyncStage === "saved" || homeSyncStage === "idle"
-    ? fileCard({ featured: true, name: "周一项目复盘", meta: "刚刚 · 00:43:52", source: "硬件录音", state: "未转写", tone: "amber", go: "APP-FILE-10" })
-    : "";
   const activeDevice = boundHomeDevices.find((device) => device.id === activeHomeDeviceId) || boundHomeDevices[0];
   const canShowDeviceSync = homeDeviceAdded && showSync;
+  const visibleFiles = getHomeVisibleFileItems();
+  const hasFailedFile = homeFailedFileState === "failed" || homeFailedFileState === "retrying";
+  const showEmpty = !visibleFiles.length && !homeHasTransferRows() && !hasFailedFile;
   return `
     ${homeDeviceAdded ? `<section class="home-device-switcher ${homeDeviceMenuOpen ? "open" : ""}" aria-label="设备状态">
       <button class="home-device-button" data-go="APP-DEV-03" aria-label="进入 AI Recorder A1 设备详情">
@@ -2571,14 +2912,11 @@ function renderHomeContent({ showSync = true } = {}) {
         <button class="import-btn" data-go="APP-FILE-13">+导入音频</button>
       </div>
       ${homeDeviceAdded ? renderHomeTransferFileCards() : ""}
-      ${savedRecordingCard}
       ${homeFailedFileState === "failed"
         ? fileCard({ name: "产品讨论", meta: "昨天 16:40 · 00:58:20", source: "硬件录音", errorText: "同步失败", action: "重试", actionKey: "retry-home-failed-file" })
-        : fileCard({ name: "产品讨论", meta: "昨天 16:40 · 00:58:20", source: "硬件录音", transferState: "syncing", statusText: "正在重试…" })}
-      ${fileCard({ name: "Board meeting", meta: "今天 14:20 · 01:12:17 · 3 个标记", source: "硬件录音", state: "未转写", tone: "amber", go: "APP-FILE-10" })}
-      ${fileCard({ name: "Interview import", meta: "昨天 19:10 · 00:34:02", source: "导入文件", state: "AI 已生成", tone: "green", go: "APP-FILE-01" })}
-      ${fileCard({ name: "Product review", meta: "07-04 · 00:26:44 · 2 个标记", source: "导入文件", state: "未转写", tone: "amber", go: "APP-FILE-10" })}
-      <button class="load-more-btn">继续下拉加载更多文件</button>
+        : homeFailedFileState === "retrying" ? fileCard({ name: "产品讨论", meta: "昨天 16:40 · 00:58:20", source: "硬件录音", transferState: "syncing", statusText: "正在重试…" }) : ""}
+      ${showEmpty ? renderHomeEmptyState() : visibleFiles.length ? renderHomeNormalFileCards() : ""}
+      ${visibleFiles.length ? `<button class="load-more-btn">继续下拉加载更多文件</button>` : ""}
     </section>
   `;
 }
@@ -2602,7 +2940,8 @@ function renderHomePriorityToast() {
 }
 
 function renderHome() {
-  return `${screen(renderHomeContent(), { title: "文件", action: "search", active: "files" })}${homePriorityMenuTaskId ? '<button class="home-priority-dismiss" data-action="close-home-priority-menu" aria-label="关闭传输顺序操作"></button>' : ""}${homeHotspotSuccessNotice ? renderHotspotSuccessToast() : ""}${renderHomePriorityToast()}`;
+  if (homeFileSelectionMode) return renderHomeSelectionScreen();
+  return `${screen(renderHomeContent(), { title: "文件", action: "search", active: "files" })}${homePriorityMenuTaskId ? '<button class="home-priority-dismiss" data-action="close-home-priority-menu" aria-label="关闭传输顺序操作"></button>' : ""}${homeQuickMenuFileId ? renderHomeQuickMenu() : ""}${homeFileRenameId ? renderHomeRenameSheet() : ""}${renderHomeFileRecycleConfirm()}${renderHomeMoveFolderSheet()}${homeHotspotSuccessNotice ? renderHotspotSuccessToast() : ""}${renderHomePriorityToast()}${homeFileNotice ? `<div class="toast-message home-file-toast" role="status">${h(homeFileNotice)}</div>` : ""}`;
 }
 
 function renderHomeTrashToast() {
@@ -2996,6 +3335,15 @@ function renderRecordSheet() {
           </div>
         ` : ""}
       </div>
+      ${recordMode === "auto" ? `
+        <section class="record-quick-section" aria-labelledby="recordQuickTitle">
+          <h3 id="recordQuickTitle">快捷录音</h3>
+          <button class="record-quick-setting" data-action="toggle-quick-record" role="switch" aria-checked="${quickRecordEnabled ? "true" : "false"}" aria-label="以后点击直接录音">
+            <span><strong>以后点击直接录音</strong><small>长按录音按钮可重新选择场景</small></span>
+            <i class="record-switch ${quickRecordEnabled ? "on" : ""}" aria-hidden="true"><b></b></i>
+          </button>
+        </section>
+      ` : ""}
       <footer class="record-prepare-footer">
         <button class="primary-btn record-start-btn" data-go="APP-REC-04">开始录音</button>
       </footer>
@@ -3083,16 +3431,14 @@ function closeRecordingEditor() {
 function completeRecordingEditor() {
   if (!recordingEditor) return false;
   const draft = String(recordingEditor.draft || "").trim();
-  if (recordingEditor.mode !== "photo-caption" && !draft) {
-    showRecordingNotice("请输入标记内容");
-    return false;
-  }
   if (recordingEditor.mode === "new-input") {
-    recordingMarks = [
-      ...recordingMarks,
-      { id: nextRecordingMarkId(), time: recordingEditor.time, type: "input", text: draft, source: "APP" }
-    ];
-    showRecordingNotice("已添加输入标记");
+    if (draft) {
+      recordingMarks = [
+        ...recordingMarks,
+        { id: nextRecordingMarkId(), time: recordingEditor.time, type: "input", text: draft, source: "APP" }
+      ];
+      showRecordingNotice("已添加输入标记");
+    }
   } else if (recordingEditor.mode === "photo-caption") {
     recordingMarks = recordingMarks.map((mark) => mark.id === recordingEditor.markId
       ? { ...mark, caption: draft, captionSource: draft ? "user" : "" }
@@ -3156,50 +3502,42 @@ function simulateRecordingPhotoAiCaption() {
   showRecordingNotice("AI 已生成照片说明");
 }
 
-function recordingKeyboardMock() {
-  const suggestions = ["客户", "希望", "首版", "支持", "离线转写"];
-  const rows = [
-    ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
-    ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
-    ["Z", "X", "C", "V", "B", "N", "M"]
-  ];
-  return `<section class="recording-keyboard" aria-label="中文输入键盘">
-    <div class="recording-keyboard-suggestions">
-      ${suggestions.map((word) => `<button type="button" data-action="recording-keyboard-key" data-key="${h(word)}">${h(word)}</button>`).join("")}
+function renderRecordingInlineEditor(placeholder, className = "") {
+  return `<input id="recordingEditorInput" class="recording-inline-editor ${className}" value="${h(recordingEditor?.draft || "")}" placeholder="${h(placeholder)}" autocomplete="off" aria-label="${h(placeholder)}">`;
+}
+
+function renderRecordingKeyboard() {
+  const keys = [",", "@#", "ABC", "DEF", "⌫", "。", "GHI", "JKL", "MNO", "换行", "?", "PQRS", "TUV", "WXYZ", "重输", "符号", "123", "空格", "中英"];
+  return `<section class="recording-keyboard" aria-label="系统输入键盘">
+    <div class="file-edit-keyboard-accessory">
+      <button type="button" data-action="recording-keyboard-key" data-key="command" aria-label="命令" class="key-command">⌘</button>
+      <button type="button" data-action="recording-keyboard-key" data-key="scan" aria-label="扫描文本">${fileDetailFormatIcon("scan")}</button>
+      <button type="button" data-action="recording-keyboard-key" data-key="cut" aria-label="剪切">${fileDetailFormatIcon("cut")}</button>
+      <button type="button" data-action="recording-keyboard-key" data-key="emoji" aria-label="表情">${fileDetailFormatIcon("smile")}</button>
+      <button type="button" data-action="recording-keyboard-key" data-key="assistant" aria-label="智能输入">${fileDetailFormatIcon("assistant")}</button>
+      <b>${fileDetailFormatIcon("microphone")}<span>点击说话</span></b>
+      <button type="button" data-action="toggle-recording-keyboard" aria-label="收起键盘">${fileDetailFormatIcon("chevron-down")}</button>
     </div>
-    ${rows.map((row) => `<div class="recording-keyboard-row">${row.map((key) => `<button type="button" data-action="recording-keyboard-key" data-key="${key.toLowerCase()}">${key}</button>`).join("")}</div>`).join("")}
-    <div class="recording-keyboard-row recording-keyboard-bottom">
-      <button type="button" data-action="recording-keyboard-key" data-key="switch">123</button>
-      <button type="button" class="space" data-action="recording-keyboard-key" data-key="space">空格</button>
-      <button type="button" data-action="recording-keyboard-key" data-key="backspace">删除</button>
-      <button type="button" data-action="complete-recording-editor">完成</button>
+    <div class="file-edit-keyboard-grid">
+      ${keys.map((key) => `<button type="button" data-action="recording-keyboard-key" data-key="${h(key)}" class="${[",", "⌫", "。", "换行", "?", "重输", "符号"].includes(key) ? "modifier" : ""} ${key === "空格" ? "space" : ""}">${h(key)}</button>`).join("")}
     </div>
   </section>`;
 }
 
 function renderRecordingEditorDock() {
   if (!recordingEditor) return "";
-  const targetMark = recordingMarks.find((mark) => mark.id === recordingEditor.markId);
-  const isCaption = recordingEditor.mode === "photo-caption";
-  const canDeleteText = recordingEditor.mode === "edit-text" && targetMark?.type === "mark" && Boolean(targetMark.text);
-  const placeholder = isCaption ? "添加照片说明（可选）" : "输入标记内容";
-  const canComplete = isCaption || Boolean(String(recordingEditor.draft || "").trim());
-  return `<section class="recording-editor-dock" aria-label="标记文字编辑">
-    <div class="recording-editor-composer">
-      ${canDeleteText ? `<button type="button" class="recording-delete-copy" data-action="delete-recording-mark-text" aria-label="删除标记文字"><img src="./assets/icons/trash3.svg" alt=""></button>` : ""}
-      <input id="recordingEditorInput" value="${h(recordingEditor.draft)}" placeholder="${h(placeholder)}" autocomplete="off">
-      <button type="button" class="recording-editor-cancel" data-action="cancel-recording-editor">取消</button>
-      <button type="button" class="recording-editor-complete" data-action="complete-recording-editor" ${canComplete ? "" : "disabled"}>完成</button>
-    </div>
-    ${recordingKeyboardMock()}
+  return `<section class="recording-editor-dock" aria-label="系统输入键盘">
+    ${renderRecordingKeyboard()}
   </section>`;
 }
 
 function renderRecordingMarks() {
-  return recordingMarks.map((mark) => {
+  const renderedMarks = recordingMarks.map((mark) => {
     const isExpanded = recordingExpandedMarkIds.has(mark.id);
     const isLong = String(mark.text || "").length > 34;
     const text = mark.text || "添加标记说明";
+    const isEditingText = recordingEditor?.markId === mark.id && recordingEditor.mode === "edit-text";
+    const isEditingCaption = recordingEditor?.markId === mark.id && recordingEditor.mode === "photo-caption";
     return `<article class="timeline-item recording-marker ${mark.type === "photo" ? "photo-marker" : ""} ${mark.type === "input" ? "input-marker" : ""}" data-marker-id="${h(mark.id)}">
       <div class="recording-marker-meta"><strong>${h(mark.time)}</strong><span>${h(mark.source || "APP")}</span></div>
       ${mark.type === "photo" ? `
@@ -3209,16 +3547,26 @@ function renderRecordingMarks() {
           </button>
           <button type="button" class="recording-photo-delete" data-action="delete-recording-photo" data-marker-id="${h(mark.id)}" aria-label="删除照片标记"><img src="./assets/icons/trash3.svg" alt=""></button>
         </div>
-        <button type="button" class="recording-photo-caption ${mark.caption ? "filled" : "empty"}" data-action="edit-recording-photo-caption" data-marker-id="${h(mark.id)}">
-          <span>${h(mark.caption || "添加照片说明（可选）")}</span>
-          <small>${mark.captionSource === "ai" ? "AI 生成 · 点击可编辑" : "转写后可由 AI 识别生成，点击可编辑"}</small>
-        </button>
+        ${isEditingCaption
+          ? renderRecordingInlineEditor("添加照片说明（可选）", "recording-inline-photo-caption")
+          : `<button type="button" class="recording-photo-caption ${mark.caption ? "filled" : "empty"}" data-action="edit-recording-photo-caption" data-marker-id="${h(mark.id)}">
+            <span>${h(mark.caption || "添加照片说明（可选）")}</span>
+          </button>`}
       ` : `
-        <button type="button" class="recording-marker-copy ${!mark.text ? "empty" : ""} ${isLong && !isExpanded ? "collapsed" : ""}" data-action="edit-recording-mark" data-marker-id="${h(mark.id)}">${h(text)}</button>
-        ${isLong ? `<button type="button" class="recording-expand-copy" data-action="toggle-recording-mark-expanded" data-marker-id="${h(mark.id)}">${isExpanded ? "收起" : "展开"}</button>` : ""}
+        ${isEditingText
+          ? renderRecordingInlineEditor("输入标记内容")
+          : `<button type="button" class="recording-marker-copy ${!mark.text ? "empty" : ""} ${isLong && !isExpanded ? "collapsed" : ""}" data-action="edit-recording-mark" data-marker-id="${h(mark.id)}">${h(text)}</button>
+            ${isLong ? `<button type="button" class="recording-expand-copy" data-action="toggle-recording-mark-expanded" data-marker-id="${h(mark.id)}">${isExpanded ? "收起" : "展开"}</button>` : ""}`}
       `}
     </article>`;
   }).join("");
+  if (recordingEditor?.mode === "new-input") {
+    return `${renderedMarks}<article class="timeline-item recording-marker input-marker is-inline-editing" data-marker-id="recording-editor-draft">
+      <div class="recording-marker-meta"><strong>${h(recordingEditor.time)}</strong><span>APP</span></div>
+      ${renderRecordingInlineEditor("输入标记内容")}
+    </article>`;
+  }
+  return renderedMarks;
 }
 
 function renderRecordingCamera() {
@@ -6053,6 +6401,7 @@ function renderPrototypeLinks(page) {
       const active = (action === "set-sync-transport" && homeSyncStage !== "idle" && value === homeSyncTransport)
         || (action === "home-show-no-device" && !homeDeviceAdded)
         || (action === "home-show-no-sync-tasks" && homeDeviceAdded && homeSyncStage === "idle")
+        || (action === "home-show-selection-mode" && homeFileSelectionMode)
         || (action === "set-hotspot-state" && value === (hotspotTransferState === "systemPrompt" ? "awaiting" : hotspotTransferState))
         || (action === "set-device-recording-state" && value === (deviceRecordingActive ? "recording" : "idle"))
         || (action === "set-ask-demo-state" && ((value === "complete" && askPlaudMode === "answer") || (value === "insight" && askPlaudMode === "thinking" && askPlaudSkill === "获取洞察") || (value === "direct" && askPlaudMode === "thinking" && !askPlaudSkill) || (value === askPlaudThinkingStage)));
@@ -6286,9 +6635,27 @@ function render() {
       input?.setSelectionRange(input.value.length, input.value.length);
     });
   }
+  if (homeFileRenameId) {
+    requestAnimationFrame(() => {
+      const input = document.getElementById("homeFileRenameInput");
+      input?.focus();
+      input?.select();
+    });
+  }
 }
 
 document.addEventListener("click", (event) => {
+  if (homeFileSuppressClick) {
+    homeFileSuppressClick = false;
+    event.preventDefault();
+    return;
+  }
+  const recordEntry = event.target.closest("[data-action='open-record-entry']");
+  if (recordEntry && recordFabLongPressTriggered) {
+    recordFabLongPressTriggered = false;
+    event.preventDefault();
+    return;
+  }
   const askInput = event.target.closest(".note-question-bar");
   if (askInput) {
     clearAskPlaudThinkingTimer();
@@ -6313,6 +6680,10 @@ document.addEventListener("click", (event) => {
     return;
   }
   const action = event.target.closest("[data-action]");
+  if (action && action.dataset.action === "open-record-entry") {
+    openRecordEntry();
+    return;
+  }
   if (action && action.dataset.action === "set-device-recording-state") {
     deviceRecordingActive = action.dataset.value === "recording";
     deviceActionNotice = "";
@@ -6406,6 +6777,12 @@ document.addEventListener("click", (event) => {
   }
   if (action && action.dataset.action === "select-record-scene") {
     selectedRecordScene = action.dataset.value || "auto";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "toggle-quick-record") {
+    quickRecordEnabled = !quickRecordEnabled;
+    persistQuickRecordPreference();
     render();
     return;
   }
@@ -7216,44 +7593,31 @@ document.addEventListener("click", (event) => {
     render();
     return;
   }
-  if (action && action.dataset.action === "cancel-recording-editor") {
-    closeRecordingEditor();
-    render();
-    return;
-  }
-  if (action && action.dataset.action === "complete-recording-editor") {
+  if (action && action.dataset.action === "toggle-recording-keyboard") {
     completeRecordingEditor();
-    render();
-    if (recordingEditor) requestAnimationFrame(() => document.getElementById("recordingEditorInput")?.focus());
-    return;
-  }
-  if (action && action.dataset.action === "delete-recording-mark-text") {
-    if (recordingEditor?.markId) {
-      recordingMarks = recordingMarks.map((mark) => mark.id === recordingEditor.markId ? { ...mark, text: "" } : mark);
-      closeRecordingEditor();
-      showRecordingNotice("标记文字已删除，时间锚点已保留");
-    }
     render();
     return;
   }
   if (action && action.dataset.action === "recording-keyboard-key") {
     if (!recordingEditor) return;
+    const input = document.getElementById("recordingEditorInput");
     const key = action.dataset.key || "";
-    if (key === "switch") {
+    if (!input) return;
+    if (["command", "scan", "cut", "emoji", "assistant", "重输", "符号", "123", "中英"].includes(key)) {
       showRecordingNotice("原型键盘保持中文输入");
-    } else if (key === "backspace") {
-      recordingEditor.draft = recordingEditor.draft.slice(0, -1);
-    } else if (key === "space") {
-      recordingEditor.draft += " ";
-    } else {
-      recordingEditor.draft += key;
+      requestAnimationFrame(() => input.focus());
+      return;
     }
-    render();
-    requestAnimationFrame(() => {
-      const input = document.getElementById("recordingEditorInput");
-      input?.focus();
-      input?.setSelectionRange(input.value.length, input.value.length);
-    });
+    if (key === "⌫") input.value = input.value.slice(0, -1);
+    else if (key === "换行") {
+      completeRecordingEditor();
+      render();
+      return;
+    } else if (key === "空格") input.value += " ";
+    else input.value += key;
+    recordingEditor.draft = input.value;
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
     return;
   }
   if (action && action.dataset.action === "simulate-recording-photo-ai") {
@@ -7290,6 +7654,152 @@ document.addEventListener("click", (event) => {
   if (action && action.dataset.action === "home-show-no-device") {
     showNoHomeDevice();
     render();
+    return;
+  }
+  if (action && action.dataset.action === "home-show-empty-files") {
+    showHomeEmptyFiles();
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "home-reset-file-demo") {
+    resetHomeFileDemo();
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "home-show-selection-mode") {
+    showHomeSelectionModeDemo();
+    return;
+  }
+  if (action && action.dataset.action === "start-home-file-selection") {
+    startHomeFileSelection(action.dataset.fileId || "");
+    return;
+  }
+  if (action && action.dataset.action === "finish-home-file-selection") {
+    finishHomeFileSelection();
+    return;
+  }
+  if (action && action.dataset.action === "toggle-home-file-selection") {
+    toggleHomeFileSelection(action.dataset.fileId || "");
+    return;
+  }
+  if (action && action.dataset.action === "open-home-file-menu") {
+    const fileId = action.dataset.fileId || "";
+    if (!getHomeFileById(fileId)) return;
+    homeSwipeOpenId = "";
+    homeQuickMenuFileId = fileId;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "close-home-file-menu") {
+    homeQuickMenuFileId = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "generate-home-file") {
+    const file = getHomeFileById(action.dataset.fileId || "");
+    if (!file || file.generationState !== "untranscribed") return;
+    homeQuickMenuFileId = "";
+    go("APP-AI-01");
+    return;
+  }
+  if (action && action.dataset.action === "generate-selected-home-file") {
+    const file = [...selectedHomeFileIds].map(getHomeFileById).find(Boolean);
+    if (!file || selectedHomeFileIds.size !== 1 || file.generationState !== "untranscribed") return;
+    homeFileSelectionMode = false;
+    selectedHomeFileIds = new Set();
+    go("APP-AI-01");
+    return;
+  }
+  if (action && action.dataset.action === "open-home-file-rename") {
+    openHomeFileRename(action.dataset.fileId || "");
+    return;
+  }
+  if (action && action.dataset.action === "rename-selected-home-file") {
+    if (selectedHomeFileIds.size !== 1) return;
+    openHomeFileRename([...selectedHomeFileIds][0]);
+    return;
+  }
+  if (action && action.dataset.action === "close-home-file-rename") {
+    homeFileRenameId = "";
+    homeFileRenameDraft = "";
+    homeFileRenameError = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "save-home-file-rename") {
+    const file = getHomeFileById(homeFileRenameId);
+    const nextName = (document.getElementById("homeFileRenameInput")?.value ?? homeFileRenameDraft).trim();
+    if (!file) return;
+    if (!nextName) homeFileRenameError = "请输入文件名";
+    else if (nextName.length > 80) homeFileRenameError = "文件名最多 80 个字符";
+    else if (/[\r\n]/.test(nextName)) homeFileRenameError = "文件名不能包含换行";
+    else if (nextName === file.name) homeFileRenameError = "文件名未发生变化";
+    else {
+      if (file.id === "home-file-saved") homeSavedFileName = nextName;
+      homeFileItems = homeFileItems.map((item) => item.id === file.id ? { ...item, name: nextName } : item);
+      homeFileRenameId = "";
+      homeFileRenameDraft = "";
+      homeFileRenameError = "";
+      homeFileSelectionMode = false;
+      selectedHomeFileIds = new Set();
+      showHomeFileNotice("文件名已更新");
+      render();
+      return;
+    }
+    homeFileRenameDraft = nextName;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "open-home-file-move") {
+    openHomeFileMove([action.dataset.fileId || ""]);
+    return;
+  }
+  if (action && action.dataset.action === "move-selected-home-files") {
+    openHomeFileMove(selectedHomeFileIds);
+    return;
+  }
+  if (action && action.dataset.action === "close-home-file-move") {
+    homeFileMoveSheetOpen = false;
+    homeFileMoveIds = new Set();
+    selectedMoveFolderId = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "select-home-file-move-folder") {
+    selectedMoveFolderId = action.dataset.folderId || "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "confirm-home-file-move") {
+    const folder = moveFolderFolders.find((item) => item.id === selectedMoveFolderId);
+    if (!folder || !homeFileMoveIds.size) return;
+    const count = homeFileMoveIds.size;
+    folder.count += count;
+    homeFileMoveSheetOpen = false;
+    homeFileMoveIds = new Set();
+    selectedMoveFolderId = "";
+    homeFileSelectionMode = false;
+    selectedHomeFileIds = new Set();
+    showHomeFileNotice(`已移动 ${count} 个文件`);
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "request-home-file-recycle") {
+    requestHomeFileRecycle([action.dataset.fileId || ""]);
+    return;
+  }
+  if (action && action.dataset.action === "request-selected-home-file-recycle") {
+    requestHomeFileRecycle(selectedHomeFileIds);
+    return;
+  }
+  if (action && action.dataset.action === "cancel-home-file-recycle") {
+    homeFileRecycleConfirmOpen = false;
+    homeFileRecycleIds = new Set();
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "confirm-home-file-recycle") {
+    completeHomeFileRecycle();
     return;
   }
   if (action && action.dataset.action === "home-reset-sync-demo") {
@@ -7635,11 +8145,38 @@ document.addEventListener("click", (event) => {
 });
 
 document.addEventListener("pointerdown", (event) => {
+  const recordTrigger = event.target.closest("[data-action='open-record-entry']");
+  if (recordTrigger) {
+    clearRecordFabLongPressTimer();
+    recordFabLongPressTriggered = false;
+    recordFabLongPressTimer = window.setTimeout(() => {
+      recordFabLongPressTimer = null;
+      recordFabLongPressTriggered = true;
+      openRecordEntry({ longPress: true });
+    }, 500);
+    return;
+  }
   const editDockButton = event.target.closest(".file-detail-edit-dock button");
   if (editDockButton) {
     fileDetailDockInteraction = true;
     window.setTimeout(() => { fileDetailDockInteraction = false; }, 80);
     event.preventDefault();
+    return;
+  }
+  const homeFileCard = event.target.closest(".home-file-card[data-file-id]");
+  if (homeFileCard && currentPageId === "APP-HOME-01" && !homeFileSelectionMode) {
+    const fileId = homeFileCard.dataset.fileId || "";
+    homeFilePointer = { id: fileId, startX: event.clientX, startY: event.clientY, moved: false, longPressed: false };
+    if (homeFileLongPressTimer) window.clearTimeout(homeFileLongPressTimer);
+    homeFileLongPressTimer = window.setTimeout(() => {
+      if (!homeFilePointer || homeFilePointer.moved || homeFilePointer.id !== fileId) return;
+      homeFilePointer.longPressed = true;
+      homeFileSuppressClick = true;
+      homeFileLongPressTimer = null;
+      homeQuickMenuFileId = fileId;
+      homeSwipeOpenId = "";
+      render();
+    }, 500);
     return;
   }
   const priorityTrigger = event.target.closest("[data-action='open-home-priority-menu']");
@@ -7652,11 +8189,76 @@ document.addEventListener("pointerdown", (event) => {
   }, 500);
 });
 
+function clearHomeFileLongPressTimer() {
+  if (!homeFileLongPressTimer) return;
+  window.clearTimeout(homeFileLongPressTimer);
+  homeFileLongPressTimer = null;
+}
+
+document.addEventListener("pointermove", (event) => {
+  if (!homeFilePointer || homeFileSelectionMode) return;
+  const dx = event.clientX - homeFilePointer.startX;
+  const dy = event.clientY - homeFilePointer.startY;
+  if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+  if (Math.abs(dy) > Math.abs(dx)) {
+    homeFilePointer.moved = true;
+    clearHomeFileLongPressTimer();
+    return;
+  }
+  homeFilePointer.moved = true;
+  clearHomeFileLongPressTimer();
+  if (dx < 0) {
+    const card = document.querySelector(`.home-file-card[data-file-id="${CSS.escape(homeFilePointer.id)}"]`);
+    const main = card?.querySelector(".file-card-main");
+    if (main) main.style.transform = `translateX(${Math.max(-88, dx)}px)`;
+    event.preventDefault();
+  }
+});
+
+document.addEventListener("pointerup", (event) => {
+  if (!homeFilePointer) return;
+  const pointer = homeFilePointer;
+  homeFilePointer = null;
+  clearHomeFileLongPressTimer();
+  if (pointer.longPressed) return;
+  const dx = event.clientX - pointer.startX;
+  const dy = event.clientY - pointer.startY;
+  if (Math.abs(dx) > Math.abs(dy) && dx < -56) {
+    homeFileSuppressClick = true;
+    startHomeFileSelection(pointer.id);
+  }
+});
+
+document.addEventListener("pointercancel", () => {
+  homeFilePointer = null;
+  clearHomeFileLongPressTimer();
+});
+
 ["pointerup", "pointercancel", "pointermove"].forEach((eventName) => {
-  document.addEventListener(eventName, clearHomePriorityLongPressTimer);
+  document.addEventListener(eventName, () => {
+    clearRecordFabLongPressTimer();
+    clearHomePriorityLongPressTimer();
+  });
 });
 
 document.addEventListener("contextmenu", (event) => {
+  const recordTrigger = event.target.closest("[data-action='open-record-entry']");
+  if (recordTrigger) {
+    event.preventDefault();
+    clearRecordFabLongPressTimer();
+    recordFabLongPressTriggered = true;
+    openRecordEntry({ longPress: true });
+    return;
+  }
+  const homeFileCard = event.target.closest(".home-file-card[data-file-id]");
+  if (homeFileCard && !homeFileSelectionMode) {
+    event.preventDefault();
+    clearHomeFileLongPressTimer();
+    homeQuickMenuFileId = homeFileCard.dataset.fileId || "";
+    homeSwipeOpenId = "";
+    render();
+    return;
+  }
   const priorityTrigger = event.target.closest("[data-action='open-home-priority-menu']");
   if (!priorityTrigger) return;
   event.preventDefault();
@@ -7665,6 +8267,18 @@ document.addEventListener("contextmenu", (event) => {
 });
 
 document.addEventListener("keydown", (event) => {
+  if (event.target.id === "homeFileRenameInput" && event.key === "Enter") {
+    event.preventDefault();
+    document.querySelector("[data-action='save-home-file-rename']")?.click();
+    return;
+  }
+  if (event.key === "Escape" && homeFileRenameId) {
+    homeFileRenameId = "";
+    homeFileRenameDraft = "";
+    homeFileRenameError = "";
+    render();
+    return;
+  }
   const priorityTrigger = event.target.closest?.("[data-action='open-home-priority-menu']");
   if (priorityTrigger && ["Enter", " ", "Spacebar"].includes(event.key)) {
     event.preventDefault();
@@ -7708,7 +8322,40 @@ document.addEventListener("keydown", (event) => {
   document.querySelector("[data-action='save-device-name']")?.click();
 });
 
+document.addEventListener("keydown", (event) => {
+  if (event.target.id !== "recordingEditorInput" || event.key !== "Enter" || !recordingEditor) return;
+  event.preventDefault();
+  completeRecordingEditor();
+  render();
+});
+
 document.addEventListener("input", (event) => {
+  if (event.target.id === "homeFileRenameInput") {
+    homeFileRenameDraft = event.target.value;
+    homeFileRenameError = "";
+    const file = getHomeFileById(homeFileRenameId);
+    const canSave = Boolean(file && homeFileRenameDraft.trim() && homeFileRenameDraft.trim() !== file.name && homeFileRenameDraft.length <= 80 && !/[\r\n]/.test(homeFileRenameDraft));
+    const saveButton = document.querySelector("[data-action='save-home-file-rename']");
+    if (saveButton) {
+      saveButton.disabled = !canSave;
+      saveButton.classList.toggle("disabled", !canSave);
+    }
+    const hint = document.getElementById("homeFileRenameHint");
+    if (hint) {
+      const message = homeFileRenameDraft.length > 80
+        ? "文件名最多 80 个字符"
+        : /[\r\n]/.test(homeFileRenameDraft)
+          ? "文件名不能包含换行"
+          : !homeFileRenameDraft.trim()
+            ? "请输入文件名"
+            : "文件名最多 80 个字符";
+      hint.textContent = message;
+      hint.className = (!homeFileRenameDraft.trim() || homeFileRenameDraft.length > 80 || /[\r\n]/.test(homeFileRenameDraft))
+        ? "home-file-rename-error"
+        : "home-file-rename-hint";
+    }
+    return;
+  }
   if (event.target.id === "searchInput") {
     searchDraft = event.target.value;
   }
@@ -7740,9 +8387,6 @@ document.addEventListener("input", (event) => {
   }
   if (event.target.id === "recordingEditorInput" && recordingEditor) {
     recordingEditor.draft = event.target.value;
-    const completeButton = document.querySelector("[data-action='complete-recording-editor']");
-    const canComplete = recordingEditor.mode === "photo-caption" || Boolean(recordingEditor.draft.trim());
-    if (completeButton) completeButton.disabled = !canComplete;
   }
   if (event.target.id === "registerEmail" || event.target.id === "registerPassword") {
     registerEmail = document.getElementById("registerEmail")?.value || "";
