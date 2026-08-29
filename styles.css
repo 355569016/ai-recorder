@@ -330,6 +330,7 @@ button {
 }
 
 .screen-content {
+  position: relative;
   height: calc(100% - 96px);
   overflow: auto;
   padding: 2px 20px 104px;
@@ -6437,6 +6438,13 @@ button {
   font-weight: 700;
 }
 
+.me-step-indicator {
+  justify-self: end;
+  color: #111;
+  font-size: 16px;
+  font-weight: 700;
+}
+
 .cloud-sync-page,
 .cloud-storage-page,
 .delete-cloud-page,
@@ -6541,32 +6549,47 @@ button {
   display: grid;
   place-items: center;
   margin: 0 auto 22px;
+  padding: 0;
+  border: 0;
   border-radius: 50%;
   background: #eee;
+  color: #111;
+  font: inherit;
+  cursor: pointer;
+  overflow: visible;
 }
 
-.account-avatar span {
+.account-avatar > img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+.account-avatar-initial {
   font-size: 58px;
   line-height: 1;
 }
 
-.account-avatar button {
+.account-avatar-camera {
   position: absolute;
   right: -2px;
   bottom: 10px;
   width: 34px;
   height: 34px;
   border: 0;
+  border-radius: 50%;
   background: #fff;
 }
 
-.account-avatar button::before,
-.account-avatar button::after {
+.account-avatar-camera::before,
+.account-avatar-camera::after {
   content: "";
   position: absolute;
 }
 
-.account-avatar button::before {
+.account-avatar-camera::before {
   left: 6px;
   top: 10px;
   width: 22px;
@@ -6575,7 +6598,7 @@ button {
   border-radius: 3px;
 }
 
-.account-avatar button::after {
+.account-avatar-camera::after {
   left: 14px;
   top: 14px;
   width: 6px;
@@ -6583,6 +6606,80 @@ button {
   border: 2px solid #111;
   border-radius: 50%;
   background: #fff;
+}
+
+.account-avatar:focus-visible {
+  outline: 2px solid #111;
+  outline-offset: 4px;
+}
+
+.account-avatar-notice {
+  position: absolute;
+  left: 50%;
+  bottom: 28px;
+  z-index: 25;
+  width: max-content;
+  max-width: calc(100% - 44px);
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(17, 17, 17, .9);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 650;
+  text-align: center;
+  transform: translateX(-50%);
+}
+
+.scrim.account-avatar-actions-scrim {
+  z-index: 20;
+}
+
+.account-avatar-action-sheet,
+.account-avatar-cancel {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  z-index: 21;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, .12);
+}
+
+.account-avatar-action-sheet {
+  bottom: 86px;
+  overflow: hidden;
+}
+
+.account-avatar-action-sheet button,
+.account-avatar-cancel {
+  width: 100%;
+  min-height: 62px;
+  border: 0;
+  background: transparent;
+  color: #111;
+  font: inherit;
+  font-size: 19px;
+  cursor: pointer;
+}
+
+.account-avatar-action-sheet button + button {
+  border-top: 1px solid #e8e8e8;
+}
+
+.account-avatar-cancel {
+  bottom: 18px;
+  font-weight: 700;
+}
+
+.account-avatar-action-sheet button:active,
+.account-avatar-cancel:active {
+  background: #f5f5f5;
+}
+
+.account-avatar-action-sheet button:focus-visible,
+.account-avatar-cancel:focus-visible {
+  outline: 2px solid #111;
+  outline-offset: -3px;
 }
 
 .account-profile h1 {
@@ -6775,6 +6872,7 @@ button {
 }
 
 .device-remove-page {
+  position: relative;
   background: #f4f4f4;
 }
 
@@ -6875,6 +6973,340 @@ button {
 
 .device-remove-action:active {
   opacity: .68;
+}
+
+.device-danger-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  border: 0;
+  background: rgba(0, 0, 0, .34);
+  cursor: pointer;
+}
+
+.device-danger-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 21;
+  padding: 18px 22px 24px;
+  border-radius: 22px 22px 0 0;
+  background: #fff;
+  box-shadow: 0 -12px 36px rgba(0, 0, 0, .16);
+}
+
+.device-danger-sheet-handle {
+  width: 42px;
+  height: 4px;
+  margin: 0 auto 20px;
+  border-radius: 999px;
+  background: #d6d6d6;
+}
+
+.device-danger-sheet h1 {
+  margin: 0;
+  color: #111;
+  font-size: 24px;
+  line-height: 1.25;
+  font-weight: 760;
+}
+
+.device-danger-lead {
+  margin: 12px 0 18px;
+  color: #555;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.device-danger-impact-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid #ececec;
+}
+
+.device-danger-impact-list li {
+  padding: 12px 0;
+  border-bottom: 1px solid #ececec;
+  color: #555;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.device-danger-impact-list li b {
+  font-weight: 650;
+}
+
+.device-danger-warning {
+  margin: 15px 0 18px;
+  padding: 11px 12px;
+  border-radius: 8px;
+  background: #f7f7f7;
+  color: #666;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.device-danger-warning.danger {
+  background: #fff3f2;
+  color: #d64037;
+}
+
+.device-danger-sheet-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.device-danger-sheet-actions button,
+.device-danger-back {
+  min-height: 48px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.outline-btn {
+  width: 100%;
+  border: 1px solid #cfcfcf;
+  background: #fff;
+  color: #111;
+}
+
+.danger-fill {
+  width: 100%;
+  border: 1px solid #f0443b;
+  background: #f0443b;
+  color: #fff;
+}
+
+.danger-fill:disabled {
+  border-color: #d7d7d7;
+  background: #d7d7d7;
+  color: #fff;
+  cursor: not-allowed;
+}
+
+.device-danger-verify-page {
+  position: relative;
+  background: #fff;
+}
+
+.device-danger-verify-page .statusbar {
+  color: #111;
+}
+
+.device-danger-verify-page .app-top {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.device-danger-verify-page .app-top h2 {
+  font-weight: 750;
+}
+
+.device-danger-verify-content {
+  padding: 24px 22px 28px;
+}
+
+.device-danger-verify-lead {
+  margin: 0 0 18px;
+  color: #555;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.device-danger-account-row {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 14px;
+  border: 1px solid #e2e2e2;
+  border-radius: 9px;
+  background: #fafafa;
+  color: #222;
+  font-size: 15px;
+}
+
+.device-danger-account-row span {
+  color: #555;
+}
+
+.device-danger-method-label,
+.device-danger-field-label {
+  display: block;
+  margin: 22px 0 10px;
+  color: #333;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.device-danger-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 48px;
+  overflow: hidden;
+  border: 1px solid #d6d6d6;
+  border-radius: 9px;
+}
+
+.device-danger-tabs button {
+  border: 0;
+  border-right: 1px solid #d6d6d6;
+  background: #fff;
+  color: #777;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.device-danger-tabs button:last-child {
+  border-right: 0;
+}
+
+.device-danger-tabs button.selected {
+  background: #111;
+  color: #fff;
+}
+
+.device-danger-password-field,
+.device-danger-code-row {
+  min-height: 52px;
+  display: grid;
+  align-items: center;
+  border: 1px solid #d7d7d7;
+  border-radius: 9px;
+  background: #fff;
+}
+
+.device-danger-password-field {
+  grid-template-columns: minmax(0, 1fr) 48px;
+}
+
+.device-danger-code-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  padding-right: 8px;
+}
+
+.device-danger-password-field:focus-within,
+.device-danger-code-row:focus-within {
+  border-color: #111;
+  box-shadow: inset 3px 0 0 #111;
+}
+
+.device-danger-password-field input,
+.device-danger-code-row input {
+  width: 100%;
+  min-width: 0;
+  height: 50px;
+  padding: 0 14px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #111;
+  font: inherit;
+  font-size: 16px;
+}
+
+.device-danger-password-field input::placeholder,
+.device-danger-code-row input::placeholder {
+  color: #b3b3b3;
+}
+
+.device-danger-password-field > button {
+  width: 48px;
+  height: 50px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.device-danger-password-field .eye-icon {
+  border-color: #888;
+  transform: rotate(-10deg) scale(.8);
+}
+
+.device-danger-password-field .eye-icon::before,
+.device-danger-password-field .eye-icon::after {
+  background: #888;
+}
+
+.device-danger-code-row button {
+  min-width: 88px;
+  height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 7px;
+  background: #f3f3f3;
+  color: #111;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.device-danger-forgot {
+  margin-top: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #777;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.device-danger-code-hint,
+.device-danger-notice {
+  margin: 10px 0 0;
+  color: #888;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.device-danger-notice.error {
+  color: #e03d35;
+}
+
+.device-danger-notice.success {
+  color: #23834d;
+}
+
+.device-danger-submit {
+  margin-top: 28px;
+}
+
+.device-danger-back {
+  margin-top: 10px;
+}
+
+.device-scan-toast {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  bottom: 30px;
+  z-index: 3;
+}
+
+.device-empty-state {
+  padding: 80px 0 0;
+  text-align: center;
+}
+
+.device-empty-state h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.device-empty-state p {
+  margin: 14px 0 24px;
+  color: #777;
+  line-height: 1.5;
 }
 
 .login-methods-page section {
@@ -7143,23 +7575,137 @@ button {
 }
 
 .delete-account-page section {
-  padding-top: 28px;
-  padding-bottom: 220px;
+  padding-top: 18px;
+  padding-bottom: 10px;
 }
 
-.delete-account-page p,
-.delete-account-page ol {
-  margin: 0 0 20px;
-  font-size: 20px;
-  line-height: 1.55;
+.delete-account-warning-content,
+.delete-account-confirm-content {
+  padding-inline: 22px;
 }
 
-.delete-account-page ol {
-  padding-left: 28px;
+.delete-account-intro p {
+  margin: 0 0 10px;
+  color: #111;
+  font-size: 16px;
+  line-height: 1.45;
 }
 
-.delete-account-risk {
+.delete-account-intro p:last-child {
+  margin-bottom: 14px;
+}
+
+.delete-account-intro span,
+.delete-confirm-lead span {
   color: #ff4b45;
+  font-weight: 700;
+}
+
+.delete-account-impact-card,
+.delete-account-compact-reminder {
+  margin-bottom: 12px;
+  border: 1px solid #f1c9c4;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.delete-account-impact-card h2 {
+  margin: 0;
+  color: #ff4b45;
+  font-size: 17px;
+  line-height: 1.3;
+}
+
+.delete-account-impact-card h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px 8px;
+}
+
+.delete-account-impact-card h2 span {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #ff4b45;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.delete-account-impact-list {
+  margin: 0;
+  padding: 0 14px 4px;
+  list-style: none;
+}
+
+.delete-account-impact-list li {
+  padding: 10px 0;
+  border-top: 1px solid #ececec;
+}
+
+.delete-account-impact-list b {
+  display: block;
+  color: #222;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.delete-account-impact-list small {
+  display: block;
+  margin-top: 3px;
+  color: #888;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.delete-account-compact-reminder {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  border-color: #e2e2e2;
+  background: #fbfbfb;
+}
+
+.delete-account-compact-reminder > span {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  flex: 0 0 18px;
+  place-items: center;
+  border-radius: 50%;
+  border: 1.5px solid #888;
+  color: #666;
+  font-size: 12px;
+  font-family: Georgia, serif;
+  font-weight: 700;
+}
+
+.delete-account-compact-reminder p {
+  margin: 0;
+  color: #555;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.delete-account-compact-reminder b {
+  color: #222;
+}
+
+.delete-account-preflight-row i {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  flex: 0 0 22px;
+  place-items: center;
+  border-radius: 50%;
+  background: #a7a7a7;
+  color: #fff;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 800;
 }
 
 .delete-account-footer {
@@ -7168,32 +7714,52 @@ button {
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 16px 22px 24px;
+  padding: 10px 22px 16px;
   background: #fff;
   box-shadow: 0 -14px 22px rgba(255, 255, 255, .96);
 }
 
-.delete-account-footer label,
+.delete-account-footer .primary-btn,
+.delete-account-footer .disabled-btn {
+  width: 100%;
+  min-height: 50px;
+  border: 0;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.delete-account-footer .primary-btn {
+  background: #111;
+  color: #fff;
+  cursor: pointer;
+}
+
+.delete-account-footer .disabled-btn {
+  background: #dcdcdc;
+  color: #f7f7f7;
+  cursor: not-allowed;
+}
+
 .delete-read-check {
   display: flex;
   align-items: center;
   gap: 12px;
   width: 100%;
-  margin-bottom: 24px;
+  margin: 0 0 10px;
   border: 0;
   background: transparent;
   color: #222;
-  font-size: 18px;
+  font-size: 14px;
   text-align: left;
   cursor: pointer;
 }
 
-.delete-account-footer label i,
 .delete-read-check i {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   display: grid;
-  flex: 0 0 26px;
+  flex: 0 0 24px;
   place-items: center;
   border: 2px solid #d5dbe3;
   border-radius: 50%;
@@ -7209,33 +7775,74 @@ button {
 }
 
 .delete-account-confirm-page section {
-  padding-bottom: 220px;
+  padding-bottom: 18px;
 }
 
 .delete-account-confirm-page h1 {
-  margin: 0 0 16px;
+  margin: 0 0 14px;
   color: #111;
-  font-size: 30px;
+  font-size: 25px;
   line-height: 1.2;
+}
+
+.delete-confirm-lead {
+  margin: 0 0 18px;
+  color: #222;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.delete-account-account-row {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 14px;
+  border: 1px solid #e4e4e4;
+  border-radius: 9px;
+  color: #222;
+  font-size: 15px;
+}
+
+.delete-account-account-row span {
+  color: #444;
+}
+
+.delete-confirm-method-label {
+  display: block;
+  margin-top: 18px;
+  color: #333;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .delete-confirm-tabs {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  margin: 22px 0 20px;
+  gap: 0;
+  margin: 10px 0 20px;
 }
 
 .delete-confirm-tabs button {
-  min-height: 44px;
+  min-height: 46px;
   border: 1px solid #d8d4cd;
-  border-radius: 8px;
+  border-radius: 0;
   background: #fff;
   color: #777;
   font-size: 16px;
   font-weight: 700;
   cursor: pointer;
   pointer-events: auto;
+}
+
+.delete-confirm-tabs button:first-child {
+  border-radius: 8px 0 0 8px;
+}
+
+.delete-confirm-tabs button:last-child {
+  margin-left: -1px;
+  border-radius: 0 8px 8px 0;
 }
 
 .delete-confirm-tabs button.selected {
@@ -7262,6 +7869,40 @@ button {
   color: #111;
   font-size: 16px;
   outline: 0;
+}
+
+.delete-password-field {
+  position: relative;
+}
+
+.delete-password-field input {
+  padding-right: 48px;
+}
+
+.delete-password-field > button {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.delete-password-field .eye-icon {
+  width: 21px;
+  height: 14px;
+  border-color: #999;
+  transform: rotate(-10deg) scale(.8);
+}
+
+.delete-password-field .eye-icon::before,
+.delete-password-field .eye-icon::after {
+  background: #999;
 }
 
 .delete-code-row {

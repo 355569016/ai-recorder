@@ -1,5 +1,9 @@
 const waveHeights = [18, 30, 22, 54, 34, 70, 44, 58, 28, 48, 20, 62, 32, 42, 24, 56, 36, 66];
 const recordingPhotoAsset = "./assets/recording-marker-notes.png";
+let accountAvatarAsset = "";
+let accountAvatarFlow = "";
+let accountAvatarNotice = "";
+let accountAvatarNoticeTimer = null;
 const recordingBaseMarks = [
   { id: "recording-mark-device", time: "00:12:08", type: "mark", text: "重点标记", source: "录音卡" },
   { id: "recording-mark-photo", time: "00:27:46", type: "photo", text: "", caption: "", captionSource: "", source: "APP", photo: recordingPhotoAsset },
@@ -116,6 +120,7 @@ let deleteAccountReadConfirmed = false;
 let deleteAccountStep = "warning";
 let deleteAccountConfirmMode = "password";
 let deleteAccountPassword = "";
+let deleteAccountPasswordVisible = false;
 let deleteAccountCode = "";
 let deleteAccountCodeSent = false;
 let deleteAccountConfirmNotice = "";
@@ -971,7 +976,7 @@ const pages = [
     acceptance: ["当前模型有清晰勾选态。", "底层大纲、智能总结、转写记录等导航不得穿透蒙版。", "点击任一模型后返回转写与生成页面。"]
   },
   {
-    id: "APP-ME-02",
+    id: "APP-ME-01",
     group: "我的",
     title: "我的",
     priority: "P0",
@@ -991,10 +996,10 @@ const pages = [
     goal: "展示账号概览、使用统计、偏好设置与账号入口。",
     entry: "我的页点击账号设置。",
     fields: [["profile_avatar", "头像", "账号系统"], ["usage_stats", "使用统计", "本地数据库/用量服务"], ["recording_activity_heatmap", "录音卡实际录音使用热力图", "本地录音数据库"], ["preference_settings", "偏好设置", "本地设置"], ["account", "账号", "账号系统"]],
-      rules: ["顶部展示头像、账号名、使用天数、录音总数和总使用时长。", "热力图只统计录音卡实际录音使用，不使用 App 打开次数；按连续周横向排列、每周固定 7 天，默认展示最近 53 周。", "小屏允许横向滚动查看更早日期；进入页面时自动定位到最右侧。热力图仅展示方格，不展示标题、日期范围、图例或当前日期选中态。", "热力图下方展示 10px-11px 灰色月份刻度，月份刻度与周列对齐，并随热力图一起横向滚动。", "每个热力图格提供日期和录音时长的 title 与 aria-label。", "底部列表包含偏好设置和账号入口。", "点击账号进入账号管理页。"],
-      states: ["默认账号", "最近53周录音使用", "横向滚动", "头像编辑入口", "偏好设置入口", "账号入口"],
+      rules: ["顶部展示头像、账号名、使用天数、录音总数和总使用时长。", "点击头像打开底部操作面板，提供拍照、从照片中选择和取消。", "点击拍照进入系统相机态；拍摄完成后返回设置页并更新头像。", "点击从照片中选择调起系统照片选择器；选择图片后返回设置页并更新头像，取消选择不改变头像。", "点击取消或蒙层关闭头像操作面板，不改变头像。", "热力图只统计录音卡实际录音使用，不使用 App 打开次数；按连续周横向排列、每周固定 7 天，默认展示最近 53 周。", "小屏允许横向滚动查看更早日期；进入页面时自动定位到最右侧。热力图仅展示方格，不展示标题、日期范围、图例或当前日期选中态。", "热力图下方展示 10px-11px 灰色月份刻度，月份刻度与周列对齐，并随热力图一起横向滚动。", "每个热力图格提供日期和录音时长的 title 与 aria-label。", "底部列表包含偏好设置和账号入口。", "点击账号进入账号管理页。"],
+      states: ["默认账号", "最近53周录音使用", "横向滚动", "头像操作面板", "系统相机态", "系统照片选择态", "头像已更新", "偏好设置入口", "账号入口"],
     deps: ["账号系统：用户头像与账号名。", "本地数据库：录音统计。"],
-      acceptance: ["设置页样式参考截图，偏好设置和账号入口均可进入。", "热力图纵向固定 7 天、末列完整填满，且无当前日期选中态。", "热力图下方月份刻度可见，字号为 10px-11px 灰色，并在横向滚动时与热力图同步移动。", "热力图内容明确为录音卡实际录音使用。"],
+      acceptance: ["设置页样式参考截图，偏好设置和账号入口均可进入。", "点击头像后显示拍照、从照片中选择、取消三项操作；点击取消或蒙层可关闭且头像不变。", "拍照流程可进入相机态，拍摄后返回设置页并显示更新后的头像。", "从照片中选择可调起图片选择器，选择图片后返回设置页并显示更新后的头像。", "热力图纵向固定 7 天、末列完整填满，且无当前日期选中态。", "热力图下方月份刻度可见，字号为 10px-11px 灰色，并在横向滚动时与热力图同步移动。", "热力图内容明确为录音卡实际录音使用。"],
     prototypeLinks: [["偏好设置", "APP-ME-26"], ["账号", "APP-ME-17"]]
   },
   {
@@ -1287,12 +1292,12 @@ const pages = [
     priority: "P1",
     goal: "在删除账号前说明风险并要求用户阅读确认。",
     entry: "账号页点击删除账号。",
-    fields: [["delete_account_terms", "删除说明", "本地文案"], ["read_confirmed", "阅读确认", "用户操作"], ["delete_confirm_method", "密码或验证码", "账号系统"], ["delete_confirm_action", "确认删除", "用户操作/账号系统"]],
-    rules: ["未勾选阅读确认时下一步禁用。", "用户可点击我已阅读并理解上述条款切换选中状态。", "勾选后下一步可点击，并进入密码或验证码确认删除步骤。", "确认页提供密码确认和邮箱验证码确认两种方式，用户可点击切换。", "密码方式需输入统一登录密码；密码错误时停留本页并提示“账号密码错误”。", "验证码方式需先点击发送验证码，再输入 6 位验证码；验证码错误时停留本页并明确提示。", "密码或验证码校验通过后才返回登录/注册页。", "强调数据、会员资格、账号权限与工作空间影响。", "返回按钮回到账号页或上一步。"],
+    fields: [["delete_account_terms", "删除说明", "本地文案"], ["delete_account_preflight", "操作前提醒", "本地文案"], ["read_confirmed", "阅读确认", "用户操作"], ["delete_confirm_method", "密码或验证码", "账号系统"], ["delete_confirm_action", "确认删除", "用户操作/账号系统"]],
+    rules: ["删除账号流程分为风险说明（1/2）和身份验证（2/2）两页。", "风险说明页用三类精简影响说明覆盖数据与文件、会员与访问权限、设备与订阅，并保留备份、解绑和取消自动续费提醒。", "目标 390×844 移动视口内第一步无需下滑即可看到影响说明、阅读确认和下一步。", "未勾选阅读确认时下一步禁用。", "用户可点击我已阅读并理解上述条款切换选中状态。", "勾选后下一步可点击，并进入密码或验证码确认删除步骤。", "确认页提供密码确认和邮箱验证码确认两种方式，用户可点击切换。", "密码方式需输入统一登录密码；支持显示/隐藏密码，密码错误时停留本页并提示“账号密码错误”。", "验证码方式需先点击发送验证码，再输入 6 位验证码；验证码错误时停留本页并明确提示。", "密码或验证码校验通过后才返回登录/注册页。", "强调数据、会员资格、账号权限、工作空间与设备绑定影响。", "返回按钮回到账号页或上一步。"],
     walkthroughNote: "流程走通必填：密码方式统一使用 A88888888；验证码方式需先点击“发送验证码”，再输入统一验证码 888888。",
     states: ["未勾选", "已勾选", "确认删除", "密码确认", "密码错误", "验证码未发送", "验证码已发送", "验证码错误", "删除中", "删除完成"],
     deps: ["账号系统：密码校验、邮箱验证码、删除账号接口。"],
-    acceptance: ["删除账号页样式参考截图，底部确认区固定。", "阅读确认可选中和取消选中。", "未选中阅读确认时下一步不可点击，选中后下一步可点击。", "下一步后进入密码或验证码确认删除步骤。", "密码和验证码可以切换。", "验证码方式点击发送后，移除重复的灰色已发送说明，只保留一条醒目的成功提示。", "错误密码或错误验证码必须停留确认页并显示红色错误提示。", "输入 A88888888 或发送后输入 888888 可完成确认并回到登录/注册页。"]
+    acceptance: ["删除账号流程展示 1/2 和 2/2 步骤标识，底部确认区固定。", "风险说明页以三类精简影响说明覆盖永久删除、会员与访问权限、设备与订阅，并保留备份/解绑/自动续费提醒。", "390×844 移动视口内第一步无纵向溢出，阅读确认和下一步可见。", "阅读确认可选中和取消选中。", "未选中阅读确认时下一步不可点击，选中后下一步可点击。", "下一步后进入密码或验证码确认删除步骤。", "密码方式支持显示/隐藏密码，密码和邮箱验证码可以切换。", "验证码方式点击发送后，移除重复的灰色已发送说明，只保留一条醒目的成功提示。", "错误密码或错误验证码必须停留确认页并显示红色错误提示。", "输入 A88888888 或发送后输入 888888 可完成确认并回到登录/注册页。"]
   },
   {
     id: "APP-ME-05",
@@ -1461,10 +1466,10 @@ const pages = [
     goal: "管理已绑定设备的名称、连接状态、移除设备、恢复出厂和固件更新。",
     entry: "文件首页设备卡、我的设备管理。",
     fields: [["device_name", "设备名", "本地数据库/云端设备"], ["device_name_draft", "设备名编辑草稿", "用户输入"], ["recording_state", "是否正在录音", "BLE 状态包/本地录音状态"], ["firmware_version", "固件版本", "BLE/云端设备"], ["firmware_update_state", "固件更新状态", "云端固件服务"], ["battery_level", "电量", "BLE 状态包"], ["storage_usage", "存储占用", "BLE 状态包"], ["sync_state", "同步状态", "本地数据库"]],
-    rules: ["设备详情显示当前选中设备的连接、电量、存储、同步状态。", "设备名称以可点击行展示，点击进入设备名称编辑页；保存后同步更新设备详情、设备切换列表和文件首页设备名称。", "设备名称去除首尾空格后保存；名称为空时保存按钮不可用。", "当首页已绑定多个设备时，设备详情顶部必须支持切换查看对应设备。", "已连接设备的连接按钮显示刷新连接；断开连接设备的按钮显示连接设备。", "断开连接设备展示离线状态，但仍允许解除账号绑定，便于设备不在身边时转交给其他人重新绑定。", "离线设备不可执行 OTA 或实时断开连接；还原所有设置、解除并清除数据允许用户选择，但设备端处理需记录为云端待执行策略。", "离线设备解除并清除数据时，账号侧立即解除绑定；设备端本地数据在设备下次绑定或联网握手时，根据云端记录的清除策略执行。", "OTA 行后置操作按钮：无新版本显示检查更新，检测到新固件或 App 主动推送时显示更新；该规则仅在说明文档展示，不在用户界面展示解释文案。", "点击更新或 App 启动主动推送更新时，进入固件更新提示弹窗。", "录音中点击设备名称、刷新连接、连接设备、固件更新、恢复出厂或移除设备时，不进入下一步也不执行操作，统一提示：正在录音中，请结束录音后再试。", "恢复出厂触发方式待确认。"],
-    states: ["已连接", "未连接", "刷新连接中", "连接设备中", "名称编辑", "录音中操作受限", "同步中", "低电量", "有新固件", "已是最新版本", "移除设备确认", "恢复出厂确认"],
+    rules: ["设备详情显示当前选中设备的连接、电量、存储、同步状态。", "设备名称以可点击行展示，点击进入设备名称编辑页；保存后同步更新设备详情、设备切换列表和文件首页设备名称。", "设备名称去除首尾空格后保存；名称为空时保存按钮不可用。", "当首页已绑定多个设备时，设备详情顶部必须支持切换查看对应设备。", "已连接设备的连接按钮显示刷新连接；断开连接设备的按钮显示连接设备。", "断开连接设备展示离线状态，但仍允许解除账号绑定，便于设备不在身边时转交给其他人重新绑定。", "离线设备不可执行 OTA 或实时断开连接；还原所有设置、解除并清除数据允许用户选择，但设备端处理需记录为云端待执行策略。", "离线设备解除并清除数据时，账号侧立即解除绑定；设备端本地数据在设备下次绑定或联网握手时，根据云端记录的清除策略执行。", "OTA 行后置操作按钮：无新版本显示检查更新，检测到新固件或 App 主动推送时显示更新；该规则仅在说明文档展示，不在用户界面展示解释文案。", "点击更新或 App 启动主动推送更新时，进入固件更新提示弹窗。", "录音中点击设备名称、刷新连接、连接设备、固件更新、恢复出厂或移除设备时，不进入下一步也不执行操作，统一提示：正在录音中，请结束录音后再试。", "点击恢复出厂先展示二次确认，确认后直接执行，不要求密码验证。"],
+    states: ["已连接", "未连接", "刷新连接中", "连接设备中", "名称编辑", "录音中操作受限", "同步中", "低电量", "有新固件", "已是最新版本", "移除设备确认", "恢复出厂二次确认", "恢复出厂成功", "恢复策略待设备联网执行"],
     deps: ["BLE 状态包、云端设备、固件版本能力，协议待定义。", "云端固件版本服务。"],
-    acceptance: ["已连接设备显示刷新连接，断开连接设备显示连接设备。", "设备详情可在多个已绑定设备之间切换，并显示对应设备数据。", "点击设备名称进入独立编辑页，空名称不可保存，保存后所有设备名称展示位置同步更新。", "断开连接设备仍可点击移除设备进入解绑确认页。", "离线设备可选择还原所有设置或解除并清除数据，但页面必须说明设备端处理会在下次绑定或联网时按云端策略执行。", "OTA 不再显示 P1 占位，必须有检查更新或更新按钮。", "非录音状态点击更新进入固件更新提示，点击移除设备进入解绑二次确认弹层。", "录音状态点击名称编辑、更新、恢复出厂、移除设备、刷新连接或连接设备均停留当前页面，并显示指定提示文案。", "危险操作有二次确认。"],
+    acceptance: ["已连接设备显示刷新连接，断开连接设备显示连接设备。", "设备详情可在多个已绑定设备之间切换，并显示对应设备数据。", "点击设备名称进入独立编辑页，空名称不可保存，保存后所有设备名称展示位置同步更新。", "断开连接设备仍可点击移除设备进入解绑确认页。", "离线设备可选择还原所有设置或解除并清除数据，但页面必须说明设备端处理会在下次绑定或联网时按云端策略执行。", "OTA 不再显示 P1 占位，必须有检查更新或更新按钮。", "非录音状态点击更新进入固件更新提示，点击移除设备进入解绑二次确认弹层。", "录音状态点击名称编辑、更新、恢复出厂、移除设备、刷新连接或连接设备均停留当前页面，并显示指定提示文案。", "恢复出厂必须先出现二次确认；确认后保留录音数据和绑定关系，在线设备显示成功反馈，离线设备记录待执行策略。", "危险操作有二次确认。"],
     prototypeLinks: [["名称编辑", "APP-DEV-11"]],
     prototypeActions: [["正常状态", "set-device-recording-state", "idle"], ["录音中", "set-device-recording-state", "recording"]]
   },
@@ -1491,10 +1496,10 @@ const pages = [
     goal: "在用户从设备详情点击移除设备后，明确选择断开连接、还原设置或解除并清除数据。",
     entry: "设备详情页点击“移除设备”。",
     fields: [["unbind_mode", "解绑处理方式", "用户选择"], ["device_data_policy", "设备端数据处理策略", "BLE/云端设备"]],
-    rules: ["设备在线时提供断开连接、还原所有设置、解除并清除数据三种选择。", "设备离线时仍提供还原所有设置、解除并清除数据；App 先写入云端待执行策略，设备端在下次绑定、联网或 BLE 握手时按策略执行。", "解除并清除数据会立即从当前账号和空间移除绑定关系；之后可重新绑定至其他账号和空间。", "未连接设备解除并清除数据时，页面必须说明本地数据不会被远程即时清除；新账号绑定设备时需要读取云端策略，若存在清除标记，则先清除设备本地数据再完成绑定。", "每个选择必须有说明文字，明确是否保留绑定关系、是否清除录音数据、是否重置设备设置，避免误操作。", "顶部返回设备详情，不改变绑定关系。", "断开连接和还原所有设置后仍停留当前设备关系；解除绑定或解除并清除数据后进入未绑定/重新搜索设备状态。", "具体 BLE 断连、还原设置、解绑清除命令和云端待执行策略需由固件协议与设备云服务定义。"],
-    states: ["断开连接", "还原所有设置", "解除并清除数据"],
+    rules: ["设备在线时提供断开连接、还原所有设置、解除并清除数据三种选择。", "设备离线时仍提供还原所有设置、解除并清除数据；App 先写入云端待执行策略，设备端在下次绑定、联网或 BLE 握手时按策略执行。", "还原所有设置先展示二次确认，确认后直接执行，不要求密码验证；保留录音数据和账号绑定关系。", "解除并清除数据先展示二次确认，再进入身份验证；支持当前账号密码或邮箱验证码，验证通过后才执行清除。", "解除并清除数据会立即从当前账号和空间移除绑定关系；之后可重新绑定至其他账号和空间。", "未连接设备解除并清除数据时，页面必须说明本地数据不会被远程即时清除；新账号绑定设备时需要读取云端策略，若存在清除标记，则先清除设备本地数据再完成绑定。", "每个选择必须有说明文字，明确是否保留绑定关系、是否清除录音数据、是否重置设备设置，避免误操作。", "顶部返回设备详情，不改变绑定关系。", "断开连接和还原所有设置后仍停留当前设备关系；解除绑定或解除并清除数据后进入未绑定/重新搜索设备状态。", "具体 BLE 断连、还原设置、解绑清除命令和云端待执行策略需由固件协议与设备云服务定义。"],
+    states: ["断开连接", "还原所有设置二次确认", "解除并清除数据二次确认", "密码验证", "邮箱验证码验证", "密码错误", "验证码错误", "还原成功", "清除成功", "离线待执行策略"],
     deps: ["BLE 解绑/清除/重置命令、云端设备解绑接口待定义。"],
-    acceptance: ["点击设备详情的移除设备后展示断开连接或解绑设备页面。", "在线设备页面内三项操作均可点击，且每项都有说明文字。", "离线设备仅断开连接不可用；还原所有设置、解除并清除数据均可选择，并说明设备端处理会在下次绑定或联网时根据云端策略执行。", "断开连接和还原所有设置返回设备详情，解除绑定或解除并清除数据进入设备扫描页。"],
+    acceptance: ["点击设备详情的移除设备后展示断开连接或解绑设备页面。", "在线设备页面内三项操作均可点击，且每项都有说明文字。", "还原所有设置点击后先出现二次确认；取消不改变设备状态，确认后不要求密码并返回设备详情。", "解除并清除数据点击后先出现二次确认；继续后进入身份验证，密码或邮箱验证码错误均停留当前页并提示。", "验证通过后从已绑定设备列表移除当前设备并进入设备扫描页；在线提示已解除绑定并清除，离线提示已记录待执行策略。", "离线设备仅断开连接不可用；还原所有设置、解除并清除数据均可选择，并说明设备端处理会在下次绑定或联网时根据云端策略执行。"],
     prototypeLinks: [["断开连接", "APP-DEV-03"], ["还原所有设置", "APP-DEV-03"], ["解除并清除数据", "APP-DEV-01"]]
   },
   {
@@ -1651,6 +1656,15 @@ let deviceActionNotice = "";
 let deviceActionNoticeTimer = null;
 let deviceConnectionPendingId = "";
 let deviceConnectionTimer = null;
+let deviceDangerAction = "";
+let deviceDangerStep = "idle";
+let deviceDangerConfirmMode = "password";
+let deviceDangerPassword = "";
+let deviceDangerPasswordVisible = false;
+let deviceDangerCode = "";
+let deviceDangerCodeSent = false;
+let deviceDangerNotice = "";
+let deviceDangerNoticeTone = "";
 const boundHomeDevices = [
   { id: "a1", name: "AI Recorder A1", status: "已连接", detail: "电量 82% · 存储 12.4G", connected: true, sn: "SN-8F2A-2026", firmware: "v0.9.3", battery: "82%", storage: "68%", storageText: "12.4G", sync: "空闲", lastSync: "今天 14:22" },
   { id: "a1-pro", name: "AI Recorder A1 Pro", status: "已连接", detail: "电量 67% · 存储 8.1G", connected: true, sn: "SN-PRO-6C21", firmware: "v1.0.1", battery: "67%", storage: "44%", storageText: "8.1G", sync: "待机", lastSync: "今天 13:08" },
@@ -1722,8 +1736,67 @@ function showDeviceActionNotice(message) {
   deviceActionNoticeTimer = window.setTimeout(() => {
     deviceActionNoticeTimer = null;
     deviceActionNotice = "";
-    if (["APP-DEV-03", "APP-DEV-11"].includes(currentPageId)) render();
+    if (["APP-DEV-01", "APP-DEV-03", "APP-DEV-11"].includes(currentPageId)) render();
   }, 1800);
+}
+
+function clearDeviceDangerState() {
+  deviceDangerAction = "";
+  deviceDangerStep = "idle";
+  deviceDangerConfirmMode = "password";
+  deviceDangerPassword = "";
+  deviceDangerPasswordVisible = false;
+  deviceDangerCode = "";
+  deviceDangerCodeSent = false;
+  deviceDangerNotice = "";
+  deviceDangerNoticeTone = "";
+}
+
+function getActiveHomeDevice() {
+  return boundHomeDevices.find((device) => device.id === activeHomeDeviceId) || boundHomeDevices[0] || null;
+}
+
+function openDeviceDangerAction(action) {
+  deviceDangerAction = action === "clear" ? "clear" : "reset";
+  deviceDangerStep = "confirm";
+  deviceDangerConfirmMode = "password";
+  deviceDangerPassword = "";
+  deviceDangerPasswordVisible = false;
+  deviceDangerCode = "";
+  deviceDangerCodeSent = false;
+  deviceDangerNotice = "";
+  deviceDangerNoticeTone = "";
+  render();
+}
+
+function completeDeviceSettingsReset() {
+  const activeDevice = getActiveHomeDevice();
+  if (!activeDevice) return;
+  const wasConnected = activeDevice.connected;
+  const notice = wasConnected
+    ? "设备设置已还原，录音数据和绑定关系保留"
+    : "已记录还原策略，设备下次联网时执行";
+  deviceDangerAction = "";
+  deviceDangerStep = "idle";
+  if (currentPageId !== "APP-DEV-03") go("APP-DEV-03");
+  showDeviceActionNotice(notice);
+}
+
+function completeDeviceDataClear() {
+  const activeDevice = getActiveHomeDevice();
+  if (!activeDevice) return;
+  const removedIndex = boundHomeDevices.findIndex((device) => device.id === activeDevice.id);
+  const wasConnected = activeDevice.connected;
+  const removedName = activeDevice.name;
+  boundHomeDevices.splice(removedIndex, 1);
+  activeHomeDeviceId = boundHomeDevices[0]?.id || "";
+  homeDeviceAdded = boundHomeDevices.length > 0;
+  homeDeviceMenuOpen = false;
+  clearDeviceDangerState();
+  go("APP-DEV-01");
+  showDeviceActionNotice(wasConnected
+    ? `${removedName} 已解除绑定并清除数据`
+    : `${removedName} 已解除绑定，清除策略将在设备下次联网或绑定时执行`);
 }
 
 function blockDeviceActionWhileRecording() {
@@ -2518,7 +2591,7 @@ function bottom(active = "files") {
       <button class="record-fab ${active === "record" ? "recording" : ""}" data-action="open-record-entry" aria-label="录音，长按可选择场景">
         <span class="record-fab-icon" aria-hidden="true"><i></i><i></i><i></i><b></b></span>
       </button>
-      <button class="${active === "me" ? "active" : ""}" data-go="APP-ME-02">我的</button>
+      <button class="${active === "me" ? "active" : ""}" data-go="APP-ME-01">我的</button>
     </nav>
   `;
 }
@@ -2762,6 +2835,7 @@ function renderDeviceScan() {
         <span class="finger"></span>
       </div>
     </section>
+    ${deviceActionNotice ? `<div class="device-action-toast device-scan-toast" role="status" aria-live="polite">${h(deviceActionNotice)}</div>` : ""}
   `, { title: " ", back: "APP-ONB-04", bottom: false, compact: true });
 }
 
@@ -4869,8 +4943,8 @@ function renderGenerate() {
       </section>
       ${quotaInsufficient ? `
         <div class="ai-purchase-row">
-          <button data-go="APP-ME-02">立即购买分钟数</button>
-          <button data-go="APP-ME-02">升级订阅会员</button>
+          <button data-go="APP-ME-01">立即购买分钟数</button>
+          <button data-go="APP-ME-01">升级订阅会员</button>
         </div>
       ` : ""}
       <button class="primary-btn ${quotaInsufficient ? "disabled" : ""}" ${quotaInsufficient ? "disabled" : 'data-action="submit-generation"'}>立即生成</button>
@@ -4940,15 +5014,33 @@ function meRow(label, opts = {}) {
 function meTop(title, opts = {}) {
   const right = opts.action
     ? `<button class="top-action" data-action="${opts.action}">${h(opts.actionLabel || "添加")}</button>`
+    : opts.step ? `<span class="me-step-indicator">${h(opts.step)}</span>`
     : opts.close ? `<button data-go="${opts.close}">×</button>` : "<span></span>";
   return `
     <div class="statusbar me-simple-status"><span>9:41</span><span>5G</span><span>82%</span></div>
     <header class="me-simple-top">
-      <button data-go="${opts.back || "APP-ME-02"}">‹</button>
+      <button data-go="${opts.back || "APP-ME-01"}">‹</button>
       <strong>${h(title)}</strong>
       ${right}
     </header>
   `;
+}
+
+function clearAccountAvatarNoticeTimer() {
+  if (!accountAvatarNoticeTimer) return;
+  window.clearTimeout(accountAvatarNoticeTimer);
+  accountAvatarNoticeTimer = null;
+}
+
+function showAccountAvatarNotice(message) {
+  accountAvatarNotice = message;
+  clearAccountAvatarNoticeTimer();
+  render();
+  accountAvatarNoticeTimer = window.setTimeout(() => {
+    accountAvatarNoticeTimer = null;
+    accountAvatarNotice = "";
+    if (currentPageId === "APP-ME-16") render();
+  }, 1800);
 }
 
 function togglePill(on = false, disabled = false) {
@@ -5090,14 +5182,17 @@ function renderUsage() {
 }
 
 function renderAccountSettingsHome() {
+  const avatarNode = accountAvatarAsset
+    ? `<img src="${h(accountAvatarAsset)}" alt="当前头像">`
+    : `<span class="account-avatar-initial">3</span>`;
   return `
     <main class="me-simple-page account-settings-home">
       ${meTop("设置")}
       <section class="account-profile settings-hero">
-        <div class="account-avatar">
-          <span>3</span>
-          <button aria-label="更换头像"></button>
-        </div>
+        <button class="account-avatar" type="button" data-action="open-account-avatar-actions" aria-label="更换头像">
+          ${avatarNode}
+          <i class="account-avatar-camera" aria-hidden="true"></i>
+        </button>
         <h1>355569016</h1>
         <div class="account-stats">
           <div><span>使用天数</span><b>5</b></div>
@@ -5110,7 +5205,31 @@ function renderAccountSettingsHome() {
         ${accountRow("偏好设置", { icon: "sliders", go: "APP-ME-26" })}
         ${accountRow("账号", { icon: "user", go: "APP-ME-17" })}
       </section>
+      ${accountAvatarNotice ? `<div class="account-avatar-notice" role="status" aria-live="polite">${h(accountAvatarNotice)}</div>` : ""}
+      <input id="accountAvatarPicker" type="file" accept="image/*" hidden>
+      ${renderAccountAvatarOverlay()}
     </main>
+  `;
+}
+
+function renderAccountAvatarOverlay() {
+  if (accountAvatarFlow === "camera") {
+    return `
+      <section class="recording-camera account-avatar-camera-screen" aria-label="拍照">
+        <header><button type="button" data-action="close-account-avatar-camera">取消</button><strong>相机</strong><span></span></header>
+        <div class="recording-camera-preview"><img src="${recordingPhotoAsset}" alt="相机取景预览"></div>
+        <footer><button type="button" class="recording-camera-shutter" data-action="capture-account-avatar" aria-label="拍照"></button></footer>
+      </section>
+    `;
+  }
+  if (accountAvatarFlow !== "actions") return "";
+  return `
+    <div class="scrim account-avatar-actions-scrim" data-action="close-account-avatar-actions"></div>
+    <section class="account-avatar-action-sheet" role="dialog" aria-modal="true" aria-label="更换头像">
+      <button type="button" data-action="take-account-avatar-photo">拍照</button>
+      <button type="button" data-action="choose-account-avatar-photo">从照片中选择</button>
+    </section>
+    <button type="button" class="account-avatar-cancel" data-action="close-account-avatar-actions">取消</button>
   `;
 }
 
@@ -5623,24 +5742,29 @@ function renderDeleteAccount() {
       : deleteAccountCodeSent && deleteAccountCode.length === 6;
     return `
       <main class="me-simple-page delete-account-page delete-account-confirm-page">
-        ${meTop("删除账号", { back: "APP-ME-22" })}
-        <section>
+        ${meTop("删除账号", { back: "APP-ME-22", step: "2/2" })}
+        <section class="delete-account-confirm-content">
           <h1>最终确认删除</h1>
-          <p>为了保护账号安全，请选择一种方式完成身份确认。确认后，账号和相关数据将进入删除流程，无法恢复。</p>
+          <p class="delete-confirm-lead">为了保护账号安全，删除账号前需要进行身份验证。<br>验证通过后，账号及相关数据将被<span>永久清除，无法恢复。</span></p>
+          <div class="delete-account-account-row"><b>账号</b><span>3*******6@qq.com</span></div>
+          <label class="delete-confirm-method-label">选择验证方式</label>
           <div class="delete-confirm-tabs" role="tablist" aria-label="删除账号确认方式">
             <button type="button" role="tab" aria-selected="${deleteAccountConfirmMode === "password" ? "true" : "false"}" class="${deleteAccountConfirmMode === "password" ? "selected" : ""}" data-action="switch-delete-confirm-mode" data-delete-mode="password">密码</button>
-            <button type="button" role="tab" aria-selected="${deleteAccountConfirmMode === "code" ? "true" : "false"}" class="${deleteAccountConfirmMode === "code" ? "selected" : ""}" data-action="switch-delete-confirm-mode" data-delete-mode="code">验证码</button>
+            <button type="button" role="tab" aria-selected="${deleteAccountConfirmMode === "code" ? "true" : "false"}" class="${deleteAccountConfirmMode === "code" ? "selected" : ""}" data-action="switch-delete-confirm-mode" data-delete-mode="code">邮箱验证码</button>
           </div>
           ${deleteAccountConfirmMode === "password" ? `
             <label class="delete-confirm-label" for="deletePassword">输入账号密码</label>
-            <input id="deletePassword" type="password" value="${h(deleteAccountPassword)}" placeholder="请输入当前账号密码" autocomplete="current-password">
+            <div class="delete-password-field">
+              <input id="deletePassword" type="${deleteAccountPasswordVisible ? "text" : "password"}" value="${h(deleteAccountPassword)}" placeholder="请输入当前账号密码" autocomplete="current-password">
+              <button type="button" data-action="toggle-delete-password-visibility" aria-label="${deleteAccountPasswordVisible ? "隐藏" : "显示"}密码" aria-pressed="${deleteAccountPasswordVisible ? "true" : "false"}"><span class="eye-icon" aria-hidden="true"></span></button>
+            </div>
           ` : `
-            <label class="delete-confirm-label" for="deleteCode">邮箱验证码</label>
+            <label class="delete-confirm-label" for="deleteCode">输入邮箱验证码</label>
             <div class="delete-code-row">
               <input id="deleteCode" inputmode="numeric" maxlength="6" value="${h(deleteAccountCode)}" placeholder="请输入 6 位验证码">
               <button type="button" class="${deleteAccountCodeSent ? "sent" : ""}" data-action="send-delete-account-code">${deleteAccountCodeSent ? "已发送" : "发送验证码"}</button>
             </div>
-            ${deleteAccountCodeSent ? "" : `<p class="delete-confirm-hint">点击发送验证码后，系统会向当前账号邮箱 mhy_1126@qq.com 发送验证码。</p>`}
+            ${deleteAccountCodeSent ? "" : `<p class="delete-confirm-hint">点击发送验证码后，系统会向当前账号脱敏邮箱 3*******6@qq.com 发送验证码。</p>`}
           `}
           ${deleteAccountConfirmNotice ? `<p class="delete-confirm-notice ${h(deleteAccountConfirmNoticeTone)}">${h(deleteAccountConfirmNotice)}</p>` : ""}
         </section>
@@ -5653,30 +5777,32 @@ function renderDeleteAccount() {
   }
   return `
     <main class="me-simple-page delete-account-page">
-      ${meTop("删除账号", { back: "APP-ME-17" })}
-      <section>
-        <p>尊敬的用户：<br>感谢你一直以来对 AI录音卡 的支持。<br>删除账号将导致以下内容被永久清除：</p>
-        <ol class="delete-account-risk">
-          <li>你的所有数据，包括云端和本地文件；</li>
-          <li>当前会员资格（不予退款）；</li>
-          <li>账号使用权限，若要继续使用 AI录音卡，你需重新注册账号；</li>
-          <li>你将退出所有已加入的工作空间。</li>
-        </ol>
-        <div class="me-line"></div>
-        <p>在继续操作前，请务必完成以下检查：</p>
-        <ol>
-          <li>请检查你的账号是否仍有绑定的 AI Recorder A1。如果有，请先解除绑定。否则，该设备将无法与其他新账号绑定。</li>
-          <li>请备份所有重要文件。账号删除后，与此账号相关的数据将无法恢复。</li>
-          <li>请检查并取消 AI录音卡 的所有有效订阅，以避免产生额外费用。</li>
-        </ol>
+      ${meTop("删除账号", { back: "APP-ME-17", step: "1/2" })}
+      <section class="delete-account-warning-content">
+        <div class="delete-account-intro">
+          <p>尊敬的用户，感谢你一直以来的支持。</p>
+          <p>删除账号后，以下内容将<span>永久清除</span>，且<span>无法恢复</span>。</p>
+        </div>
+        <div class="delete-account-impact-card">
+          <h2><span aria-hidden="true">!</span>删除后将产生以下影响</h2>
+          <ul class="delete-account-impact-list">
+            <li><b>数据与文件</b><small>云端录音、转写、AI 笔记及账号相关本地文件将永久删除，无法恢复。</small></li>
+            <li><b>会员与访问权限</b><small>会员权益不退款；账号及工作空间权限将失效。</small></li>
+            <li><b>设备与订阅</b><small>请先解除录音设备绑定，并取消自动续费。</small></li>
+          </ul>
+        </div>
+        <div class="delete-account-compact-reminder">
+          <span aria-hidden="true">i</span>
+          <p><b>继续前请确认：</b>已备份重要文件、解除设备绑定，并取消自动续费。</p>
+        </div>
       </section>
-      <div class="delete-account-footer">
+      <footer class="delete-account-footer">
         <button class="delete-read-check ${deleteAccountReadConfirmed ? "checked" : ""}" data-action="toggle-delete-account-read" aria-pressed="${deleteAccountReadConfirmed ? "true" : "false"}">
           <i>${deleteAccountReadConfirmed ? "✓" : ""}</i>
-          <span>我已阅读并理解上述条款。</span>
+          <span>我已阅读并理解上述条款</span>
         </button>
         <button class="${deleteAccountReadConfirmed ? "primary-btn" : "disabled-btn"}" ${deleteAccountReadConfirmed ? 'data-action="next-delete-account"' : "disabled"}>下一步</button>
-      </div>
+      </footer>
     </main>
   `;
 }
@@ -5760,9 +5886,9 @@ function renderDeleteCloudRecordConfirm() {
 function renderRedeemCode(keyboard = false) {
   return `
     ${renderUsage()}
-    <div class="scrim" data-go="APP-ME-02"></div>
+    <div class="scrim" data-go="APP-ME-01"></div>
     <section class="me-sheet redeem-sheet ${keyboard ? "with-keyboard" : ""}">
-      <button class="sheet-close" data-go="APP-ME-02">×</button>
+      <button class="sheet-close" data-go="APP-ME-01">×</button>
       <h2>兑换码</h2>
       <div class="me-line"></div>
       <button class="redeem-input" data-go="APP-ME-15">请输入兑换码，区分大小写</button>
@@ -5775,7 +5901,7 @@ function renderRedeemCode(keyboard = false) {
 function renderBillingDetail() {
   return `
     <main class="me-simple-page">
-      ${meTop("账单详情", { close: "APP-ME-02" })}
+      ${meTop("账单详情", { close: "APP-ME-01" })}
       <section class="bill-empty">
         <div class="bill-empty-icon"></div>
         <p>暂无账单记录</p>
@@ -5793,7 +5919,7 @@ function renderBillingHistory() {
   ];
   return `
     <main class="me-simple-page">
-      ${meTop("账单详情", { close: "APP-ME-02" })}
+      ${meTop("账单详情", { close: "APP-ME-01" })}
       <section class="bill-history">
         <p class="bill-history-heading">账单记录</p>
         <p class="bill-history-hint">所有已完成的会员与转写服务订单</p>
@@ -5820,7 +5946,7 @@ function renderBillingHistory() {
 function renderRestorePurchaseLoading() {
   return `
     ${renderUsage()}
-    <div class="scrim" data-go="APP-ME-02"></div>
+    <div class="scrim" data-go="APP-ME-01"></div>
     <button class="restore-loader" data-go="APP-ME-11"><span></span></button>
   `;
 }
@@ -5828,12 +5954,12 @@ function renderRestorePurchaseLoading() {
 function renderRestorePurchaseFailed() {
   return `
     ${renderUsage()}
-    <div class="scrim" data-go="APP-ME-02"></div>
+    <div class="scrim" data-go="APP-ME-01"></div>
     <section class="me-sheet restore-sheet">
       <h2>未找到以前的购买记录</h2>
       <div class="me-line"></div>
       <p>没有找到这个账号之前的购买记录。请查看你的收据或订阅历史记录，并再次尝试恢复。</p>
-      <button class="dark" data-go="APP-ME-02">确认</button>
+    <button class="dark" data-go="APP-ME-01">确认</button>
     </section>
   `;
 }
@@ -5853,7 +5979,7 @@ function renderUsageRecords() {
   ];
   return `
     <main class="me-simple-page usage-record-page">
-      ${meTop("使用记录", { close: "APP-ME-02" })}
+      ${meTop("使用记录", { close: "APP-ME-01" })}
       <section>
         <h1>日期 & 时长</h1>
         <div class="me-line"></div>
@@ -5871,6 +5997,15 @@ function renderUsageRecords() {
 
 function renderDeviceDetail() {
   const activeDevice = boundHomeDevices.find((device) => device.id === activeHomeDeviceId) || boundHomeDevices[0];
+  if (!activeDevice) {
+    return screen(`
+      <section class="device-empty-state">
+        <h1>暂无已绑定设备</h1>
+        <p>绑定设备后，可在这里管理设备设置和数据。</p>
+        <button class="primary-btn" data-go="APP-DEV-01">搜索设备</button>
+      </section>
+    `, { title: "设备详情", action: "帮助", back: "APP-HOME-01", bottom: false });
+  }
   const connectionPending = deviceConnectionPendingId === activeDevice.id;
   const connectionLabel = connectionPending
     ? (activeDevice.connected ? "刷新中…" : "连接中…")
@@ -5912,6 +6047,7 @@ function renderDeviceDetail() {
       <button class="danger-btn" data-action="open-device-removal">移除设备</button>
     </div>
     ${deviceActionNotice ? `<div class="device-action-toast" role="status" aria-live="polite">${h(deviceActionNotice)}</div>` : ""}
+    ${deviceDangerStep === "confirm" ? renderDeviceDangerConfirmSheet() : ""}
   `, { title: "设备详情", action: "帮助", back: "APP-HOME-01", bottom: false });
 }
 
@@ -5930,20 +6066,106 @@ function renderDeviceNameEditor() {
   `, { title: "设备名称", action: "save-device-name", back: "APP-DEV-03", bottom: false });
 }
 
+function deviceDangerTop(title) {
+  return `
+    <div class="statusbar"><span>9:41</span><span>5G</span><span>82%</span></div>
+    <div class="app-top">
+      <button class="icon-btn" data-action="back-device-danger-confirm" aria-label="返回">‹</button>
+      <h2>${h(title)}</h2>
+      <span style="width:34px"></span>
+    </div>
+  `;
+}
+
+function renderDeviceDangerConfirmSheet() {
+  const activeDevice = getActiveHomeDevice();
+  if (!activeDevice) return "";
+  const isClear = deviceDangerAction === "clear";
+  return `
+    <div class="device-danger-scrim" data-action="cancel-device-danger" aria-hidden="true"></div>
+    <section class="device-danger-sheet ${isClear ? "danger" : "reset"}" role="dialog" aria-modal="true" aria-labelledby="deviceDangerTitle">
+      <div class="device-danger-sheet-handle" aria-hidden="true"></div>
+      <h1 id="deviceDangerTitle">${isClear ? "确认解除并清除数据？" : "还原所有设置？"}</h1>
+      <p class="device-danger-lead">${isClear
+        ? `此操作将解除 ${h(activeDevice.name)} 与当前账号的绑定，并清除设备内数据。`
+        : `将 ${h(activeDevice.name)} 的设备参数恢复为出厂默认设置。`}</p>
+      <ul class="device-danger-impact-list">
+        ${isClear ? `
+          <li><b>设备将从当前账号和空间移除</b></li>
+          <li><b>设备内录音及本地数据将永久清除，无法恢复</b></li>
+          <li><b>之后可重新绑定至其他账号或空间</b></li>
+        ` : `
+          <li><b>设备参数恢复默认</b></li>
+          <li><b>录音数据和账号绑定关系保留</b></li>
+          <li><b>恢复后需重新设置个性化参数</b></li>
+        `}
+      </ul>
+      <p class="device-danger-warning ${isClear ? "danger" : "reset"}">${isClear ? "操作不可撤销，请确认已完成数据备份。" : "确认后将直接执行还原设置。"}</p>
+      <div class="device-danger-sheet-actions">
+        <button class="outline-btn" data-action="cancel-device-danger">取消</button>
+        ${isClear
+          ? `<button class="danger-fill" data-action="continue-device-danger-verify">继续验证</button>`
+          : `<button class="primary-btn" data-action="confirm-device-danger-reset">确认还原</button>`}
+      </div>
+    </section>
+  `;
+}
+
+function renderDeviceDangerVerify() {
+  const activeDevice = getActiveHomeDevice();
+  const canConfirm = deviceDangerConfirmMode === "password"
+    ? deviceDangerPassword.trim().length > 0
+    : deviceDangerCodeSent && deviceDangerCode.length === 6;
+  return `
+    <main class="me-simple-page device-danger-verify-page">
+      ${deviceDangerTop("验证身份")}
+      <section class="device-danger-verify-content">
+        <p class="device-danger-verify-lead">为避免误操作，请选择一种方式完成身份验证。验证通过后才会解除 ${h(activeDevice?.name || "当前设备")} 并清除数据。</p>
+        <div class="device-danger-account-row"><b>账号</b><span>3*******6@qq.com</span></div>
+        <div class="device-danger-method-label">选择验证方式</div>
+        <div class="device-danger-tabs" role="tablist" aria-label="解除并清除数据验证方式">
+          <button type="button" role="tab" aria-selected="${deviceDangerConfirmMode === "password" ? "true" : "false"}" class="${deviceDangerConfirmMode === "password" ? "selected" : ""}" data-action="switch-device-danger-confirm-mode" data-danger-mode="password">密码</button>
+          <button type="button" role="tab" aria-selected="${deviceDangerConfirmMode === "code" ? "true" : "false"}" class="${deviceDangerConfirmMode === "code" ? "selected" : ""}" data-action="switch-device-danger-confirm-mode" data-danger-mode="code">邮箱验证码</button>
+        </div>
+        ${deviceDangerConfirmMode === "password" ? `
+          <label class="device-danger-field-label" for="deviceDangerPassword">输入当前账号密码</label>
+          <div class="device-danger-password-field">
+            <input id="deviceDangerPassword" type="${deviceDangerPasswordVisible ? "text" : "password"}" value="${h(deviceDangerPassword)}" placeholder="请输入当前账号密码" autocomplete="current-password">
+            <button type="button" data-action="toggle-device-danger-password" aria-label="${deviceDangerPasswordVisible ? "隐藏" : "显示"}密码" aria-pressed="${deviceDangerPasswordVisible ? "true" : "false"}"><span class="eye-icon" aria-hidden="true"></span></button>
+          </div>
+          <button type="button" class="device-danger-forgot">忘记密码？</button>
+        ` : `
+          <label class="device-danger-field-label" for="deviceDangerCode">输入邮箱验证码</label>
+          <div class="device-danger-code-row">
+            <input id="deviceDangerCode" inputmode="numeric" maxlength="6" value="${h(deviceDangerCode)}" placeholder="请输入 6 位验证码">
+            <button type="button" data-action="send-device-danger-code">${deviceDangerCodeSent ? "已发送" : "发送验证码"}</button>
+          </div>
+          ${deviceDangerCodeSent ? "" : `<p class="device-danger-code-hint">验证码将发送至当前账号脱敏邮箱 3*******6@qq.com。</p>`}
+        `}
+        ${deviceDangerNotice ? `<p class="device-danger-notice ${h(deviceDangerNoticeTone)}" role="alert">${h(deviceDangerNotice)}</p>` : ""}
+        <button class="danger-fill device-danger-submit" data-action="confirm-device-danger-clear" ${canConfirm ? "" : "disabled"}>确认解除并清除数据</button>
+        <button class="outline-btn device-danger-back" data-action="back-device-danger-confirm">返回上一步</button>
+      </section>
+    </main>
+  `;
+}
+
 function renderDeviceRemoveConfirmSheet() {
-  const activeDevice = boundHomeDevices.find((device) => device.id === activeHomeDeviceId) || boundHomeDevices[0];
+  const activeDevice = getActiveHomeDevice();
+  if (!activeDevice) return renderDeviceScan();
+  if (deviceDangerStep === "verify") return renderDeviceDangerVerify();
   const onlineActions = `
         <button class="device-remove-action" data-go="APP-DEV-03">
           <b>断开连接</b>
           <span>仅断开当前连接，${h(activeDevice.name)} 仍绑定在当前账号下，稍后可重新连接。</span>
         </button>
-        <button class="device-remove-action" data-go="APP-DEV-03">
+        <button class="device-remove-action" data-action="open-device-danger-confirm" data-device-danger="reset">
           <b>还原所有设置</b>
-          <span>将 ${h(activeDevice.name)} 的设备参数恢复为出厂默认设置，不清除已保存的录音数据。</span>
+          <span>恢复设备参数，二次确认后直接执行，不清除录音数据。</span>
         </button>
-        <button class="device-remove-action danger" data-go="APP-DEV-01">
+        <button class="device-remove-action danger" data-action="open-device-danger-confirm" data-device-danger="clear">
           <b>解除并清除数据</b>
-          <span>清除设备所有数据并从当前账号移除，之后可重新绑定至其他账号或空间。</span>
+          <span>解除当前账号绑定并清除设备数据，二次确认后需密码或验证码验证。</span>
         </button>
   `;
   const offlineActions = `
@@ -5951,13 +6173,13 @@ function renderDeviceRemoveConfirmSheet() {
           <b>断开连接</b>
           <span>${h(activeDevice.name)} 当前已离线，无需断开连接。</span>
         </button>
-        <button class="device-remove-action" data-go="APP-DEV-03">
+        <button class="device-remove-action" data-action="open-device-danger-confirm" data-device-danger="reset">
           <b>还原所有设置</b>
-          <span>当前无法即时写入设备。App 会记录还原策略，设备下次绑定或联网握手时恢复为出厂默认设置，不清除录音数据。</span>
+          <span>记录还原策略，设备下次联网时执行；不清除录音数据，二次确认后直接执行。</span>
         </button>
-        <button class="device-remove-action danger" data-go="APP-DEV-01">
+        <button class="device-remove-action danger" data-action="open-device-danger-confirm" data-device-danger="clear">
           <b>解除并清除数据</b>
-          <span>立即从当前账号和空间移除绑定，之后可重新绑定至其他账号或空间。设备离线时先记录清除策略，新账号绑定时按云端策略清除设备本地数据后再完成绑定。</span>
+          <span>立即解除当前账号绑定并记录清除策略，设备下次联网或绑定时执行；二次确认后需密码或验证码验证。</span>
         </button>
   `;
   return `
@@ -5971,6 +6193,7 @@ function renderDeviceRemoveConfirmSheet() {
       <section class="device-remove-list" aria-label="设备移除方式">
         ${activeDevice.connected ? onlineActions : offlineActions}
       </section>
+      ${deviceDangerStep === "confirm" ? renderDeviceDangerConfirmSheet() : ""}
     </main>
   `;
 }
@@ -6204,7 +6427,7 @@ function renderPrivacy(aiAuthorized = true) {
     : `<span class="privacy-toggle-button" aria-label="AI 数据未授权"><i></i></span>`;
   return `
     <main class="me-simple-page privacy-page">
-      ${meTop("隐私与安全", { back: "APP-ME-02" })}
+      ${meTop("隐私与安全", { back: "APP-ME-01" })}
       <section class="privacy-control-list">
         <h2>隐私控制</h2>
         <div class="me-line"></div>
@@ -6326,7 +6549,7 @@ const renderers = {
   "APP-AI-01": renderGenerate,
   "APP-AI-02": renderAudioLanguageSheet,
   "APP-AI-03": renderAiModelSheet,
-  "APP-ME-02": renderUsage,
+  "APP-ME-01": renderUsage,
   "APP-ME-16": renderAccountSettingsHome,
   "APP-ME-26": renderPreferences,
   "APP-ME-27": renderTranscriptionLanguage,
@@ -6382,7 +6605,7 @@ function renderNav() {
 }
 
 function renderFlow() {
-  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-07", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-DEV-05", "APP-HOME-01", "APP-SYNC-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-REC-03", "APP-AI-02", "APP-AI-03", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-24", "APP-FILE-25", "APP-FILE-26", "APP-FILE-27", "APP-FILE-28", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-02", "APP-ME-16", "APP-ME-26", "APP-ME-27", "APP-ME-28", "APP-ME-29", "APP-ME-30", "APP-ME-31", "APP-ME-32", "APP-ME-33", "APP-ME-34", "APP-ME-35", "APP-ME-36", "APP-ME-37", "APP-ME-38", "APP-ME-40", "APP-ME-39", "APP-ME-17", "APP-ME-18", "APP-ME-41", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-23", "APP-ME-10", "APP-ME-11", "APP-ME-12", "APP-DEV-03", "APP-DEV-11", "APP-DEV-10", "APP-ME-04", "APP-ME-24", "APP-ME-25", "APP-DEV-06", "APP-DEV-07", "APP-DEV-08", "APP-DEV-09"];
+  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-07", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-DEV-05", "APP-HOME-01", "APP-SYNC-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-REC-03", "APP-AI-02", "APP-AI-03", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-24", "APP-FILE-25", "APP-FILE-26", "APP-FILE-27", "APP-FILE-28", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-01", "APP-ME-16", "APP-ME-26", "APP-ME-27", "APP-ME-28", "APP-ME-29", "APP-ME-30", "APP-ME-31", "APP-ME-32", "APP-ME-33", "APP-ME-34", "APP-ME-35", "APP-ME-36", "APP-ME-37", "APP-ME-38", "APP-ME-40", "APP-ME-39", "APP-ME-17", "APP-ME-18", "APP-ME-41", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-23", "APP-ME-10", "APP-ME-11", "APP-ME-12", "APP-DEV-03", "APP-DEV-11", "APP-DEV-10", "APP-ME-04", "APP-ME-24", "APP-ME-25", "APP-DEV-06", "APP-DEV-07", "APP-DEV-08", "APP-DEV-09"];
   flow.splice(flow.indexOf("APP-FILE-03") + 1, 0, "APP-FILE-23");
   document.getElementById("flowStrip").innerHTML = flow.map((id, index) => {
     const page = pageById(id);
@@ -6684,6 +6907,36 @@ document.addEventListener("click", (event) => {
     openRecordEntry();
     return;
   }
+  if (action && action.dataset.action === "open-account-avatar-actions") {
+    accountAvatarFlow = "actions";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "close-account-avatar-actions") {
+    accountAvatarFlow = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "take-account-avatar-photo") {
+    accountAvatarFlow = "camera";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "close-account-avatar-camera") {
+    accountAvatarFlow = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "capture-account-avatar") {
+    accountAvatarAsset = recordingPhotoAsset;
+    accountAvatarFlow = "";
+    showAccountAvatarNotice("头像已更新");
+    return;
+  }
+  if (action && action.dataset.action === "choose-account-avatar-photo") {
+    document.getElementById("accountAvatarPicker")?.click();
+    return;
+  }
   if (action && action.dataset.action === "set-device-recording-state") {
     deviceRecordingActive = action.dataset.value === "recording";
     deviceActionNotice = "";
@@ -6755,7 +7008,90 @@ document.addEventListener("click", (event) => {
   }
   if (action && action.dataset.action === "restore-device-settings") {
     if (blockDeviceActionWhileRecording()) return;
-    showDeviceActionNotice("恢复出厂触发方式待确认");
+    openDeviceDangerAction("reset");
+    return;
+  }
+  if (action && action.dataset.action === "open-device-danger-confirm") {
+    if (blockDeviceActionWhileRecording()) return;
+    openDeviceDangerAction(action.dataset.deviceDanger || "clear");
+    return;
+  }
+  if (action && action.dataset.action === "cancel-device-danger") {
+    clearDeviceDangerState();
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "confirm-device-danger-reset") {
+    if (blockDeviceActionWhileRecording()) return;
+    completeDeviceSettingsReset();
+    return;
+  }
+  if (action && action.dataset.action === "continue-device-danger-verify") {
+    deviceDangerStep = "verify";
+    deviceDangerConfirmMode = "password";
+    deviceDangerPassword = "";
+    deviceDangerPasswordVisible = false;
+    deviceDangerCode = "";
+    deviceDangerCodeSent = false;
+    deviceDangerNotice = "";
+    deviceDangerNoticeTone = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "back-device-danger-confirm") {
+    if (deviceDangerStep === "verify") {
+      deviceDangerStep = "confirm";
+      deviceDangerConfirmMode = "password";
+      deviceDangerPassword = "";
+      deviceDangerPasswordVisible = false;
+      deviceDangerCode = "";
+      deviceDangerCodeSent = false;
+      deviceDangerNotice = "";
+      deviceDangerNoticeTone = "";
+      render();
+    } else {
+      clearDeviceDangerState();
+      render();
+    }
+    return;
+  }
+  if (action && action.dataset.action === "switch-device-danger-confirm-mode") {
+    deviceDangerConfirmMode = action.dataset.dangerMode === "code" ? "code" : "password";
+    deviceDangerNotice = "";
+    deviceDangerNoticeTone = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "toggle-device-danger-password") {
+    deviceDangerPasswordVisible = !deviceDangerPasswordVisible;
+    render();
+    requestAnimationFrame(() => document.getElementById("deviceDangerPassword")?.focus());
+    return;
+  }
+  if (action && action.dataset.action === "send-device-danger-code") {
+    deviceDangerConfirmMode = "code";
+    deviceDangerCodeSent = true;
+    deviceDangerNotice = "验证码已发送至 3*******6@qq.com，请输入 6 位验证码。";
+    deviceDangerNoticeTone = "success";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "confirm-device-danger-clear") {
+    if (deviceDangerConfirmMode === "password" && deviceDangerPassword !== prototypeLoginPassword) {
+      deviceDangerNotice = "账号密码错误";
+      deviceDangerNoticeTone = "error";
+      render();
+      requestAnimationFrame(() => document.getElementById("deviceDangerPassword")?.focus());
+      return;
+    }
+    if (deviceDangerConfirmMode === "code" && (!deviceDangerCodeSent || deviceDangerCode !== prototypeVerificationCode)) {
+      deviceDangerNotice = deviceDangerCodeSent ? "验证码错误，请检查后重新输入。" : "请先发送验证码。";
+      deviceDangerNoticeTone = "error";
+      render();
+      requestAnimationFrame(() => document.getElementById("deviceDangerCode")?.focus());
+      return;
+    }
+    completeDeviceDataClear();
     return;
   }
   if (action && action.dataset.action === "open-device-removal") {
@@ -8094,17 +8430,23 @@ document.addEventListener("click", (event) => {
     render();
     return;
   }
+  if (action && action.dataset.action === "toggle-delete-password-visibility") {
+    deleteAccountPasswordVisible = !deleteAccountPasswordVisible;
+    render();
+    requestAnimationFrame(() => document.getElementById("deletePassword")?.focus());
+    return;
+  }
   if (action && action.dataset.action === "send-delete-account-code") {
     deleteAccountConfirmMode = "code";
     deleteAccountCodeSent = true;
-    deleteAccountConfirmNotice = "验证码已发送至 mhy_1126@qq.com，请输入 6 位验证码完成身份确认。";
+    deleteAccountConfirmNotice = "验证码已发送至 3*******6@qq.com，请输入 6 位验证码完成身份确认。";
     deleteAccountConfirmNoticeTone = "success";
     render();
     return;
   }
   if (action && action.dataset.action === "confirm-delete-account") {
     if (deleteAccountConfirmMode === "password" && deleteAccountPassword !== prototypeLoginPassword) {
-      deleteAccountConfirmNotice = "账号密码错误，请重新输入。";
+      deleteAccountConfirmNotice = "账号密码错误";
       deleteAccountConfirmNoticeTone = "error";
       render();
       requestAnimationFrame(() => document.getElementById("deletePassword")?.focus());
@@ -8121,7 +8463,9 @@ document.addEventListener("click", (event) => {
     }
     deleteAccountStep = "warning";
     deleteAccountReadConfirmed = false;
+    deleteAccountConfirmMode = "password";
     deleteAccountPassword = "";
+    deleteAccountPasswordVisible = false;
     deleteAccountCode = "";
     deleteAccountCodeSent = false;
     deleteAccountConfirmNotice = "";
@@ -8522,6 +8866,17 @@ document.addEventListener("input", (event) => {
     deleteAccountConfirmNotice = "";
     deleteAccountConfirmNoticeTone = "";
   }
+  if (event.target.id === "deviceDangerPassword") {
+    deviceDangerPassword = event.target.value;
+    deviceDangerNotice = "";
+    deviceDangerNoticeTone = "";
+  }
+  if (event.target.id === "deviceDangerCode") {
+    deviceDangerCode = event.target.value.replace(/\D/g, "").slice(0, 6);
+    event.target.value = deviceDangerCode;
+    deviceDangerNotice = "";
+    deviceDangerNoticeTone = "";
+  }
   if (event.target.id === "deletePassword" || event.target.id === "deleteCode") {
     const canDelete = deleteAccountConfirmMode === "password"
       ? deleteAccountPassword.trim().length > 0
@@ -8529,6 +8884,30 @@ document.addEventListener("input", (event) => {
     const button = document.querySelector("[data-action='confirm-delete-account']");
     if (button) button.disabled = !canDelete;
   }
+  if (event.target.id === "deviceDangerPassword" || event.target.id === "deviceDangerCode") {
+    const canConfirm = deviceDangerConfirmMode === "password"
+      ? deviceDangerPassword.trim().length > 0
+      : deviceDangerCodeSent && deviceDangerCode.length === 6;
+    const button = document.querySelector("[data-action='confirm-device-danger-clear']");
+    if (button) button.disabled = !canConfirm;
+  }
+});
+
+document.addEventListener("change", (event) => {
+  if (event.target.id !== "accountAvatarPicker") return;
+  const file = event.target.files?.[0];
+  if (!file) return;
+  if (!file.type.startsWith("image/")) {
+    showAccountAvatarNotice("请选择图片文件");
+    return;
+  }
+  const reader = new FileReader();
+  reader.addEventListener("load", () => {
+    accountAvatarAsset = typeof reader.result === "string" ? reader.result : "";
+    accountAvatarFlow = "";
+    showAccountAvatarNotice("头像已更新");
+  });
+  reader.readAsDataURL(file);
 });
 
 document.addEventListener("focusout", (event) => {
