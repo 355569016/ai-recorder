@@ -30,6 +30,95 @@ state: APP-REC-02, 自动识别场景 selected, 快捷录音 off
 
 final result: blocked
 
+## APP-ONB-02 注册协议确认弹窗与文案统一（2026-09-02）
+
+reference visual: `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/codex-clipboard-9721f36f-8ac4-4104-a089-b498c1ae2702.png`
+scope: 注册页协议文案、默认勾选状态、未确认拦截和底部条款弹窗
+
+### Interaction requirements
+
+- 注册页协议项默认未选中，文案与登录 / 注册页一致：「我同意注册并接受《用户协议》《隐私政策》和《AI 数据处理说明》。」
+- 填写邮箱和密码后未勾选协议，点击“下一步”停留当前页并打开“请阅读并同意以下条款”底部弹窗。
+- 点击“不同意”或蒙层关闭弹窗，协议保持未选中，不显示原独立红色协议提示，也不提交注册。
+- 点击“同意并继续”自动选中协议，并继续原注册校验和验证码发送链路。
+
+### Code and build checks
+
+- `node scripts/build-prd-preview.js`、`node scripts/build-inline.js`、`node --check app.js`、`node --check scripts/build-inline.js`、`node --check scripts/build-prd-preview.js` 和 `git diff --check` 通过。
+- 静态断言确认注册默认值为未选中、注册页和登录页协议文案一致、注册弹窗使用同一标题/说明/按钮文案，旧的“请先同意用户协议和隐私政策”提示已移除。
+- `index.html` 已由最新 `app.js` 重建；需求文档 APP-ONB-01 / APP-ONB-02 已同步。
+
+### Residual checks
+
+- 浏览器实际视觉与点击链路未复测；当前本地地址被浏览器安全审查拦截，未取得新的运行态截图和控制台结果。
+
+final result: passed with browser visual verification pending
+
+## APP-ONB-01 Google / Apple 授权登录协议前置确认（2026-09-02）
+
+reference visual: `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/codex-clipboard-90cdc3e5-5619-415e-af16-e7a38ee933ff.png`
+scope: Google / Apple 授权登录前的协议勾选拦截、同意后继续和需求文档补充
+
+### Interaction requirements
+
+- Google / Apple 授权登录与邮箱密码登录共用协议勾选状态。
+- 未勾选时点击 Google 或 Apple，不发起授权，先展示“请阅读并同意以下条款”底部弹窗。
+- 点击“同意并继续”自动勾选协议，再进入原授权登录链路；点击“不同意”或关闭弹窗不发起授权。
+- 该前置确认覆盖未注册用户可能由第三方授权自动创建账号的场景。
+
+### Code and build checks
+
+- `node scripts/build-prd-preview.js`、`node scripts/build-inline.js`、`node --check app.js`、`node --check scripts/build-inline.js`、`node --check scripts/build-prd-preview.js` 和 `git diff --check` 通过。
+- 静态断言确认 Google / Apple 按钮均使用协议感知动作，不再直接跳转 APP-ONB-04；同意后分别继续原授权跳转。
+- 需求文档 APP-ONB-01 已补充第三方授权登录的协议前置规则、页面状态反馈和验收点。
+
+### Residual checks
+
+- 浏览器实际视觉与点击链路未复测；当前本地地址被浏览器安全审查拦截，未取得新的运行态截图和控制台结果。
+
+final result: passed with browser visual verification pending
+
+## 全量页面状态表现与反馈补全（2026-09-02）
+
+scope: 将有“页面状态”的需求章节统一补充为“状态 / 页面表现 / 反馈”三列表格，并与原型当前状态链同步
+
+### Coverage evidence
+
+- 原型状态对象共 96 个；所有有状态的原型页面对象均通过统一 `buildStateDetails(page)` 生成三列表格，未再使用仅列状态名称的右侧规格面板兜底展示。
+- 需求文档中 32 个主章节及隐私安全下的 APP-ME-22 删除账号子页面均已补充“状态表现与反馈”表；页面状态名称与对应原型状态链逐项校验通过。
+- 文件列表区虽并入 APP-HOME-01，但仍保留独立状态字段，已单独补齐全部、来源、传输、未转写和 AI 已生成等状态的页面表现与反馈。
+
+### Code and build checks
+
+- `node scripts/build-prd-preview.js`、`node scripts/build-inline.js`、`node --check app.js` 和 `git diff --check` 通过。
+- `prd-preview.html` 和 `index.html` 已分别由需求文档与 `app.js` 重建。
+- 静态一致性校验通过：32 个主章节的表格状态行数与状态字段一致，APP-ME-22 子页面另有 10 行状态表，且与原型页面对象状态名称一致。
+
+### Residual checks
+
+- 浏览器运行态视觉与点击链路未在本轮复测；此前本地地址被浏览器安全审查拦截，未取得新的运行态截图和控制台结果。
+
+final result: passed with browser visual verification pending
+
+## APP-ONB-01 移除优惠活动授权（2026-09-02）
+
+scope: 首启与账号流程及消息与通知设置中的优惠活动 / 产品资讯授权项及对应需求字段
+
+### Evidence
+
+- 登录页不再显示“请让我及时了解 AI 录音卡的最新资讯和优惠活动”授权项。
+- 注册页和邮箱验证码登录页复用的活动咨询授权项一并移除。
+- `APP-ONB-01`、`APP-ONB-02`、`APP-ONB-06` 的 `privacy_opt_in` 需求字段已移除；相关“资讯授权 / 营销消息授权”依赖文案已同步清理。
+- “消息与通知”设置页不再显示“产品更新与优惠”，对应的 `product_updates` 字段和本地通知状态已移除。
+- 用户协议、隐私政策和 AI 数据处理说明的登录同意弹窗链路保留。
+- `node scripts/build-inline.js`、`node --check app.js`、`node --check scripts/build-inline.js`、`node --check scripts/build-prd-preview.js` 和 `git diff --check` 通过。
+
+### Residual checks
+
+- 浏览器实际视觉检查尚未完成；当前本地地址被浏览器安全审查拦截，未取得运行态截图和控制台结果。
+
+final result: blocked
+
 ## APP-REC-04 原位编辑交互变更
 
 source visual truth path: `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-51565715-313a-4bd2-b871-e160e8dbeb95.png`
@@ -116,6 +205,44 @@ scope: APP-ME-22 风险说明、阅读确认、身份验证、密码/邮箱验�
 
 final result: passed
 
+## APP-ONB-01 页面状态三列表格（2026-09-02）
+
+scope: 右侧规格面板“页面状态”区域；状态、页面表现、反馈方式与反馈内容
+
+### Evidence
+
+- `APP-ONB-01` 页面元数据新增 6 行 `stateDetails`，保留原有 6 个状态名称。
+- 右侧规格面板新增“状态 / 页面表现 / 反馈”三列表格；未补充状态明细的其它页面继续使用原有状态列表渲染。
+- `styles.css` 增加固定列宽和长文案换行规则，避免反馈文案撑破规格面板。
+- 需求文档同步增加同结构的状态表现与反馈表格。
+- `node scripts/build-inline.js`、`node --check app.js`、`node --check scripts/build-inline.js`、`node --check scripts/build-prd-preview.js` 和 `git diff --check` 通过；`index.html` 已重建并包含 `spec-state-table`。
+
+### Residual checks
+
+- 本轮尝试使用本地预览进行浏览器验证，但本地地址被浏览器安全审查拦截，未取得真实渲染截图、面板溢出结果或浏览器控制台结果。
+
+final result: blocked
+
+## APP-ME-16 用户名称编辑（2026-09-02）
+
+preview URL: `http://127.0.0.1:4174/index.html?page=APP-ME-16`
+scope: 设置页用户名称点击编辑、输入、清空、保存、取消与关闭
+
+### Interaction evidence
+
+- 点击设置页用户名称后显示“编辑名称”底部弹层，输入框自动聚焦并带入当前名称。
+- 清空输入框后保存按钮禁用，清除按钮同步禁用；输入有效名称后保存按钮恢复可用。
+- 保存带首尾空格的名称（如“  张三  ”）后自动去除首尾空格，弹层关闭，设置页即时显示“张三”。
+- 修改为临时名称后点击取消、关闭按钮或蒙层，弹层关闭且已保存名称仍为“小明”。
+- 浏览器运行态 error/warn：空。
+
+### Code and build checks
+
+- `node scripts/build-inline.js`、`node --check app.js`、`node --check scripts/build-inline.js`、`node --check scripts/build-prd-preview.js` 和 `git diff --check` 通过。
+- `index.html` 已由 `app.js` 重建；设置页需求文档同步补充用户名称字段、状态和验收点。
+
+final result: passed
+
 ## APP-ME-16 头像编辑与 APP-ME-01 编号修正（2026-08-30）
 
 preview URL: `http://127.0.0.1:4174/index.html?page=APP-ME-16`
@@ -184,3 +311,50 @@ preview URL: `http://127.0.0.1:8765/index.html?page=APP-ME-22`
 - 输入统一验证码 `888888` 后回到登录/注册页。
 - 浏览器控制台仍有原型既有 `MutationObserver` 环境错误，未发现本次改动引入的页面渲染或交互错误。
 - `final result: passed`
+
+## APP-ONB-01 登录协议确认弹窗（2026-09-02）
+
+reference visual: `/Users/andyma/Downloads/IMG_6080.PNG`
+scope: 登录页法律协议勾选、未勾选登录拦截、条款确认底部弹窗
+
+### Interaction requirements
+
+- 登录页法律协议项默认未选中，点击协议行可主动选中或取消。
+- 未选中时点击登录，停留当前登录页并打开“请阅读并同意以下条款”底部弹窗。
+- 点击“不同意”或蒙层，关闭弹窗且协议仍保持未选中。
+- 点击“同意并继续”，自动选中协议并继续执行原登录校验链路。
+
+### Code and build checks
+
+- `node scripts/build-inline.js`、`node --check app.js`、`node --check scripts/build-inline.js`、`node --check scripts/build-prd-preview.js` 和 `git diff --check` 通过。
+- `index.html` 已由 `app.js` 重建；需求文档已同步协议默认状态、弹窗状态和验收点。
+
+### Residual checks
+
+- 浏览器实际视觉与点击链路尚未复测；当前本地地址被浏览器安全审查拦截，未取得运行态截图和控制台结果。
+
+final result: blocked
+
+## APP-ONB-06 邮箱验证码登录协议确认（2026-09-02）
+
+reference visual: `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/codex-clipboard-905226bc-5dca-4419-a3dd-a031d2ab5201.png`
+scope: 邮箱验证码登录页协议项默认状态、登录前置确认和条款弹窗
+
+### Interaction requirements
+
+- 邮箱验证码登录页协议项默认未选中，文案与登录 / 注册页一致：「我同意注册并接受《用户协议》《隐私政策》和《AI 数据处理说明》。」
+- 邮箱和验证码填写完整后，未勾选协议点击“登录”停留当前页并打开“请阅读并同意以下条款”底部弹窗。
+- 点击“不同意”或蒙层关闭弹窗，协议保持未选中，不进入绑定设备。
+- 点击“同意并继续”自动选中协议，并继续验证码校验和原登录跳转链路；只有同意后才能继续。
+
+### Code and build checks
+
+- 静态断言确认 APP-ONB-06 使用独立的协议状态、可交互未选中协议项、同款协议确认弹窗，以及同意后自动重试“登录”动作。
+- 需求文档 APP-ONB-06 已补充协议未确认、协议确认弹窗两类页面状态，以及对应页面表现、反馈方式和反馈内容。
+- `node scripts/build-prd-preview.js`、`node scripts/build-inline.js`、`node --check app.js`、`node --check scripts/build-inline.js`、`node --check scripts/build-prd-preview.js` 和 `git diff --check` 通过后，`index.html` 与 `prd-preview.html` 已同步重建。
+
+### Residual checks
+
+- 浏览器实际视觉与点击链路未复测；当前本地地址被浏览器安全审查拦截，未取得新的运行态截图和控制台结果。
+
+final result: passed with browser visual verification pending

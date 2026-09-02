@@ -68,6 +68,10 @@ let accountAvatarAsset = "";
 let accountAvatarFlow = "";
 let accountAvatarNotice = "";
 let accountAvatarNoticeTimer = null;
+let accountUserName = "355569016";
+let accountUserNameDraft = "";
+let accountUserNameEditorOpen = false;
+let accountUserNameError = "";
 const recordingBaseMarks = [
   { id: "recording-mark-device", time: "00:12:08", type: "mark", text: "重点标记", source: "录音卡" },
   { id: "recording-mark-photo", time: "00:27:46", type: "photo", text: "", caption: "", captionSource: "", source: "APP", photo: recordingPhotoAsset },
@@ -200,11 +204,14 @@ let loginEmail = "";
 let loginPassword = "";
 let loginNotice = "";
 let loginNoticeTone = "";
+let loginAgreementAccepted = false;
+let loginAgreementPromptOpen = false;
+let loginAgreementPendingAction = "password";
 let registerEmail = "";
 let registerPassword = "";
 let registerPasswordVisible = false;
-let registerAgreementAccepted = true;
-let registerMarketingOptIn = true;
+let registerAgreementAccepted = false;
+let registerAgreementPromptOpen = false;
 let registerNotice = "";
 let registerNoticeTone = "";
 let registerCode = "";
@@ -215,6 +222,8 @@ let registerCodeNoticeTone = "";
 let codeLoginEmail = "";
 let codeLoginCode = "";
 let codeLoginCodeSent = false;
+let codeLoginAgreementAccepted = false;
+let codeLoginAgreementPromptOpen = false;
 let codeLoginNotice = "";
 let codeLoginNoticeTone = "";
 let resetPasswordEmail = "355569016@qq.com";
@@ -260,26 +269,44 @@ const pages = [
     priority: "P0",
     goal: "完成账号登录，作为绑定设备、硬件录音、云端生成和我的页用量服务的前置条件。",
     entry: "首次打开 App、会话失效、点击绑定/录音/生成时未登录。",
-    fields: [["auth_state", "登录状态", "云端账号"], ["login_method", "登录方式", "Google / Apple / Email / 验证码"], ["agreement_version", "协议版本", "云端账号/本地缓存"], ["privacy_opt_in", "资讯授权", "用户勾选"]],
-    rules: ["未勾选用户协议、隐私政策和 AI 数据处理说明时不可提交登录/注册。", "第三方登录、邮箱密码登录、验证码登录共用同一协议确认状态。", "未登录不可绑定设备、不可开始硬件录音、不可提交转写与 AI 生成。", "登录后检查协议与隐私版本，版本更新需重新确认。"],
+    fields: [["auth_state", "登录状态", "云端账号"], ["login_method", "登录方式", "Google / Apple / Email / 验证码"], ["agreement_version", "协议版本", "云端账号/本地缓存"]],
+    rules: ["登录页法律协议项默认未选中，用户可主动勾选。", "未勾选用户协议、隐私政策和 AI 数据处理说明时，点击邮箱、Google 或 Apple 登录先弹出条款确认提示；点击“同意并继续”后自动选中并继续登录。", "Google / Apple 授权登录可能为未注册用户自动创建账号，因此授权登录前必须完成协议确认。", "第三方登录、邮箱密码登录、验证码登录共用同一协议确认状态。", "未登录不可绑定设备、不可开始硬件录音、不可提交转写与 AI 生成。", "登录后检查协议与隐私版本，版本更新需重新确认。"],
     walkthroughNote: "流程走通必填：邮箱使用 355569016@qq.com 或 mhy_1126@qq.com，所有登录密码统一使用 A88888888。重置密码仅做原型演示，不会改变登录密码。",
-    states: ["默认", "提交中", "登录失败", "网络异常", "协议未确认", "账号未注册"],
-    deps: ["云端账号：Google / Apple / Email / 验证码登录与刷新 token，接口待后端定义。", "合规：用户协议、隐私政策、AI 数据处理说明、营销消息授权。"],
-    acceptance: ["页面结构包含第三方登录、邮箱密码、忘记密码、验证码登录、注册和协议勾选。", "未登录点击录音主按钮时必须进入登录拦截。", "登录成功后可回到原触发动作或进入绑定你的设备页。"]
+    states: ["默认", "提交中", "登录失败", "网络异常", "协议未确认", "协议确认弹窗", "账号未注册"],
+    stateDetails: [
+      ["默认", "展示登录 / 注册主界面，保留第三方登录、邮箱密码登录、验证码登录和注册入口", "无"],
+      ["提交中", "按钮禁用，并显示 Loading 状态", "按钮：「登录中…」"],
+      ["登录失败", "保留当前已输入的邮箱和密码，不跳转", "Toast：「邮箱或密码错误，请重新输入」"],
+      ["网络异常", "保留输入内容，不跳转", "Toast：「网络异常，请检查网络后重试」"],
+      ["协议未确认", "协议项默认未选中，保持当前登录页", "点击邮箱、Google 或 Apple 登录：弹出条款确认提示"],
+      ["协议确认弹窗", "背景变暗，底部弹窗展示条款说明和同意 / 不同意操作", "弹窗：请阅读并同意以下条款"],
+      ["账号未注册", "保留已输入邮箱，密码内容不清空", "Toast：「该邮箱尚未注册」"]
+    ],
+    deps: ["云端账号：Google / Apple / Email / 验证码登录与刷新 token，接口待后端定义。", "合规：用户协议、隐私政策、AI 数据处理说明。"],
+    acceptance: ["页面结构包含第三方登录、邮箱密码、忘记密码、验证码登录、注册和协议勾选。", "未勾选协议时点击邮箱、Google 或 Apple 登录，均必须先弹出条款确认弹窗。", "点击“同意并继续”后自动勾选协议，再继续原登录或第三方授权登录链路；点击“不同意”不发起授权。", "未登录点击录音主按钮时必须进入登录拦截。", "登录成功后可回到原触发动作或进入绑定你的设备页。"]
   },
   {
     id: "APP-ONB-02",
     group: "首启与账号",
     title: "账号注册",
     priority: "P0",
-    goal: "使用邮箱和密码创建账号，并确认协议与资讯授权。",
+    goal: "使用邮箱和密码创建账号，并确认用户协议和隐私政策。",
     entry: "登录 / 注册页点击“还没有账号？注册”。",
-    fields: [["email", "邮箱", "用户输入"], ["password", "密码", "用户输入"], ["agreement_version", "协议版本", "云端账号/本地缓存"], ["privacy_opt_in", "资讯授权", "用户勾选"]],
-    rules: ["邮箱和密码均为可编辑输入框。", "邮箱必须通过基本邮箱正则校验；格式错误时停留本页并提示“请输入有效的邮箱地址”。", "密码至少 8 位；长度不足时停留本页并提示“密码至少需要 8 位”。", "未勾选用户协议和隐私政策时不可提交，并明确提示。", "点击下一步进入注册验证页。", "注册仅做原型演示，输入的邮箱和密码不加入固定登录账号。"],
+    fields: [["email", "邮箱", "用户输入"], ["password", "密码", "用户输入"], ["agreement_version", "协议版本", "云端账号/本地缓存"]],
+    rules: ["邮箱和密码均为可编辑输入框。", "邮箱必须通过基本邮箱正则校验；格式错误时停留本页并提示“请输入有效的邮箱地址”。", "密码至少 8 位；长度不足时停留本页并提示“密码至少需要 8 位”。", "注册页协议项默认未选中，协议文案与登录 / 注册页保持一致。", "未勾选协议时点击下一步先弹出“请阅读并同意以下条款”确认弹窗；点击“同意并继续”后自动选中并继续注册，点击“不同意”关闭弹窗且不提交。", "点击下一步进入注册验证页。", "注册仅做原型演示，输入的邮箱和密码不加入固定登录账号。"],
     walkthroughNote: "原型走通说明：注册邮箱可任意输入，但必须符合邮箱格式；注册密码至少 8 位。注册成功仅供演示，实际登录仍只能使用固定演示账号和密码 A88888888。",
-    states: ["默认", "填写中", "邮箱格式错误", "密码长度不足", "协议未确认", "验证码已发送"],
-    deps: ["原型：本地邮箱格式、密码长度与协议勾选校验。", "生产版：云端注册接口、邮箱唯一性和密码强度策略。", "合规：用户协议、隐私政策、资讯授权。"],
-    acceptance: ["注册页的邮箱和密码可真实输入。", "邮箱格式错误、密码少于 8 位、协议未确认时分别显示对应错误。", "输入合法后进入 APP-ONB-03，但不生成新的可登录账号。"]
+    states: ["默认", "填写中", "邮箱格式错误", "密码长度不足", "协议未确认", "协议确认弹窗", "验证码已发送"],
+    stateDetails: [
+      ["默认", "展示邮箱、密码、协议项和下一步，协议项默认未选中，下一步按输入完整度决定是否可用", "无；输入变化后更新按钮状态"],
+      ["填写中", "保留用户已输入的邮箱和密码，继续停留在注册页", "行内校验；合法输入后下一步可用"],
+      ["邮箱格式错误", "保留邮箱输入，不跳转注册验证页", "行内错误：「请输入有效的邮箱地址」"],
+      ["密码长度不足", "保留密码输入，不提交注册", "行内错误：「密码至少需要 8 位」"],
+      ["协议未确认", "协议项默认未选中，保持当前注册页，不显示独立红色错误提示", "点击下一步：弹出“请阅读并同意以下条款”弹窗"],
+      ["协议确认弹窗", "背景变暗，底部弹窗展示与登录 / 注册页一致的条款说明和同意 / 不同意操作", "弹窗：「请阅读并同意以下条款」；按钮：「同意并继续」「不同意」"],
+      ["验证码已发送", "进入注册验证页，展示待验证邮箱、验证码输入框和倒计时", "Toast：「验证码已发送」；按钮进入验证态"]
+    ],
+    deps: ["原型：本地邮箱格式、密码长度与协议勾选校验。", "生产版：云端注册接口、邮箱唯一性和密码强度策略。", "合规：用户协议、隐私政策。"],
+    acceptance: ["注册页的邮箱和密码可真实输入。", "邮箱格式错误、密码少于 8 位时分别显示对应错误；协议未确认时弹出与登录 / 注册页一致的条款确认弹窗。", "点击“同意并继续”后协议自动选中并继续进入 APP-ONB-03；点击“不同意”不提交注册。", "输入合法后进入 APP-ONB-03，但不生成新的可登录账号。"]
   },
   {
     id: "APP-ONB-03",
@@ -332,12 +359,12 @@ const pages = [
     priority: "P0",
     goal: "使用邮箱验证码完成登录。",
     entry: "登录 / 注册页点击“使用验证码登录”。",
-    fields: [["email", "邮箱", "用户输入"], ["verification_code", "验证码", "用户输入/邮箱"], ["agreement_version", "协议版本", "云端账号/本地缓存"], ["privacy_opt_in", "资讯授权", "用户勾选"]],
-    rules: ["邮箱和验证码均为可编辑输入框。", "点击发送前先校验邮箱格式；格式错误时显示对应提示。", "只有固定演示账号可发送验证码；其他邮箱显示“该邮箱尚未注册，请先注册账号”。", "发送成功后填写 6 位验证码才可提交登录。", "验证码错误时停留本页并明确提示。", "验证码正确后进入绑定你的设备。", "可切换回密码登录，也可进入账号注册。"],
+    fields: [["email", "邮箱", "用户输入"], ["verification_code", "验证码", "用户输入/邮箱"], ["agreement_version", "协议版本", "云端账号/本地缓存"]],
+    rules: ["邮箱和验证码均为可编辑输入框。", "协议项默认未选中，文案与登录注册页保持一致：我同意注册并接受《用户协议》《隐私政策》和《AI 数据处理说明》。", "点击发送前先校验邮箱格式；格式错误时显示对应提示。", "只有固定演示账号可发送验证码；其他邮箱显示“该邮箱尚未注册，请先注册账号”。", "发送成功后填写 6 位验证码才可提交登录。", "点击登录时若协议未勾选，弹出“请阅读并同意以下条款”弹窗；点击“同意并继续”后自动勾选并继续登录，点击“不同意”则停留当前页。", "必须勾选同意用户协议后才能继续验证码登录。", "验证码错误时停留本页并明确提示。", "验证码正确后进入绑定你的设备。", "可切换回密码登录，也可进入账号注册。"],
     walkthroughNote: "流程走通必填：邮箱仅支持 355569016@qq.com 或 mhy_1126@qq.com；所有验证码页面统一使用 888888。未注册邮箱需显示“账号未注册”类异常提示。",
-    states: ["默认", "已发送验证码", "登录中", "验证码错误", "账号未注册"],
-    deps: ["云端账号：发送登录验证码、验证码登录、刷新 token。", "合规：用户协议、隐私政策、资讯授权。"],
-    acceptance: ["邮箱和验证码可真实输入。", "邮箱格式错误、账号未注册、验证码错误均显示不同的页内提示。", "固定账号输入 888888 后进入绑定你的设备。", "保留密码登录入口和注册入口。"]
+    states: ["默认", "已发送验证码", "登录中", "验证码错误", "账号未注册", "协议未确认", "协议确认弹窗"],
+    deps: ["云端账号：发送登录验证码、验证码登录、刷新 token。", "合规：用户协议、隐私政策。"],
+    acceptance: ["邮箱和验证码可真实输入，协议项默认未勾选。", "邮箱格式错误、账号未注册、验证码错误均显示不同的页内提示。", "邮箱和验证码填写完整后，未勾选协议点击登录必须先展示同款条款确认弹窗。", "点击“同意并继续”后协议项自动勾选并继续登录；点击“不同意”不得进入下一步。", "固定账号输入 888888 且已同意协议后进入绑定你的设备。", "保留密码登录入口和注册入口。"]
   },
   {
     id: "APP-ONB-04",
@@ -1057,11 +1084,11 @@ const pages = [
     group: "我的",
     title: "设置",
     priority: "P1",
-    goal: "展示账号概览、使用统计、偏好设置与账号入口。",
+    goal: "展示账号概览、使用统计、偏好设置与账号入口，并支持编辑用户名称和头像。",
     entry: "我的页点击账号设置。",
-    fields: [["profile_avatar", "头像", "账号系统"], ["usage_stats", "使用统计", "本地数据库/用量服务"], ["recording_activity_heatmap", "录音卡实际录音使用热力图", "本地录音数据库"], ["preference_settings", "偏好设置", "本地设置"], ["account", "账号", "账号系统"]],
-      rules: ["顶部展示头像、账号名、使用天数、录音总数和总使用时长。", "点击头像打开底部操作面板，提供拍照、从照片中选择和取消。", "点击拍照进入系统相机态；拍摄完成后返回设置页并更新头像。", "点击从照片中选择调起系统照片选择器；选择图片后返回设置页并更新头像，取消选择不改变头像。", "点击取消或蒙层关闭头像操作面板，不改变头像。", "热力图只统计录音卡实际录音使用，不使用 App 打开次数；按连续周横向排列、每周固定 7 天，默认展示最近 53 周。", "小屏允许横向滚动查看更早日期；进入页面时自动定位到最右侧。热力图仅展示方格，不展示标题、日期范围、图例或当前日期选中态。", "热力图下方展示 10px-11px 灰色月份刻度，月份刻度与周列对齐，并随热力图一起横向滚动。", "每个热力图格提供日期和录音时长的 title 与 aria-label。", "底部列表包含偏好设置和账号入口。", "点击账号进入账号管理页。"],
-      states: ["默认账号", "最近53周录音使用", "横向滚动", "头像操作面板", "系统相机态", "系统照片选择态", "头像已更新", "偏好设置入口", "账号入口"],
+    fields: [["profile_avatar", "头像", "账号系统"], ["profile_name", "用户名称", "本地设置/账号系统"], ["usage_stats", "使用统计", "本地数据库/用量服务"], ["recording_activity_heatmap", "录音卡实际录音使用热力图", "本地录音数据库"], ["preference_settings", "偏好设置", "本地设置"], ["account", "账号", "账号系统"]],
+      rules: ["顶部展示头像、账号名、使用天数、录音总数和总使用时长。", "点击用户名称打开底部编辑面板，带入当前名称并自动聚焦输入框。", "名称去除首尾空格后保存；名称为空时保存按钮不可用。", "点击保存后立即更新设置页中的用户名称；点击取消、关闭按钮或蒙层不改变名称。", "点击头像打开底部操作面板，提供拍照、从照片中选择和取消。", "点击拍照进入系统相机态；拍摄完成后返回设置页并更新头像。", "点击从照片中选择调起系统照片选择器；选择图片后返回设置页并更新头像，取消选择不改变头像。", "点击取消或蒙层关闭头像操作面板，不改变头像。", "热力图只统计录音卡实际录音使用，不使用 App 打开次数；按连续周横向排列、每周固定 7 天，默认展示最近 53 周。", "小屏允许横向滚动查看更早日期；进入页面时自动定位到最右侧。热力图仅展示方格，不展示标题、日期范围、图例或当前日期选中态。", "热力图下方展示 10px-11px 灰色月份刻度，月份刻度与周列对齐，并随热力图一起横向滚动。", "每个热力图格提供日期和录音时长的 title 与 aria-label。", "底部列表包含偏好设置和账号入口。", "点击账号进入账号管理页。"],
+      states: ["默认账号", "名称编辑", "空名称", "名称已更新", "最近53周录音使用", "横向滚动", "头像操作面板", "系统相机态", "系统照片选择态", "头像已更新", "偏好设置入口", "账号入口"],
     deps: ["账号系统：用户头像与账号名。", "本地数据库：录音统计。"],
       acceptance: ["设置页样式参考截图，偏好设置和账号入口均可进入。", "点击头像后显示拍照、从照片中选择、取消三项操作；点击取消或蒙层可关闭且头像不变。", "拍照流程可进入相机态，拍摄后返回设置页并显示更新后的头像。", "从照片中选择可调起图片选择器，选择图片后返回设置页并显示更新后的头像。", "热力图纵向固定 7 天、末列完整填满，且无当前日期选中态。", "热力图下方月份刻度可见，字号为 10px-11px 灰色，并在横向滚动时与热力图同步移动。", "热力图内容明确为录音卡实际录音使用。"],
     prototypeLinks: [["偏好设置", "APP-ME-26"], ["账号", "APP-ME-17"]]
@@ -1223,7 +1250,7 @@ const pages = [
     priority: "P1",
     goal: "独立控制不同类型的应用通知。",
     entry: "偏好设置点击消息与通知。",
-    fields: [["notifications_allowed", "允许通知", "通知设置"], ["progress_account_alerts", "进度与账号提醒", "通知设置"], ["device_alerts", "设备状态提醒", "通知设置"], ["product_updates", "产品更新与优惠", "通知设置"]],
+    fields: [["notifications_allowed", "允许通知", "通知设置"], ["progress_account_alerts", "进度与账号提醒", "通知设置"], ["device_alerts", "设备状态提醒", "通知设置"]],
     rules: ["允许通知作为总开关。", "各通知类型可独立开关，总开关关闭时类型项不可操作。"],
     states: ["允许通知", "关闭通知", "每类开启", "每类关闭"],
     deps: ["系统通知权限、本地设置。"],
@@ -1622,6 +1649,258 @@ const pages = [
   }
 ];
 
+const stateDetailOverrides = {
+  "APP-PRD-00": {
+    "默认": ["直接展示完整需求说明 HTML 预览，页面不使用手机框", "无"],
+    "评审入口": ["左侧导航选中需求说明，可浏览源 MD 转换后的完整文档", "导航选中态；预览内容可滚动查看"]
+  },
+  "APP-ONB-02": {
+    "默认": ["展示邮箱、密码、协议项和下一步，下一步按输入完整度决定是否可用", "无；输入变化后更新按钮状态"],
+    "填写中": ["保留用户已输入的邮箱和密码，继续停留在注册页", "行内校验；合法输入后下一步可用"],
+    "邮箱格式错误": ["保留邮箱输入，不跳转注册验证页", "行内错误：「请输入有效的邮箱地址」"],
+    "密码长度不足": ["保留密码输入，不提交注册", "行内错误：「密码至少需要 8 位」"],
+    "协议未确认": ["协议项默认未选中，保持当前注册页，不显示独立红色错误提示", "点击下一步：弹出“请阅读并同意以下条款”弹窗"],
+    "协议确认弹窗": ["背景变暗，底部弹窗展示与登录 / 注册页一致的条款说明和同意 / 不同意操作", "弹窗：「请阅读并同意以下条款」；按钮：「同意并继续」「不同意」"],
+    "验证码已发送": ["进入注册验证页，展示待验证邮箱、验证码输入框和倒计时", "Toast：「验证码已发送」；按钮进入验证态"]
+  },
+  "APP-ONB-03": {
+    "等待输入": ["展示待验证邮箱、6 位验证码输入框和确认入口", "无；验证码未填满时确认按钮置灰"],
+    "验证码不完整": ["保留当前输入，确认按钮不可提交", "输入框继续提示剩余位数或按钮置灰"],
+    "验证中": ["确认按钮禁用并显示 Loading，不允许重复提交", "按钮：「验证中…」"],
+    "验证码错误": ["停留本页并保留验证码输入，允许重新输入", "行内错误：「验证码错误，请检查后重新输入」"],
+    "可重发": ["重发入口恢复可用，当前邮箱和验证码输入仍保留", "按钮：「重新发送」；成功后重启倒计时"]
+  },
+  "APP-ONB-05": {
+    "默认": ["展示邮箱、新密码和下一步，未完整填写时不可提交", "无；输入变化后更新按钮状态"],
+    "填写中": ["保留已输入邮箱和新密码，停留当前页", "行内校验；输入完整后下一步可用"],
+    "提交中": ["下一步按钮禁用并显示 Loading", "按钮：「发送中…」"],
+    "邮箱不存在": ["保留输入内容，不进入验证码验证页", "Toast：「该邮箱尚未注册」"],
+    "验证码已发送": ["进入 APP-ONB-07，展示邮箱验证码和重发倒计时", "Toast：「验证码已发送」"],
+    "网络异常": ["保留邮箱和新密码，不跳转", "Toast：「网络异常，请检查网络后重试」"]
+  },
+  "APP-ONB-06": {
+    "默认": ["展示邮箱、验证码、发送入口、登录入口、密码登录切换和默认未选中的协议项", "无；邮箱格式正确后可发送"],
+    "已发送验证码": ["展示验证码输入和倒计时，登录按钮按验证码完整度决定是否可用", "Toast：「验证码已发送」"],
+    "登录中": ["登录按钮禁用并显示 Loading，保留邮箱和验证码", "按钮：「登录中…」"],
+    "验证码错误": ["停留当前页并保留邮箱，允许重新输入验证码", "Toast：「验证码错误，请重新输入」"],
+    "账号未注册": ["保留邮箱输入，不进入登录成功链路", "Toast：「该邮箱尚未注册，请先注册账号」"],
+    "协议未确认": ["协议项保持未选中，保留当前邮箱和验证码，不进入登录成功链路", "点击登录：弹出“请阅读并同意以下条款”弹窗"],
+    "协议确认弹窗": ["背景变暗，底部弹窗展示与登录/注册页一致的条款说明及同意/不同意操作", "弹窗：「请阅读并同意以下条款」；按钮：「同意并继续」「不同意」"]
+  },
+  "APP-ONB-04": {
+    "待开始": ["展示绑定说明、预计耗时、设备靠近提示和开始按钮", "无"],
+    "权限待开启": ["保留绑定页，开始按钮可触发系统权限申请", "点击开始：依次申请蓝牙和定位权限"],
+    "权限申请中": ["页面暂不推进搜索，等待系统权限结果", "系统权限弹窗；等待用户选择"],
+    "权限拒绝": ["停留绑定页，说明授权后才能扫描和连接设备", "Toast：「请开启蓝牙和定位权限后重试」"],
+    "购买入口": ["展示还没有 AI Recorder 设备的购买入口，不影响绑定主流程", "点击入口：进入购买页面占位或提示链接待补充"]
+  },
+  "APP-DEV-01": {
+    "扫描中": ["展示正在搜索、长按录音键提示和设备按键示意，不展示传统设备列表", "状态文案：「正在搜索…」"],
+    "发现可连接设备": ["停止扫描并进入搜索到设备页，展示设备信息和连接入口", "自动跳转 APP-DEV-02"],
+    "发现已绑定设备": ["停止扫描并进入连接失败页，展示已绑定账号提示", "自动跳转 APP-DEV-04"],
+    "搜不到设备": ["停留搜索页，展示靠近设备、唤醒设备、检查电量和重新扫描建议", "Toast：「暂未找到设备，请重试」；按钮：「重新扫描」"],
+    "权限拒绝": ["停止扫描并保留当前页，提示先开启蓝牙和定位权限", "弹窗：「请开启权限后继续」"]
+  },
+  "APP-DEV-02": {
+    "等待连接": ["展示设备名称、完整 SN、设备图和连接按钮", "无；连接按钮可用"],
+    "SN 位置提示": ["在当前设备页上覆盖 SN 位置说明，不离开设备页", "弹窗：「SN 印在录音卡随附包装盒背面的标签上」"],
+    "连接中": ["连接按钮禁用并显示 Loading，保留设备信息", "按钮：「连接中…」"],
+    "绑定成功": ["展示绑定成功结果并进入文件首页", "Toast：「设备绑定成功」"],
+    "绑定失败": ["停留设备页，保留设备信息并提供重试/返回搜索", "Toast：「设备绑定失败，请重试」"]
+  },
+  "APP-DEV-04": {
+    "设备已绑定": ["底部弹层展示脱敏绑定账号、帮助与支持和移除设备指引", "弹窗说明当前设备不可绑定"],
+    "连接失败": ["保持连接失败弹层，用户可关闭或查看移除说明", "按钮：「好的」「如何移除设备」"],
+    "等待用户确认": ["等待用户选择关闭、帮助或移除设备说明", "无；按钮保持可操作"]
+  },
+  "APP-SYNC-01": {
+    "连接前说明": ["文件首页置于蒙版下，底部面板说明临时加入设备热点及联网影响", "按钮：「继续并连接」「暂不使用」"],
+    "系统加入确认": ["系统加入无线局域网确认弹窗覆盖当前引导页，背景内容不可穿透操作", "系统弹窗：加入或取消"],
+    "连接中（两步状态）": ["展示设备 Wi-Fi 已打开完成态和连接设备热点进行态，顶部保留个人热点冲突提示", "按钮：「取消」；步骤状态实时更新"],
+    "连接失败（可重试）": ["第一步保持完成，第二步显示失败，保留设备 Wi-Fi 已打开状态", "按钮：「重试」「取消」；提示检查个人热点并重试"],
+    "连接成功并开始传输（首页提示）": ["关闭引导面板并返回文件首页，以首页同步进度承接传输", "Toast：「已连接，开始高速传输」"],
+    "Wi-Fi 快传中": ["首页显示整体进度、已完成数/总数、预计时间和加速快传说明", "进度反馈：「加速快传中，预计节省约 X 分钟」；入口：「结束快传」"],
+    "结束快传并由蓝牙续传": ["断开设备 Wi-Fi，从当前文件偏移继续蓝牙同步，整体进度不清零", "Toast：「已结束快传，继续使用蓝牙同步」"]
+  },
+  "APP-REC-02": {
+    "自动识别场景": ["录音方式弹层选中自动识别场景，开始录音按钮可用", "选中态；点击开始进入录音中"],
+    "指定录音场景": ["展示场景选择入口和已选场景，开始按钮按选择结果更新", "选中态；进入模板或录音流程"],
+    "快捷录音关闭": ["快捷录音开关关闭，普通点击先打开本弹层", "开关反馈：「已关闭快捷录音」"],
+    "快捷录音开启": ["快捷录音开关开启，普通点击直接进入自动识别录音", "开关反馈：「已开启快捷录音」"],
+    "长按召回选择": ["长按录音按钮约 500ms 重新打开录音方式选择弹层", "弹层出现；不直接开始录音"],
+    "会议": ["场景项“会议”处于选中态，后续使用会议配置", "选中态；按钮：「开始硬件录音」"],
+    "访谈": ["场景项“访谈”处于选中态，后续使用访谈配置", "选中态"],
+    "课堂": ["场景项“课堂”处于选中态，后续使用课堂配置", "选中态"],
+    "电话": ["场景项“电话”处于选中态，后续使用电话配置", "选中态"],
+    "设备未连接": ["不开始录音，弹层停留并提示先连接设备", "Toast：「设备未连接，请先连接设备」"],
+    "低电量": ["不开始录音，保留录音方式选择页", "弹窗：「设备电量过低，请充电后再录音」"],
+    "存储不足": ["不开始录音，保留当前选择", "弹窗：「设备存储空间不足，请清理后再试」"]
+  },
+  "APP-REC-03": {
+    "未选择": ["模板列表可浏览但没有选中模板，使用此模板按钮置灰", "按钮置灰；提示先选择模板"],
+    "已选择": ["展示当前选中的模板及选中态", "选中态；使用此模板按钮可用"],
+    "模板加载失败": ["保留模板页并展示重试入口，不提交生成", "Toast：「模板加载失败，请重试」"]
+  },
+  "APP-FILE-14": {
+    "待确认": ["底部确认弹层说明最近搜索记录清除后不可恢复", "按钮：「清除」「取消」"],
+    "已清除": ["关闭弹层并返回搜索页，最近搜索区域显示空状态", "Toast：「最近搜索已清除」"],
+    "已取消": ["关闭确认弹层，搜索记录和页面内容保持不变", "无"]
+  },
+  "APP-FILE-17": {
+    "待输入": ["展示查找和替换输入框，匹配计数为 0/0，替换按钮置灰", "键盘可输入；按钮置灰"],
+    "无匹配": ["保留当前查找词，匹配计数显示 0/0", "行内提示：「未找到匹配内容」"],
+    "有匹配": ["展示匹配数量和当前命中项，上一条/下一条可用", "计数反馈：「X/Y」"],
+    "替换中": ["替换按钮禁用并处理当前匹配内容", "Toast：「已替换」"]
+  },
+  "APP-FILE-18": {
+    "待确认": ["底部弹层说明重新转写会消耗额度并删除现有 AI 内容", "按钮：「重新转写」「取消」"],
+    "重新转写中": ["关闭提醒并进入文件详情生成中状态", "状态提示：「重新转写中…」"],
+    "已取消": ["关闭弹层并返回文件详情，原转写和 AI 内容保持不变", "无"]
+  },
+  "APP-FILE-09": {
+    "未选择": ["权限项均未选中，应用按钮置灰", "按钮置灰；提示至少保留一项"],
+    "部分内容": ["部分权限项选中，摘要同步显示当前选择", "选中态；应用按钮可用"],
+    "全部内容": ["录音、转写、标记、总结全部选中", "全选态；应用按钮可用"],
+    "已更新": ["关闭权限弹层并回到分享链接页，摘要与选择一致", "Toast：「分享内容已更新」"]
+  },
+  "APP-AI-01": {
+    "自动生成（默认）": ["默认选中自动生成，展示预计消耗、剩余额度和立即生成按钮", "无；额度校验实时更新"],
+    "自定义生成未选模板": ["切换自定义生成后模板行显示查看全部，立即生成仍可被拦截", "提示：「请选择模板」"],
+    "请选择模板提示": ["停留当前页并突出模板选择项，不发起生成任务", "行内错误：「请选择模板」"],
+    "模板已选择": ["模板行回填具体模板名称，立即生成按钮可用", "选中态；可提交"],
+    "额度充足": ["显示当前剩余额度，立即生成按钮可用", "额度提示：「预计消耗 X 分钟」"],
+    "额度不足": ["立即生成按钮置灰并保留当前配置", "弹窗/行内提示：「额度不足，请先购买或升级」"],
+    "语言选择": ["展开语言选择面板，当前语言有勾选标识", "选择后回填语言名称"],
+    "模型选择": ["展开 AI 模型选择面板，当前模型有勾选标识", "选择后回填模型名称"]
+  },
+  "APP-ME-16": {
+    "默认账号": ["展示账号概览、使用统计、偏好设置和账号入口", "无"],
+    "名称编辑": ["底部编辑名称面板带入当前名称并自动聚焦输入框", "输入反馈；保存按钮按名称合法性更新"],
+    "空名称": ["名称输入为空，保存按钮置灰", "行内错误：「名称不能为空」"],
+    "名称已更新": ["关闭编辑面板并在设置页回填新名称", "Toast：「名称已更新」"],
+    "最近53周录音使用": ["热力图展示最近 53 周录音卡实际录音使用情况，并定位到最右侧", "滚动位置反馈；月份刻度可见"],
+    "横向滚动": ["热力图区域独立横向滚动，不带动页面其他区域", "滚动反馈；纵向 7 天结构保持"],
+    "头像操作面板": ["底部面板展示拍照、从照片中选择和取消", "按钮：「拍照」「从照片中选择」「取消」"],
+    "系统相机态": ["调起系统相机，返回后等待照片结果", "系统相机界面；取消不改变头像"],
+    "系统照片选择态": ["调起系统照片选择器，返回后等待选择结果", "系统照片选择器；取消不改变头像"],
+    "头像已更新": ["关闭头像面板并在设置页显示新头像", "Toast：「头像已更新」"],
+    "偏好设置入口": ["偏好设置入口可点击并进入偏好设置页", "导航反馈：进入 APP-ME-26"],
+    "账号入口": ["账号入口可点击并进入账号页", "导航反馈：进入 APP-ME-17"]
+  },
+  "APP-DEV-11": {
+    "编辑中": ["带入当前设备名称并聚焦输入框，保存按钮按内容更新", "输入反馈；清除只影响草稿"],
+    "空名称": ["输入框为空或仅包含空格，保存按钮置灰", "行内错误：「设备名称不能为空」"],
+    "可保存": ["展示合法设备名称，保存按钮可用", "点击保存：更新名称并返回设备详情"],
+    "录音中保存受限": ["停留编辑页，不保存名称变化", "Toast：「正在录音中，请结束录音后再试。」"]
+  },
+  "APP-DEV-10": {
+    "断开连接": ["展示断开连接操作及影响说明，断开后仍保留绑定关系", "Toast：「设备已断开连接」"],
+    "还原所有设置二次确认": ["底部确认弹窗说明会重置设备设置但保留录音和绑定关系", "按钮：「确认还原」「取消」"],
+    "解除并清除数据二次确认": ["底部确认弹窗说明会解除绑定并清除数据，继续后进入身份验证", "按钮：「继续」「取消」"],
+    "密码验证": ["展示密码输入、显示/隐藏和确认入口", "按钮按密码完整度更新"],
+    "邮箱验证码验证": ["展示验证码输入、发送入口和倒计时", "Toast：「验证码已发送」"],
+    "密码错误": ["停留身份验证页并保留当前验证方式", "行内错误：「账号密码错误」"],
+    "验证码错误": ["停留身份验证页并保留邮箱验证码方式", "行内错误：「验证码错误，请重新输入」"],
+    "还原成功": ["返回设备详情，绑定关系和录音数据保持不变", "Toast：「设备设置已还原」"],
+    "清除成功": ["解除当前账号绑定并进入正在搜索设备页", "Toast：「已解除绑定并清除数据」"],
+    "离线待执行策略": ["显示离线设备处理说明，记录云端待执行策略并解除账号侧绑定", "提示：「设备下次联网或绑定时执行清除策略」"]
+  },
+  "APP-ME-04": {
+    "已授权": ["AI 数据授权行显示已授权，关闭入口可点击", "无；关闭前进入确认弹窗"],
+    "关闭授权确认": ["背景变暗并展示关闭 AI 数据授权的影响说明", "弹窗按钮：「取消」「确认关闭」"],
+    "未授权": ["AI 数据授权行显示未授权，既有转写和 AI 笔记入口仍可使用", "Toast：「AI 数据授权已关闭」"]
+  },
+  "APP-ME-22": {
+    "未勾选": ["第 1/2 页展示三类永久删除影响，阅读确认未选中，下一步置灰", "按钮置灰；提示：「请先阅读并确认上述条款」"],
+    "已勾选": ["阅读确认切换为选中态，下一步可点击", "选中态；点击下一步进入第 2/2 页"],
+    "确认删除": ["第 2/2 页展示密码/邮箱验证码两种身份验证方式及危险操作说明", "按钮按凭证完整度更新；确认前不可绕过验证"],
+    "密码确认": ["展示密码输入、显示/隐藏和确认删除按钮", "行内校验；输入完整后按钮可用"],
+    "验证码未发送": ["验证码方式展示发送验证码入口，输入框等待输入", "按钮：「发送验证码」；未发送前不可确认"],
+    "验证码已发送": ["展示验证码输入框和重发倒计时，确认按钮按 6 位验证码决定是否可用", "Toast：「验证码已发送」；倒计时结束后可重发"],
+    "密码错误": ["保留第 2/2 页和当前验证方式，不删除账号", "行内错误：「账号密码错误」"],
+    "验证码错误": ["保留第 2/2 页和验证码输入，不删除账号", "行内错误：「验证码错误，请重新输入」"],
+    "删除中": ["禁用确认操作并展示删除处理中的 Loading 状态", "状态提示：「删除中…」；不可重复提交"],
+    "删除完成": ["清理账号及关联数据，结束会话并返回登录/注册页", "Toast：「账号已删除」；跳转登录/注册"]
+  },
+  "APP-ERR-01": {
+    "未登录": ["展示未登录原因和登录入口，阻止需要账号的当前操作", "按钮：「去登录」"],
+    "未绑定": ["展示未绑定原因和绑定设备入口，保留当前上下文", "按钮：「去绑定设备」"],
+    "权限拒绝": ["说明缺少的系统权限及影响，不展示技术错误码作为唯一内容", "按钮：「去设置」「稍后」"],
+    "设备未连接": ["展示设备离线原因和重连入口", "按钮：「重新连接」「查看设备」"],
+    "低电量": ["展示低电量影响和充电建议，不启动录音或更新", "弹窗：「请充电后重试」"],
+    "存储不足": ["展示存储不足影响和清理入口", "按钮：「清理存储」「取消」"],
+    "同步失败": ["保留失败文件和已完成进度，不清零队列", "Toast：「同步失败，请重试」；按钮：「重试」"],
+    "上传失败": ["保留当前任务和本地文件，不重复创建任务", "Toast：「上传失败，请重试」"],
+    "转写失败": ["保留音频和已生成内容，显示失败原因及额度返还说明", "Toast：「转写失败，额度已返还」；按钮：「重试」"],
+    "AI 失败": ["保留转写结果，AI 内容区域展示失败态", "Toast：「AI 生成失败，请重试」；按钮：「重新生成」"],
+    "额度不足": ["阻止新的转写或 AI 生成，保留当前文件和配置", "弹窗：「额度不足，请先购买或升级」"]
+  }
+};
+
+function buildStateDetails(page) {
+  const overrides = stateDetailOverrides[page.id] || {};
+  return (page.states || []).map((state) => {
+    if (overrides[state]) return [state, ...overrides[state]];
+    const isBusy = /中$|加载|处理中|进行中|等待/.test(state);
+    const isError = /失败|错误|异常|不足|拒绝|无结果|不存在|损坏/.test(state);
+    const isSuccess = /成功|完成|已生成|已更新|已清除|已发送|可保存|可使用|已选择|已授权|有结果|有记录/.test(state);
+    const isConfirm = /确认|弹窗|提醒/.test(state);
+    const isSystem = /系统|相机|照片选择|键盘/.test(state);
+    const isTab = /标签/.test(state);
+    const isEdit = /编辑|替换/.test(state);
+    const isEmpty = /空状态|暂无|无结果/.test(state);
+    const isChoice = /选择|自动$|GPT|Gemini|Claude|X$|默认/.test(state);
+    const isPanel = /分享|更多操作|音频设置|倍速选择|操作面板/.test(state);
+    const presentation = isSystem
+      ? `切换至${state}对应的系统界面或系统交互，返回后保留${page.title}当前页面上下文`
+      : isConfirm
+        ? `在${page.title}中展示${state}对应的底部弹层或确认界面，背景内容不可穿透操作`
+        : isError
+          ? `在${page.title}中停留当前页面并保留已输入或已完成内容，阻止继续执行不满足条件的操作`
+          : isBusy
+            ? `在${page.title}中展示${state}过程中的进行态，主操作暂不可重复提交`
+            : isEmpty
+              ? `在${page.title}的内容区域展示空状态，保留返回、清除或创建等可用入口`
+              : isTab
+                ? `在${page.title}中将${state}设为当前选中标签，并切换对应内容区`
+                : isEdit
+                  ? `在${page.title}中将对应文本或名称切换为原位编辑态，保留当前草稿`
+                  : isPanel
+                    ? `在${page.title}中打开${state}对应的底部面板或操作浮层，背景内容保持可识别`
+                    : isChoice
+                      ? `在${page.title}中展示${state}对应的选择项，当前选项使用选中态并更新主按钮`
+                      : isSuccess
+                        ? `在${page.title}中展示${state}结果，并将可继续的主操作保持可用`
+                        : `在${page.title}中展示${state}对应的内容，保留当前上下文并更新主操作状态`;
+    const feedback = isError
+      ? `Toast/行内提示：「${state}，请检查后重试」`
+      : isBusy
+        ? `状态提示：「${state}…」；主按钮暂不可重复提交`
+        : isSuccess
+          ? `状态标签或 Toast：「${state}」；成功后按流程返回或继续`
+          : isConfirm
+            ? `弹窗反馈：「${state}」；提供确认和取消操作`
+            : isSystem
+              ? `系统界面反馈；取消返回当前页，完成后回填结果`
+              : isEmpty
+                ? `空态文案和下一步入口；无结果时不展示误导性的内容卡片`
+                : isTab
+                  ? `选中态反馈；切换后标题、内容和返回位置保持一致`
+                  : isEdit
+                    ? `输入框和保存按钮按内容实时反馈；取消不改变原内容`
+                    : isPanel
+                      ? `面板反馈；点击操作后关闭面板并以 Toast 或页面状态承接结果`
+                      : isChoice
+                        ? `选中态和按钮状态反馈；选择后回填当前选项`
+                        : "无；通过选中态、按钮状态或页面跳转反馈";
+    return [state, presentation, feedback];
+  });
+}
+
+pages.forEach((page) => {
+  if (page.states?.length && !page.stateDetails?.length) page.stateDetails = buildStateDetails(page);
+});
+
 let currentPageId = new URLSearchParams(window.location.search).get("page") || "APP-PRD-00";
 if (currentPageId === "APP-HOME-02") currentPageId = "APP-HOME-01";
 if (currentPageId === "APP-SYNC-02") currentPageId = "APP-SYNC-01";
@@ -1749,8 +2028,7 @@ const settingsState = {
   notifications: {
     transcription: true,
     sync: true,
-    device: true,
-    product: false
+    device: true
   },
   appLockEnabled: false,
   faceIdAllowed: false,
@@ -1943,6 +2221,13 @@ function go(id) {
     deviceNameError = "";
   }
   if (currentPageId !== "APP-DEV-11") deviceNameError = "";
+  if (currentPageId !== "APP-ME-16") {
+    accountUserNameEditorOpen = false;
+    accountUserNameError = "";
+  }
+  if (currentPageId !== "APP-ONB-01") {
+    loginAgreementPromptOpen = false;
+  }
   if (currentPageId === "APP-REC-02" && previousPageId !== "APP-REC-02") {
     recordMode = "auto";
   }
@@ -2747,14 +3032,16 @@ function clearResetPasswordCodeError() {
 
 function authAgreement(opts = {}) {
   const interactive = Boolean(opts.interactive);
-  const requiredChecked = interactive ? registerAgreementAccepted : true;
-  const marketingChecked = interactive ? registerMarketingOptIn : true;
+  const agreementKey = opts.agreementKey || "register";
+  const requiredChecked = interactive
+    ? agreementKey === "codeLogin" ? codeLoginAgreementAccepted : registerAgreementAccepted
+    : true;
+  const action = agreementKey === "codeLogin" ? "toggle-code-login-agreement" : "toggle-register-agreement";
   const row = (checked, text, action, required = false) => interactive
     ? `<button type="button" class="auth-agreement-row" data-action="${h(action)}" aria-pressed="${checked ? "true" : "false"}"><span class="check-dot ${checked ? "" : "unchecked"}">${checked ? "✓" : ""}</span><p>${h(text)}${required ? "" : ""}</p></button>`
     : `<div><span class="check-dot">✓</span><p>${h(text)}</p></div>`;
   return `<div class="auth-agreements">
-    ${row(requiredChecked, "我同意在中国注册我的账号，并接受用户协议和隐私政策。", "toggle-register-agreement", true)}
-    ${row(marketingChecked, "请让我及时了解 AI 录音卡的最新资讯和优惠活动。", "toggle-register-marketing")}
+    ${row(requiredChecked, "我同意注册并接受《用户协议》《隐私政策》和《AI 数据处理说明》。", action, true)}
   </div>`;
 }
 
@@ -2770,11 +3057,12 @@ function keyboardMock(type = "number") {
 
 function renderLogin() {
   const canLogin = Boolean(loginEmail.trim() && loginPassword);
-  return screen(`
+  const agreementChecked = loginAgreementAccepted;
+  const loginScreen = screen(`
     <div class="login-brand">AI RECORDER</div>
     <h1 class="login-title">开始使用</h1>
-    <button class="auth-option" data-go="APP-ONB-04"><span class="google-mark">G</span><strong>Google 账号登录</strong></button>
-    <button class="auth-option" data-go="APP-ONB-04"><span class="apple-mark">●</span><strong>Apple 账号登录</strong></button>
+    <button class="auth-option" data-action="login-with-provider" data-provider="google"><span class="google-mark">G</span><strong>Google 账号登录</strong></button>
+    <button class="auth-option" data-action="login-with-provider" data-provider="apple"><span class="apple-mark">●</span><strong>Apple 账号登录</strong></button>
     <div class="login-divider"><span></span><b>或</b><span></span></div>
     <label class="input-box auth-login-input"><input id="loginEmail" type="email" value="${h(loginEmail)}" placeholder="邮箱地址" autocomplete="email"></label>
     <label class="input-box auth-login-input"><input id="loginPassword" type="password" value="${h(loginPassword)}" placeholder="密码" autocomplete="current-password"></label>
@@ -2784,8 +3072,10 @@ function renderLogin() {
     <button class="link-btn center" data-go="APP-ONB-06">使用验证码登录</button>
     <p class="register-line">还没有账号？ <button class="link-btn inline" data-go="APP-ONB-02">注册</button></p>
     <div class="agreement-list">
-      <div><span class="check-dot">✓</span><p>我同意注册并接受《用户协议》《隐私政策》和《AI 数据处理说明》。</p></div>
-      <div><span class="check-dot">✓</span><p>请让我及时了解 AI 录音卡的产品资讯和优惠活动。</p></div>
+      <button type="button" class="agreement-toggle-row" data-action="toggle-login-agreement" aria-pressed="${agreementChecked ? "true" : "false"}">
+        <span class="check-dot ${agreementChecked ? "" : "unchecked"}">${agreementChecked ? "✓" : ""}</span>
+        <p>我同意注册并接受《用户协议》《隐私政策》和《AI 数据处理说明》。</p>
+      </button>
     </div>
     <div class="trust-grid">
       <span>加密传输</span>
@@ -2793,11 +3083,42 @@ function renderLogin() {
       <span>AI 授权可控</span>
     </div>
   `, { title: "AI Recorder", action: "关闭", bottom: false, compact: true });
+  return `${loginScreen}${renderLoginAgreementPrompt()}`;
+}
+
+function renderLoginAgreementPrompt() {
+  return renderAgreementPrompt("login");
+}
+
+function renderRegisterAgreementPrompt() {
+  return renderAgreementPrompt("register");
+}
+
+function renderCodeLoginAgreementPrompt() {
+  return renderAgreementPrompt("code-login");
+}
+
+function renderAgreementPrompt(mode) {
+  const isRegister = mode === "register";
+  const isCodeLogin = mode === "code-login";
+  const promptOpen = isRegister ? registerAgreementPromptOpen : isCodeLogin ? codeLoginAgreementPromptOpen : loginAgreementPromptOpen;
+  if (!promptOpen) return "";
+  const closeAction = isRegister ? "close-register-agreement-prompt" : isCodeLogin ? "close-code-login-agreement-prompt" : "close-login-agreement-prompt";
+  const acceptAction = isRegister ? "accept-register-agreement" : isCodeLogin ? "accept-code-login-agreement" : "accept-login-agreement";
+  return `
+    <div class="scrim login-agreement-prompt-scrim" data-action="${closeAction}"></div>
+    <section class="login-agreement-prompt" role="dialog" aria-modal="true" aria-labelledby="loginAgreementPromptTitle">
+      <h2 id="loginAgreementPromptTitle">请阅读并同意以下条款</h2>
+      <p>我已阅读并同意《用户协议》和《隐私政策》，并知晓首次登录将自动创建账号。</p>
+      <button class="primary-btn" data-action="${acceptAction}">同意并继续</button>
+      <button class="login-agreement-decline" data-action="${closeAction}">不同意</button>
+    </section>
+  `;
 }
 
 function renderRegister() {
   const canContinue = Boolean(registerEmail.trim() && registerPassword);
-  return authScreen("账号注册", `
+  const registerScreen = authScreen("账号注册", `
     <div class="auth-form">
       ${authInput("registerEmail", registerEmail, "邮箱地址", { type: "email", autocomplete: "email" })}
       ${authInput("registerPassword", registerPassword, "密码（至少 8 位）", { type: registerPasswordVisible ? "text" : "password", autocomplete: "new-password", toggleAction: "toggle-register-password" })}
@@ -2806,6 +3127,7 @@ function renderRegister() {
       ${authAgreement({ interactive: true })}
     </div>
   `);
+  return `${registerScreen}${renderRegisterAgreementPrompt()}`;
 }
 
 function renderRegisterVerify() {
@@ -2855,7 +3177,7 @@ function renderResetPasswordVerify() {
 
 function renderCodeLogin() {
   const canLogin = codeLoginCodeSent && codeLoginCode.length === 6;
-  return authScreen("邮箱登录", `
+  const codeLoginScreen = authScreen("邮箱登录", `
     <div class="auth-form">
       ${authInput("codeLoginEmail", codeLoginEmail, "邮箱", { type: "email", autocomplete: "email" })}
       <div class="auth-code-row">
@@ -2866,9 +3188,10 @@ function renderCodeLogin() {
       <button class="primary-btn auth-primary ${canLogin ? "" : "disabled"}" data-action="login-with-code" ${canLogin ? "" : "disabled"}>登录</button>
       <button class="link-btn center" data-go="APP-ONB-01">使用密码登录</button>
       <p class="register-line">还没有账号吗？ <button class="link-btn inline" data-go="APP-ONB-02">注册</button></p>
-      ${authAgreement()}
+      ${authAgreement({ interactive: true, agreementKey: "codeLogin" })}
     </div>
   `);
+  return `${codeLoginScreen}${renderCodeLoginAgreementPrompt()}`;
 }
 
 function renderPermissions() {
@@ -5257,7 +5580,7 @@ function renderAccountSettingsHome() {
           ${avatarNode}
           <i class="account-avatar-camera" aria-hidden="true"></i>
         </button>
-        <h1>355569016</h1>
+        <button class="account-name-trigger" type="button" data-action="open-account-name-editor" aria-label="编辑用户名称 ${h(accountUserName)}">${h(accountUserName)}</button>
         <div class="account-stats">
           <div><span>使用天数</span><b>5</b></div>
           <div><span>录音总数</span><b>34</b></div>
@@ -5271,8 +5594,33 @@ function renderAccountSettingsHome() {
       </section>
       ${accountAvatarNotice ? `<div class="account-avatar-notice" role="status" aria-live="polite">${h(accountAvatarNotice)}</div>` : ""}
       <input id="accountAvatarPicker" type="file" accept="image/*" hidden>
+      ${renderAccountNameEditor()}
       ${renderAccountAvatarOverlay()}
     </main>
+  `;
+}
+
+function renderAccountNameEditor() {
+  if (!accountUserNameEditorOpen) return "";
+  const canSave = Boolean(accountUserNameDraft.trim());
+  return `
+    <div class="scrim account-name-editor-scrim" data-action="close-account-name-editor"></div>
+    <section class="account-name-editor" role="dialog" aria-modal="true" aria-labelledby="accountNameEditorTitle">
+      <header>
+        <h2 id="accountNameEditorTitle">编辑名称</h2>
+        <button type="button" data-action="close-account-name-editor" aria-label="关闭">×</button>
+      </header>
+      <div class="sheet-line"></div>
+      <div class="account-name-input-wrap ${accountUserNameError ? "error" : ""}">
+        <input id="accountNameInput" type="text" value="${h(accountUserNameDraft)}" maxlength="40" autocomplete="off" aria-label="用户名称">
+        <button type="button" class="account-name-clear" data-action="clear-account-name" aria-label="清除用户名称" ${accountUserNameDraft ? "" : "disabled"}>×</button>
+      </div>
+      ${accountUserNameError ? `<p class="account-name-error" role="alert">${h(accountUserNameError)}</p>` : ""}
+      <div class="account-name-editor-actions">
+        <button type="button" class="outline" data-action="close-account-name-editor">取消</button>
+        <button type="button" class="primary-btn ${canSave ? "" : "disabled"}" data-action="save-account-name" ${canSave ? "" : "disabled"}>保存</button>
+      </div>
+    </section>
   `;
 }
 
@@ -5595,8 +5943,7 @@ function renderCommonTerms() {
 function renderNotifications() {
   const items = [
     ["进度与账号提醒", "在录音上传、转写和总结完成，或账号需要操作时，收到提醒", "transcription"],
-    ["设备状态提醒", "接收设备相关提醒，例如电量过低、电量充满或固件更新等", "device"],
-    ["产品更新与优惠", "获取新功能、产品更新和优惠活动等信息", "product"]
+    ["设备状态提醒", "接收设备相关提醒，例如电量过低、电量充满或固件更新等", "device"]
   ];
   return `
     <main class="me-simple-page full-list-page prefs-page">
@@ -6697,6 +7044,23 @@ function renderPrototypeLinks(page) {
   ` : "";
 }
 
+function renderSpecStateTable(page) {
+  const details = page.states?.length
+    ? (page.stateDetails?.length ? page.stateDetails : buildStateDetails(page))
+    : [];
+  if (!details.length) return `<p class="spec-empty">本页无独立页面状态。</p>`;
+  return `
+    <table class="spec-table spec-state-table" data-state-table>
+      <thead><tr><th>状态</th><th>页面表现</th><th>反馈</th></tr></thead>
+      <tbody>
+        ${details.map(([state, presentation, feedback]) => `
+          <tr><td>${h(state)}</td><td>${h(presentation)}</td><td>${h(feedback)}</td></tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
 function renderSpec(page) {
   document.getElementById("screenId").textContent = page.id;
   document.getElementById("specTitle").textContent = page.title;
@@ -6710,7 +7074,7 @@ function renderSpec(page) {
       </tbody></table>
     </section>
     <section class="spec-section"><h3>交互规则</h3><ul>${page.walkthroughNote ? `<li class="walkthrough-note">${h(page.walkthroughNote)}</li>` : ""}${(page.criticalRules || []).map((item) => `<li class="spec-critical-rule">${h(item)}</li>`).join("")}${page.rules.map((item) => `<li>${h(item)}</li>`).join("")}</ul></section>
-    <section class="spec-section"><h3>页面状态</h3><ul>${page.states.map((item) => `<li>${h(item)}</li>`).join("")}</ul></section>
+    <section class="spec-section"><h3>页面状态</h3>${renderSpecStateTable(page)}</section>
     <section class="spec-section"><h3>接口 / 能力依赖</h3><ul>${page.deps.map((item) => `<li>${h(item)}</li>`).join("")}</ul></section>
     <section class="spec-section"><h3>验收点</h3><ul>${page.acceptance.map((item) => `<li>${h(item)}</li>`).join("")}</ul></section>
   `;
@@ -6922,6 +7286,13 @@ function render() {
       input?.setSelectionRange(input.value.length, input.value.length);
     });
   }
+  if (page.id === "APP-ME-16" && accountUserNameEditorOpen) {
+    requestAnimationFrame(() => {
+      const input = document.getElementById("accountNameInput");
+      input?.focus();
+      input?.setSelectionRange(input.value.length, input.value.length);
+    });
+  }
   if (homeFileRenameId) {
     requestAnimationFrame(() => {
       const input = document.getElementById("homeFileRenameInput");
@@ -6973,6 +7344,39 @@ document.addEventListener("click", (event) => {
   }
   if (action && action.dataset.action === "open-account-avatar-actions") {
     accountAvatarFlow = "actions";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "open-account-name-editor") {
+    accountUserNameDraft = accountUserName;
+    accountUserNameError = "";
+    accountUserNameEditorOpen = true;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "close-account-name-editor") {
+    accountUserNameEditorOpen = false;
+    accountUserNameError = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "clear-account-name") {
+    accountUserNameDraft = "";
+    accountUserNameError = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "save-account-name") {
+    const nextName = (document.getElementById("accountNameInput")?.value || accountUserNameDraft).trim();
+    if (!nextName) {
+      accountUserNameError = "请输入名称";
+      render();
+      return;
+    }
+    accountUserName = nextName;
+    accountUserNameDraft = nextName;
+    accountUserNameError = "";
+    accountUserNameEditorOpen = false;
     render();
     return;
   }
@@ -7249,6 +7653,7 @@ document.addEventListener("click", (event) => {
   }
   if (action && action.dataset.action === "toggle-register-agreement") {
     registerAgreementAccepted = !registerAgreementAccepted;
+    registerAgreementPromptOpen = false;
     if (registerNoticeTone === "error") {
       registerNotice = "";
       registerNoticeTone = "";
@@ -7256,9 +7661,67 @@ document.addEventListener("click", (event) => {
     render();
     return;
   }
-  if (action && action.dataset.action === "toggle-register-marketing") {
-    registerMarketingOptIn = !registerMarketingOptIn;
+  if (action && action.dataset.action === "toggle-login-agreement") {
+    loginAgreementAccepted = !loginAgreementAccepted;
+    loginAgreementPromptOpen = false;
     render();
+    return;
+  }
+  if (action && action.dataset.action === "toggle-code-login-agreement") {
+    codeLoginAgreementAccepted = !codeLoginAgreementAccepted;
+    codeLoginAgreementPromptOpen = false;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "login-with-provider") {
+    loginAgreementPendingAction = "social";
+    if (!loginAgreementAccepted) {
+      loginAgreementPromptOpen = true;
+      render();
+      return;
+    }
+    loginAgreementPromptOpen = false;
+    go("APP-ONB-04");
+    return;
+  }
+  if (action && action.dataset.action === "close-login-agreement-prompt") {
+    loginAgreementPromptOpen = false;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "accept-login-agreement") {
+    loginAgreementAccepted = true;
+    loginAgreementPromptOpen = false;
+    if (loginAgreementPendingAction === "social") {
+      go("APP-ONB-04");
+      return;
+    }
+    render();
+    requestAnimationFrame(() => document.querySelector("[data-action='login-with-password']")?.click());
+    return;
+  }
+  if (action && action.dataset.action === "close-register-agreement-prompt") {
+    registerAgreementPromptOpen = false;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "close-code-login-agreement-prompt") {
+    codeLoginAgreementPromptOpen = false;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "accept-register-agreement") {
+    registerAgreementAccepted = true;
+    registerAgreementPromptOpen = false;
+    render();
+    requestAnimationFrame(() => document.querySelector("[data-action='submit-register']")?.click());
+    return;
+  }
+  if (action && action.dataset.action === "accept-code-login-agreement") {
+    codeLoginAgreementAccepted = true;
+    codeLoginAgreementPromptOpen = false;
+    render();
+    requestAnimationFrame(() => document.querySelector("[data-action='login-with-code']")?.click());
     return;
   }
   if (action && action.dataset.action === "submit-register") {
@@ -7279,8 +7742,9 @@ document.addEventListener("click", (event) => {
       return;
     }
     if (!registerAgreementAccepted) {
-      registerNotice = "请先同意用户协议和隐私政策。";
-      registerNoticeTone = "error";
+      registerNotice = "";
+      registerNoticeTone = "";
+      registerAgreementPromptOpen = true;
       render();
       return;
     }
@@ -7365,6 +7829,13 @@ document.addEventListener("click", (event) => {
       render();
       return;
     }
+    if (!codeLoginAgreementAccepted) {
+      codeLoginNotice = "";
+      codeLoginNoticeTone = "";
+      codeLoginAgreementPromptOpen = true;
+      render();
+      return;
+    }
     if (codeLoginCode !== prototypeVerificationCode) {
       codeLoginNotice = "验证码错误，请检查后重新输入。";
       codeLoginNoticeTone = "error";
@@ -7434,6 +7905,12 @@ document.addEventListener("click", (event) => {
     loginEmail = document.getElementById("loginEmail")?.value.trim().toLowerCase() || "";
     loginPassword = document.getElementById("loginPassword")?.value || "";
     if (!loginEmail || !loginPassword) return;
+    if (!loginAgreementAccepted) {
+      loginAgreementPendingAction = "password";
+      loginAgreementPromptOpen = true;
+      render();
+      return;
+    }
     if (!isValidEmail(loginEmail)) {
       loginNotice = "请输入有效的邮箱地址。";
       loginNoticeTone = "error";
@@ -8731,6 +9208,18 @@ document.addEventListener("keydown", (event) => {
 });
 
 document.addEventListener("keydown", (event) => {
+  if (event.target.id === "accountNameInput" && event.key === "Enter") {
+    event.preventDefault();
+    document.querySelector("[data-action='save-account-name']")?.click();
+    return;
+  }
+  if (event.key === "Escape" && accountUserNameEditorOpen) {
+    event.preventDefault();
+    document.querySelector("[data-action='close-account-name-editor']")?.click();
+  }
+});
+
+document.addEventListener("keydown", (event) => {
   if (event.target.id !== "recordingEditorInput" || event.key !== "Enter" || !recordingEditor) return;
   event.preventDefault();
   completeRecordingEditor();
@@ -8781,6 +9270,18 @@ document.addEventListener("input", (event) => {
       saveButton.classList.toggle("disabled", !canSave);
     }
     if (clearButton) clearButton.disabled = !deviceNameDraft;
+  }
+  if (event.target.id === "accountNameInput") {
+    accountUserNameDraft = event.target.value;
+    accountUserNameError = "";
+    const saveButton = document.querySelector("[data-action='save-account-name']");
+    const clearButton = document.querySelector("[data-action='clear-account-name']");
+    const canSave = Boolean(accountUserNameDraft.trim());
+    if (saveButton) {
+      saveButton.disabled = !canSave;
+      saveButton.classList.toggle("disabled", !canSave);
+    }
+    if (clearButton) clearButton.disabled = !accountUserNameDraft;
   }
   if (event.target.id === "fileDetailMarkerInput" && fileDetailMarkerEditor) {
     fileDetailMarkerEditor.draft = event.target.value;
