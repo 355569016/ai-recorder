@@ -136,6 +136,17 @@ const prototypeAccounts = {
   "355569016@qq.com": prototypeLoginPassword,
   "mhy_1126@qq.com": prototypeLoginPassword
 };
+const loginFeedbackCopy = {
+  invalidEmail: "请输入有效的邮箱地址。",
+  accountMissing: "未找到该邮箱对应的账号，请检查后重试。",
+  wrongCredentials: "邮箱或密码错误，请重新输入。"
+};
+const agreementPromptCopy = {
+  title: "请阅读并同意以下条款",
+  body: "我已阅读并同意《用户协议》和《隐私政策》，并知晓首次登录将自动创建账号。",
+  accept: "同意并继续",
+  decline: "不同意"
+};
 let loginEmail = "";
 let loginPassword = "";
 let loginNotice = "";
@@ -143,16 +154,19 @@ let loginNoticeTone = "";
 let loginAgreementAccepted = false;
 let loginAgreementPromptOpen = false;
 let loginAgreementPendingAction = "password";
+let loginSubmitting = false;
 let registerEmail = "";
 let registerPassword = "";
 let registerPasswordVisible = false;
 let registerAgreementAccepted = false;
 let registerAgreementPromptOpen = false;
+let registerSubmitting = false;
 let registerNotice = "";
 let registerNoticeTone = "";
 let registerCode = "";
 let registerCodeCountdown = 0;
 let registerCodeTimer = null;
+let registerCodeVerifying = false;
 let registerCodeNotice = "";
 let registerCodeNoticeTone = "";
 let codeLoginEmail = "";
@@ -160,6 +174,8 @@ let codeLoginCode = "";
 let codeLoginCodeSent = false;
 let codeLoginAgreementAccepted = false;
 let codeLoginAgreementPromptOpen = false;
+let codeLoginSending = false;
+let codeLoginSubmitting = false;
 let codeLoginNotice = "";
 let codeLoginNoticeTone = "";
 let resetPasswordEmail = "355569016@qq.com";
@@ -168,6 +184,8 @@ let resetPasswordCode = "";
 let resetPasswordCodeSent = false;
 let resetPasswordCountdown = 0;
 let resetPasswordTimer = null;
+let resetPasswordSubmitting = false;
+let resetPasswordVerifying = false;
 let resetPasswordNotice = "";
 let resetPasswordNoticeTone = "";
 const currentAccountEmail = "355569016@qq.com";
@@ -206,20 +224,21 @@ const pages = [
     goal: "完成账号登录，作为绑定设备、硬件录音、云端生成和我的页用量服务的前置条件。",
     entry: "首次打开 App、会话失效、点击绑定/录音/生成时未登录。",
     fields: [["auth_state", "登录状态", "云端账号"], ["login_method", "登录方式", "Google / Apple / Email / 验证码"], ["agreement_version", "协议版本", "云端账号/本地缓存"]],
-    rules: ["登录页法律协议项默认未选中，用户可主动勾选。", "未勾选用户协议、隐私政策和 AI 数据处理说明时，点击邮箱、Google 或 Apple 登录先弹出条款确认提示；点击“同意并继续”后自动选中并继续登录。", "Google / Apple 授权登录可能为未注册用户自动创建账号，因此授权登录前必须完成协议确认。", "第三方登录、邮箱密码登录、验证码登录共用同一协议确认状态。", "未登录不可绑定设备、不可开始硬件录音、不可提交转写与 AI 生成。", "登录后检查协议与隐私版本，版本更新需重新确认。"],
+    rules: ["账号提交统一按：输入完整性 → 输入格式 → 输入一致性 → 协议确认 → 防重复提交 → 账号/凭证认证 → 账号状态 → 安全风控 → 登录后初始化；页面没有的环节直接跳过。", "邮箱密码登录先校验邮箱与密码是否完整、邮箱格式是否有效，再判断协议；格式错误时不得弹出协议确认弹窗。", "登录页法律协议项默认未选中，用户可主动勾选。", "未勾选用户协议、隐私政策和 AI 数据处理说明时，点击通过客户端输入校验的邮箱登录，或点击 Google / Apple 登录，弹出条款确认提示；点击“同意并继续”后自动选中并继续原登录动作。", "Google / Apple 授权登录没有本地输入校验，直接进入协议确认；授权登录可能为未注册用户自动创建账号，因此授权登录前必须完成协议确认。", "第三方登录、邮箱密码登录、验证码登录共用同一协议确认状态。", "提交中禁用登录入口，防止重复提交。", "未登录不可绑定设备、不可开始硬件录音、不可提交转写与 AI 生成。", "登录后检查协议与隐私版本，版本更新需重新确认。"],
     walkthroughNote: "流程走通必填：邮箱使用 355569016@qq.com 或 mhy_1126@qq.com，所有登录密码统一使用 A88888888。重置密码仅做原型演示，不会改变登录密码。",
-    states: ["默认", "提交中", "登录失败", "网络异常", "协议未确认", "协议确认弹窗", "账号未注册"],
+    states: ["默认", "输入校验失败", "协议未确认", "协议确认弹窗", "提交中", "登录失败", "账号未找到", "登录成功"],
     stateDetails: [
       ["默认", "展示登录 / 注册主界面，保留第三方登录、邮箱密码登录、验证码登录和注册入口", "无"],
-      ["提交中", "按钮禁用，并显示 Loading 状态", "按钮：「登录中…」"],
-      ["登录失败", "保留当前已输入的邮箱和密码，不跳转", "Toast：「邮箱或密码错误，请重新输入」"],
-      ["网络异常", "保留输入内容，不跳转", "Toast：「网络异常，请检查网络后重试」"],
-      ["协议未确认", "协议项默认未选中，保持当前登录页", "点击邮箱、Google 或 Apple 登录：弹出条款确认提示"],
-      ["协议确认弹窗", "背景变暗，底部弹窗展示条款说明和同意 / 不同意操作", "弹窗：请阅读并同意以下条款"],
-      ["账号未注册", "保留已输入邮箱，密码内容不清空", "Toast：「该邮箱尚未注册」"]
+      ["输入校验失败", "保留邮箱和密码；输入不完整时登录按钮不可提交，邮箱格式错误时停留本页", `页内错误：「${loginFeedbackCopy.invalidEmail}」；不得先弹协议确认弹窗`],
+      ["协议未确认", "客户端输入校验已通过，协议项仍未选中，保持当前登录页", "点击邮箱、Google 或 Apple 登录：弹出条款确认提示"],
+      ["协议确认弹窗", "背景变暗，底部弹窗展示条款说明和同意 / 不同意操作", `弹窗：「${agreementPromptCopy.title}」；按钮：「${agreementPromptCopy.accept}」「${agreementPromptCopy.decline}」`],
+      ["提交中", "登录按钮禁用，文案切换为“登录中…”，不显示额外 Loading 图标", "阻止重复提交"],
+      ["登录失败", "保留当前已输入的邮箱和密码，不跳转", `页内错误：「${loginFeedbackCopy.wrongCredentials}」`],
+      ["账号未找到", "保留已输入邮箱，密码内容不清空", `页内错误：「${loginFeedbackCopy.accountMissing}」`],
+      ["登录成功", "账号与协议状态写入当前会话，开始登录后初始化", "进入原触发动作或 APP-ONB-04 绑定你的设备"]
     ],
     deps: ["云端账号：Google / Apple / Email / 验证码登录与刷新 token，接口待后端定义。", "合规：用户协议、隐私政策、AI 数据处理说明。"],
-    acceptance: ["页面结构包含第三方登录、邮箱密码、忘记密码、验证码登录、注册和协议勾选。", "未勾选协议时点击邮箱、Google 或 Apple 登录，均必须先弹出条款确认弹窗。", "点击“同意并继续”后自动勾选协议，再继续原登录或第三方授权登录链路；点击“不同意”不发起授权。", "未登录点击录音主按钮时必须进入登录拦截。", "登录成功后可回到原触发动作或进入绑定你的设备页。"]
+    acceptance: ["页面结构包含第三方登录、邮箱密码、忘记密码、验证码登录、注册和协议勾选。", "邮箱密码登录必须先完成输入完整性和邮箱格式校验；错误邮箱不得弹出协议确认弹窗。", "客户端输入校验通过但未勾选协议时，点击邮箱登录必须弹出条款确认；Google / Apple 因无本地输入项，直接进入协议确认。", "点击“同意并继续”后自动勾选协议，再继续原登录或第三方授权登录链路；点击“不同意”不发起授权。", "提交中不可重复点击登录。", "未登录点击录音主按钮时必须进入登录拦截。", "登录成功后可回到原触发动作或进入绑定你的设备页。"]
   },
   {
     id: "APP-ONB-02",
@@ -229,9 +248,9 @@ const pages = [
     goal: "使用邮箱和密码创建账号，并确认用户协议和隐私政策。",
     entry: "登录 / 注册页点击“还没有账号？注册”。",
     fields: [["email", "邮箱", "用户输入"], ["password", "密码", "用户输入"], ["agreement_version", "协议版本", "云端账号/本地缓存"]],
-    rules: ["邮箱和密码均为可编辑输入框。", "邮箱必须通过基本邮箱正则校验；格式错误时停留本页并提示“请输入有效的邮箱地址”。", "密码至少 8 位；长度不足时停留本页并提示“密码至少需要 8 位”。", "注册页协议项默认未选中，协议文案与登录 / 注册页保持一致。", "未勾选协议时点击下一步先弹出“请阅读并同意以下条款”确认弹窗；点击“同意并继续”后自动选中并继续注册，点击“不同意”关闭弹窗且不提交。", "点击下一步进入注册验证页。", "注册仅做原型演示，输入的邮箱和密码不加入固定登录账号。"],
+    rules: ["本页按：输入完整性 → 邮箱格式 → 密码长度 → 协议确认 → 防重复提交 → 发送验证码执行。", "邮箱和密码均为可编辑输入框。", "邮箱必须通过基本邮箱正则校验；格式错误时停留本页并提示“请输入有效的邮箱地址”。", "密码至少 8 位；长度不足时停留本页并提示“密码至少需要 8 位”。", "注册页协议项默认未选中，协议文案与登录 / 注册页保持一致。", "仅在邮箱格式和密码长度校验通过后检查协议；未勾选协议时点击下一步弹出“请阅读并同意以下条款”确认弹窗。", "点击“同意并继续”后自动选中并继续注册，点击“不同意”关闭弹窗且不提交。", "提交中禁用下一步，防止重复发送验证码。", "点击下一步进入注册验证页。", "注册仅做原型演示，输入的邮箱和密码不加入固定登录账号。"],
     walkthroughNote: "原型走通说明：注册邮箱可任意输入，但必须符合邮箱格式；注册密码至少 8 位。注册成功仅供演示，实际登录仍只能使用固定演示账号和密码 A88888888。",
-    states: ["默认", "填写中", "邮箱格式错误", "密码长度不足", "协议未确认", "协议确认弹窗", "验证码已发送"],
+    states: ["默认", "填写中", "邮箱格式错误", "密码长度不足", "协议未确认", "协议确认弹窗", "提交中", "验证码已发送"],
     stateDetails: [
       ["默认", "展示邮箱、密码、协议项和下一步，协议项默认未选中，下一步按输入完整度决定是否可用", "无；输入变化后更新按钮状态"],
       ["填写中", "保留用户已输入的邮箱和密码，继续停留在注册页", "行内校验；合法输入后下一步可用"],
@@ -239,10 +258,11 @@ const pages = [
       ["密码长度不足", "保留密码输入，不提交注册", "行内错误：「密码至少需要 8 位」"],
       ["协议未确认", "协议项默认未选中，保持当前注册页，不显示独立红色错误提示", "点击下一步：弹出“请阅读并同意以下条款”弹窗"],
       ["协议确认弹窗", "背景变暗，底部弹窗展示与登录 / 注册页一致的条款说明和同意 / 不同意操作", "弹窗：「请阅读并同意以下条款」；按钮：「同意并继续」「不同意」"],
+      ["提交中", "邮箱、密码和协议校验均已通过，下一步按钮禁用", "按钮：「发送中…」；阻止重复提交"],
       ["验证码已发送", "进入注册验证页，展示待验证邮箱、验证码输入框和倒计时", "Toast：「验证码已发送」；按钮进入验证态"]
     ],
     deps: ["原型：本地邮箱格式、密码长度与协议勾选校验。", "生产版：云端注册接口、邮箱唯一性和密码强度策略。", "合规：用户协议、隐私政策。"],
-    acceptance: ["注册页的邮箱和密码可真实输入。", "邮箱格式错误、密码少于 8 位时分别显示对应错误；协议未确认时弹出与登录 / 注册页一致的条款确认弹窗。", "点击“同意并继续”后协议自动选中并继续进入 APP-ONB-03；点击“不同意”不提交注册。", "输入合法后进入 APP-ONB-03，但不生成新的可登录账号。"]
+    acceptance: ["注册页的邮箱和密码可真实输入。", "必须依次完成邮箱格式、密码长度和协议校验；任一客户端输入错误不得先弹协议确认。", "点击“同意并继续”后协议自动选中并继续进入提交中状态；点击“不同意”不提交注册。", "提交中不得重复触发验证码发送。", "输入合法后进入 APP-ONB-03，但不生成新的可登录账号。"]
   },
   {
     id: "APP-ONB-03",
@@ -252,9 +272,9 @@ const pages = [
     goal: "输入邮箱验证码完成注册验证并进入绑定设备流程。",
     entry: "账号注册页点击下一步。",
     fields: [["email", "待验证邮箱", "注册输入"], ["verification_code", "6 位验证码", "用户输入/邮箱"], ["resend_countdown", "重发倒计时", "本地计时"]],
-    rules: ["展示 APP-ONB-02 输入的待验证邮箱。", "6 位验证码框均可输入，仅接受数字。", "验证码未填满时确认按钮禁用。", "验证码错误时停留本页并提示“验证码错误，请检查后重新输入”。", "倒计时结束后可重新发送。", "验证成功后进入绑定你的设备，但不创建可登录账号。"],
+    rules: ["本页按：验证码完整性 → 防重复提交 → 凭证校验 → 注册成功初始化执行。", "展示 APP-ONB-02 输入的待验证邮箱。", "6 位验证码框均可输入，仅接受数字。", "验证码未填满时确认按钮禁用。", "验证中禁用确认按钮，防止重复提交。", "验证码错误时停留本页并提示“验证码错误，请检查后重新输入”。", "倒计时结束后可重新发送。", "验证成功后进入绑定你的设备，但不创建可登录账号。"],
     walkthroughNote: "流程走通必填：所有验证码页面统一使用固定验证码 888888。本页注册仅做原型演示，不会把注册输入加入固定登录账号。",
-    states: ["等待输入", "验证码不完整", "验证中", "验证码错误", "可重发"],
+    states: ["等待输入", "验证码不完整", "验证中", "验证码错误", "网络异常", "注册成功", "可重发"],
     deps: ["原型：本地固定验证码校验与重发倒计时。", "生产版：云端发送验证码、校验验证码、创建账号与会话。"],
     acceptance: ["注册验证页展示可输入的 6 位验证码和重发倒计时。", "错误验证码被拦截并显示错误提示。", "输入 888888 后进入绑定你的设备。"]
   },
@@ -266,9 +286,9 @@ const pages = [
     goal: "演示通过邮箱和新密码发起重置密码流程，原型不保存新密码。",
     entry: "登录 / 注册页点击“忘记密码？”。",
     fields: [["email", "邮箱", "用户输入"], ["new_password", "新密码", "用户输入"]],
-    rules: ["邮箱和新密码填写后才可进入下一步。", "邮箱必须对应已注册账号。", "点击下一步向该邮箱发送验证码，并进入独立的重置密码验证页。", "验证码校验通过后仅展示重置成功反馈，原型不写入或保存新密码。", "重置演示完成后，原登录密码 A88888888 保持不变。"],
+    rules: ["本页按：输入完整性 → 邮箱格式 → 新密码长度 → 防重复提交 → 账号状态 → 发送验证码执行。", "邮箱和新密码填写后才可进入下一步。", "邮箱必须通过基本邮箱格式校验，新密码至少 8 位。", "客户端校验通过后才检查邮箱是否为已注册账号。", "提交中禁用下一步，防止重复发送验证码。", "点击下一步向该邮箱发送验证码，并进入独立的重置密码验证页。", "验证码校验通过后仅展示重置成功反馈，原型不写入或保存新密码。", "重置演示完成后，原登录密码 A88888888 保持不变。"],
     walkthroughNote: "流程走通必填：账号邮箱使用 355569016@qq.com 或 mhy_1126@qq.com，新密码至少 8 位。本次重置仅做演示，完成后仍使用统一登录密码 A88888888。",
-    states: ["默认", "填写中", "提交中", "邮箱不存在", "验证码已发送", "网络异常"],
+    states: ["默认", "填写中", "邮箱格式错误", "密码长度不足", "提交中", "邮箱不存在", "网络异常", "验证码已发送"],
     deps: ["原型：校验演示账号、模拟发送与校验验证码，不写入新密码。", "生产版仍需云端账号提供重置凭证、验证码校验与密码写入能力。"],
     acceptance: ["重置密码页展示可输入的邮箱、新密码和下一步按钮。", "下一步按输入邮箱发送验证码并进入 APP-ONB-07。", "邮箱不存在或输入不完整时停留本页并明确提示。", "验证成功后不改变演示账号密码，仍只能使用 A88888888 登录。"],
     prototypeLinks: [["验证重置验证码", "APP-ONB-07"]]
@@ -281,11 +301,11 @@ const pages = [
     goal: "验证重置密码请求对应的账号邮箱，并在验证码通过后演示重置成功，不保存新密码。",
     entry: "APP-ONB-05 输入已注册邮箱和新密码后点击下一步。",
     fields: [["account_email", "对应账号邮箱", "重置密码输入"], ["verification_code", "6 位邮箱验证码", "用户输入/邮箱"], ["resend_countdown", "重发倒计时", "本地计时"], ["new_password", "仅用于演示的新密码", "上一步临时输入/不保存"]],
-    rules: ["展示本次重置请求对应的账号邮箱。", "发送 6 位验证码邮件并启动重发倒计时。", "验证码错误时不得完成重置演示。", "验证码通过后仅展示重置成功反馈，不将上一步输入的新密码写入账号。", "完成后返回登录页，原型账号仍使用统一密码 A88888888 登录。"],
+    rules: ["本页按：验证码完整性 → 防重复提交 → 凭证校验 → 重置成功反馈执行。", "展示本次重置请求对应的账号邮箱。", "发送 6 位验证码邮件并启动重发倒计时；倒计时期间重发按钮置灰且不可点击，倒计时结束后恢复为蓝色可点击状态。", "验证码未填满时确认按钮禁用，验证中不可重复提交。", "验证码错误时不得完成重置演示。", "验证码通过后仅展示重置成功反馈，不将上一步输入的新密码写入账号。", "完成后返回登录页，原型账号仍使用统一密码 A88888888 登录。"],
     walkthroughNote: "流程走通必填：所有验证码页面统一使用 888888。本页仅演示重置成功，不保存新密码；返回登录后仍使用 A88888888。",
-    states: ["等待输入", "验证码不完整", "验证码错误", "验证中", "重置成功", "可重发"],
+    states: ["等待输入", "验证码不完整", "验证中", "验证码错误", "网络异常", "重置成功", "可重发"],
     deps: ["原型：验证码发送与校验为前端模拟，不执行密码哈希更新或会话失效。", "生产版需云端账号提供一次性重置凭证、密码更新与旧会话失效策略。"],
-    acceptance: ["页面按截图结构展示账号邮箱、6 位验证码、重发倒计时和确认按钮。", "验证码未填满或错误时不可完成重置。", "验证成功后只展示重置成功反馈，不写入新密码。", "返回登录页后，输入的新密码必须登录失败，统一密码 A88888888 必须仍可登录。"],
+    acceptance: ["页面按截图结构展示账号邮箱、6 位验证码、重发倒计时和确认按钮。", "倒计时期间重新发送按钮置灰且不可点击，倒计时结束后显示为蓝色且可点击。", "验证码未填满或错误时不可完成重置。", "验证成功后只展示重置成功反馈，不写入新密码。", "返回登录页后，输入的新密码必须登录失败，统一密码 A88888888 必须仍可登录。"],
     prototypeLinks: [["返回重置密码", "APP-ONB-05"], ["重置成功后登录", "APP-ONB-01"]]
   },
   {
@@ -296,11 +316,11 @@ const pages = [
     goal: "使用邮箱验证码完成登录。",
     entry: "登录 / 注册页点击“使用验证码登录”。",
     fields: [["email", "邮箱", "用户输入"], ["verification_code", "验证码", "用户输入/邮箱"], ["agreement_version", "协议版本", "云端账号/本地缓存"]],
-    rules: ["邮箱和验证码均为可编辑输入框。", "协议项默认未选中，文案与登录注册页保持一致：我同意注册并接受《用户协议》《隐私政策》和《AI 数据处理说明》。", "点击发送前先校验邮箱格式；格式错误时显示对应提示。", "只有固定演示账号可发送验证码；其他邮箱显示“该邮箱尚未注册，请先注册账号”。", "发送成功后填写 6 位验证码才可提交登录。", "点击登录时若协议未勾选，弹出“请阅读并同意以下条款”弹窗；点击“同意并继续”后自动勾选并继续登录，点击“不同意”则停留当前页。", "必须勾选同意用户协议后才能继续验证码登录。", "验证码错误时停留本页并明确提示。", "验证码正确后进入绑定你的设备。", "可切换回密码登录，也可进入账号注册。"],
+    rules: ["本页包含两条独立状态链。发送验证码按：邮箱完整性/格式 → 防重复提交 → 账号状态 → 发送结果；提交登录按：邮箱与验证码完整性/格式 → 协议确认 → 防重复提交 → 验证码认证 → 账号状态 → 登录后初始化。", "邮箱和验证码均为可编辑输入框。", "协议项默认未选中，文案与登录注册页保持一致：我同意注册并接受《用户协议》《隐私政策》和《AI 数据处理说明》。", "点击发送前先校验邮箱格式；格式错误时显示对应提示且不进入发送中。", "只有固定演示账号可发送验证码；其他邮箱在发送请求后显示“该邮箱尚未注册，请先注册账号”。", "发送成功后填写 6 位验证码才可提交登录。", "点击登录时先校验邮箱和验证码输入，再检查协议；输入错误时不得弹协议确认。", "客户端输入校验通过但协议未勾选时，弹出“请阅读并同意以下条款”弹窗；点击“同意并继续”后自动勾选并继续登录，点击“不同意”则停留当前页。", "发送中或登录中禁用对应按钮，防止重复提交。", "验证码错误时停留本页并明确提示。", "验证码正确后进入绑定你的设备。", "可切换回密码登录，也可进入账号注册。"],
     walkthroughNote: "流程走通必填：邮箱仅支持 355569016@qq.com 或 mhy_1126@qq.com；所有验证码页面统一使用 888888。未注册邮箱需显示“账号未注册”类异常提示。",
-    states: ["默认", "已发送验证码", "登录中", "验证码错误", "账号未注册", "协议未确认", "协议确认弹窗"],
+    states: ["默认", "发送验证码·邮箱格式错误", "发送验证码·提交中", "发送验证码·账号未注册", "发送验证码·网络异常", "发送验证码·已发送", "登录·输入校验失败", "登录·协议未确认", "登录·协议确认弹窗", "登录·提交中", "登录·验证码错误", "登录·账号状态异常", "登录·网络异常", "登录·成功"],
     deps: ["云端账号：发送登录验证码、验证码登录、刷新 token。", "合规：用户协议、隐私政策。"],
-    acceptance: ["邮箱和验证码可真实输入，协议项默认未勾选。", "邮箱格式错误、账号未注册、验证码错误均显示不同的页内提示。", "邮箱和验证码填写完整后，未勾选协议点击登录必须先展示同款条款确认弹窗。", "点击“同意并继续”后协议项自动勾选并继续登录；点击“不同意”不得进入下一步。", "固定账号输入 888888 且已同意协议后进入绑定你的设备。", "保留密码登录入口和注册入口。"]
+    acceptance: ["邮箱和验证码可真实输入，协议项默认未勾选。", "发送验证码与提交登录的状态链在右侧表格中分开排列。", "邮箱格式错误、账号未注册、验证码错误均显示不同的页内提示。", "提交登录必须先完成输入校验；输入错误时不得先弹协议确认。", "输入校验通过后，未勾选协议点击登录必须展示同款条款确认弹窗。", "点击“同意并继续”后协议项自动勾选并继续登录；点击“不同意”不得进入下一步。", "发送中和登录中不得重复提交。", "固定账号输入 888888 且已同意协议后进入绑定你的设备。", "保留密码登录入口和注册入口。"]
   },
   {
     id: "APP-ONB-04",
@@ -376,11 +396,11 @@ const pages = [
     priority: "P0",
     goal: "在设备详情点击更新或 App 主动推送时，说明固件更新内容并让用户选择立即更新、稍后再说或跳过本次更新。",
     entry: "设备详情 OTA 显示更新时点击；App 启动检测到新固件版本时主动弹出。",
-    fields: [["firmware_version", "新固件版本", "云端固件服务"], ["release_notes", "更新说明", "云端固件服务"], ["skip_this_version", "跳过此更新", "用户操作"], ["update_transport", "更新方式", "硬件能力/固件服务"]],
-    rules: ["有新版本时 OTA 按钮显示为更新；无新版本时显示检查更新。", "点击立即更新后，如硬件支持 Wi-Fi 热点更新则进入连接设备热点页；否则默认走蓝牙更新并进入固件更新中页。", "跳过此更新只跳过当前固件版本，下一版本仍可提醒。"],
-    states: ["新版本提示", "跳过本版本", "稍后再说", "立即更新"],
-    deps: ["云端固件版本服务。", "设备能力：Wi-Fi 热点更新/蓝牙更新支持情况。"],
-    acceptance: ["更新弹窗展示更新内容、跳过此更新、立即更新和稍后再说。", "立即更新链路进入连接设备热点或蓝牙更新流程。"],
+    fields: [["firmware_version", "新固件版本", "云端固件服务"], ["release_notes", "更新说明", "云端固件服务"], ["skip_this_version", "跳过此更新勾选状态", "用户操作"], ["skipped_firmware_version", "已记录的跳过版本", "本地设备记录"], ["update_transport", "更新方式", "硬件能力/固件服务"]],
+    rules: ["有新版本时 OTA 按钮显示为更新；无新版本时显示检查更新。", "点击立即更新后，如硬件支持 Wi-Fi 热点更新则进入连接设备热点页；否则默认走蓝牙更新并进入固件更新中页。", "“跳过此更新”默认未勾选；勾选只改变当前弹窗内的选项状态，不立即关闭弹窗、不写入跳过版本，也不触发跳过操作。勾选后可点击“稍后再说”记录跳过版本，也可点击“立即更新”继续更新。", "仅当用户勾选“跳过此更新”并点击“稍后再说”时，关闭弹窗并将本次弹窗中的新固件版本写入 skipped_firmware_version；后续 App 主动检测到同一版本时不再主动弹窗提示更新。未勾选时点击“稍后再说”只关闭当前弹窗，不记录跳过版本，后续仍可主动提醒。", "点击“立即更新”时忽略本次勾选状态，不写入 skipped_firmware_version，按正常更新链路继续；用户主动从设备详情点击更新时，即使该版本曾被跳过，仍可进入更新提示并选择立即更新。", "跳过的版本仅抑制同一固件版本的 App 主动提醒；检测到更高版本时仍需主动提醒。"],
+    states: ["新版本提示", "跳过选项已勾选", "稍后再说·未勾选", "稍后再说·已记录跳过版本", "主动提醒已抑制", "立即更新"],
+    deps: ["云端固件版本服务。", "设备能力：Wi-Fi 热点更新/蓝牙更新支持情况。", "本地设备版本跳过记录。"],
+    acceptance: ["更新弹窗展示更新内容、跳过此更新、立即更新和稍后再说；跳过选项默认未勾选。", "勾选跳过选项后弹窗仍保持打开，未产生跳过版本记录，也未执行跳过操作。", "勾选后点击稍后再说，弹窗关闭并记录本次新固件版本；App 后续主动检测到同一版本时不再弹窗，检测到更高版本时仍可提醒。", "未勾选点击稍后再说只关闭当前弹窗，不记录跳过版本。", "勾选后点击立即更新时忽略跳过选择，不记录跳过版本，并进入连接设备热点或蓝牙更新流程；手动点击更新仍可进入该流程。"],
     prototypeLinks: [["立即更新", "APP-DEV-07"]],
     prototypeActions: [["蓝牙更新", "start-firmware-update", "bluetooth"]]
   },
@@ -495,7 +515,6 @@ const pages = [
       "交互调整：等待传输行不恢复右侧常驻按钮；点击或长按“等待传输”状态打开轻量浮层，确认后状态改为“已优先”，并以底部 Toast 提示“已设为优先，将在当前文件后传输”。",
       "未添加录音卡强规则：设备摘要区域沿用已添加状态的布局和尺寸，以无外框的轻量入口展示“添加设备”；不显示任何虚构设备信息、同步状态、快传入口及正在传输或等待传输的置灰文件，正常文件列表保持可浏览。",
       "热点快传强规则：当前传输方式为 Wi-Fi 快传时，首页保留完整进度条，右侧显示“结束快传”，下方显示加速状态与预计节省时间；结束后原进度由蓝牙续传。",
-      "低打扰强规则：当未完成同步任务少于 2 个，并且预计剩余时间少于 3 分钟时（两个条件必须同时满足），首页不显示顶部同步状态条、整体进度和“快传”按钮；任一条件不满足时仍按正常同步状态展示。",
       "当前没有同步任务时，首页不显示同步状态条，也不显示正在传输或等待传输的置灰文件记录；全部文件直接展示已完成同步的正常文件列表。",
       "同步失败处理强规则：传输失败后先由系统自动重试，不立即向用户显示失败；设备重新连接后自动继续重试。只有达到自动重试限额后，文件才显示轻量“同步失败 · 重试”操作。自动重试限额及退避间隔由同步重试策略配置。"
     ],
@@ -518,7 +537,6 @@ const pages = [
       "同步传输失败且未达到自动重试限额时，不显示失败状态或重试按钮；设备重新连接后必须自动继续重试。达到自动重试限额后，文件才显示轻量“同步失败 · 重试”，不显示“录音已安全保留”；点击重试后该行切换为置灰的正在重试状态。",
       "同步完成后文件恢复正常状态，不展示同步完成标签；本批次全部完成后同步状态条消失。",
       "当前无同步任务时，顶部同步状态、快传入口和置灰传输文件均不可见，全部文件从正常文件开始展示。",
-      "未完成同步任务少于 2 个且预计剩余时间少于 3 分钟时，顶部同步状态条及其整体进度和快传入口全部隐藏；两个条件必须同时满足。",
       "等待传输文件默认只显示“等待传输”，不显示“优先同步”或其他右侧按钮；点击或长按状态打开同一轻量浮层，非下一项可设为优先，当前下一项只提示“当前已是下一项”。",
       "设置优先后，目标任务移动到当前传输文件之后，状态改为“已优先”，底部 Toast 短暂提示“已设为优先，将在当前文件后传输”；浮层不推动列表布局并可点击空白处或等待 4 秒关闭。",
       "单个任务完成后已完成数增加并开始下一项；新批次开始后文件列表不展示上一批次的同步队列历史。",
@@ -1597,6 +1615,7 @@ const stateDetailOverrides = {
     "密码长度不足": ["保留密码输入，不提交注册", "行内错误：「密码至少需要 8 位」"],
     "协议未确认": ["协议项默认未选中，保持当前注册页，不显示独立红色错误提示", "点击下一步：弹出“请阅读并同意以下条款”弹窗"],
     "协议确认弹窗": ["背景变暗，底部弹窗展示与登录 / 注册页一致的条款说明和同意 / 不同意操作", "弹窗：「请阅读并同意以下条款」；按钮：「同意并继续」「不同意」"],
+    "提交中": ["邮箱、密码和协议校验均已通过，下一步按钮禁用", "按钮：「发送中…」；阻止重复提交"],
     "验证码已发送": ["进入注册验证页，展示待验证邮箱、验证码输入框和倒计时", "Toast：「验证码已发送」；按钮进入验证态"]
   },
   "APP-ONB-03": {
@@ -1604,24 +1623,44 @@ const stateDetailOverrides = {
     "验证码不完整": ["保留当前输入，确认按钮不可提交", "输入框继续提示剩余位数或按钮置灰"],
     "验证中": ["确认按钮禁用并显示 Loading，不允许重复提交", "按钮：「验证中…」"],
     "验证码错误": ["停留本页并保留验证码输入，允许重新输入", "行内错误：「验证码错误，请检查后重新输入」"],
+    "网络异常": ["停留本页并保留验证码输入，允许重试", "Toast：「网络异常，请检查网络后重试」"],
+    "注册成功": ["验证码认证通过，完成注册后的会话初始化", "进入 APP-ONB-04 绑定你的设备"],
     "可重发": ["重发入口恢复可用，当前邮箱和验证码输入仍保留", "按钮：「重新发送」；成功后重启倒计时"]
   },
   "APP-ONB-05": {
     "默认": ["展示邮箱、新密码和下一步，未完整填写时不可提交", "无；输入变化后更新按钮状态"],
     "填写中": ["保留已输入邮箱和新密码，停留当前页", "行内校验；输入完整后下一步可用"],
+    "邮箱格式错误": ["保留邮箱和新密码，不进入提交中", "行内错误：「请输入有效的账号邮箱」"],
+    "密码长度不足": ["保留邮箱和新密码，不进入提交中", "行内错误：「新密码至少需要 8 位」"],
     "提交中": ["下一步按钮禁用并显示 Loading", "按钮：「发送中…」"],
     "邮箱不存在": ["保留输入内容，不进入验证码验证页", "Toast：「该邮箱尚未注册」"],
-    "验证码已发送": ["进入 APP-ONB-07，展示邮箱验证码和重发倒计时", "Toast：「验证码已发送」"],
-    "网络异常": ["保留邮箱和新密码，不跳转", "Toast：「网络异常，请检查网络后重试」"]
+    "网络异常": ["保留邮箱和新密码，不跳转", "Toast：「网络异常，请检查网络后重试」"],
+    "验证码已发送": ["进入 APP-ONB-07，展示邮箱验证码和重发倒计时", "Toast：「验证码已发送」"]
+  },
+  "APP-ONB-07": {
+    "等待输入": ["展示账号邮箱、6 位验证码输入框和确认入口", "无；验证码未填满时确认按钮置灰"],
+    "验证码不完整": ["保留当前输入，确认按钮不可提交", "输入框继续提示剩余位数或按钮置灰"],
+    "验证中": ["确认按钮禁用并显示 Loading，不允许重复提交", "按钮：「验证中…」"],
+    "验证码错误": ["停留本页并保留验证码输入，允许重新输入", "行内错误：「验证码错误，请检查后重新输入」"],
+    "网络异常": ["停留本页并保留验证码输入，允许重试", "Toast：「网络异常，请检查网络后重试」"],
+    "重置成功": ["验证码认证通过，仅完成原型重置反馈，不保存新密码", "返回 APP-ONB-01，并提示继续使用原密码登录"],
+    "可重发": ["重发入口恢复可用，当前邮箱和验证码输入仍保留", "按钮：「重新发送验证码」；成功后重启倒计时"]
   },
   "APP-ONB-06": {
     "默认": ["展示邮箱、验证码、发送入口、登录入口、密码登录切换和默认未选中的协议项", "无；邮箱格式正确后可发送"],
-    "已发送验证码": ["展示验证码输入和倒计时，登录按钮按验证码完整度决定是否可用", "Toast：「验证码已发送」"],
-    "登录中": ["登录按钮禁用并显示 Loading，保留邮箱和验证码", "按钮：「登录中…」"],
-    "验证码错误": ["停留当前页并保留邮箱，允许重新输入验证码", "Toast：「验证码错误，请重新输入」"],
-    "账号未注册": ["保留邮箱输入，不进入登录成功链路", "Toast：「该邮箱尚未注册，请先注册账号」"],
-    "协议未确认": ["协议项保持未选中，保留当前邮箱和验证码，不进入登录成功链路", "点击登录：弹出“请阅读并同意以下条款”弹窗"],
-    "协议确认弹窗": ["背景变暗，底部弹窗展示与登录/注册页一致的条款说明及同意/不同意操作", "弹窗：「请阅读并同意以下条款」；按钮：「同意并继续」「不同意」"]
+    "发送验证码·邮箱格式错误": ["保留邮箱输入，不发起发送请求", "行内错误：「请输入有效的邮箱地址」"],
+    "发送验证码·提交中": ["发送按钮禁用，邮箱输入保留", "按钮：「发送中…」；阻止重复发送"],
+    "发送验证码·账号未注册": ["保留邮箱输入，不进入验证码输入链路", "Toast：「该邮箱尚未注册，请先注册账号」"],
+    "发送验证码·网络异常": ["保留邮箱输入，发送按钮恢复可用", "Toast：「网络异常，请检查网络后重试」"],
+    "发送验证码·已发送": ["展示验证码输入，登录按钮按验证码完整度决定是否可用", "Toast：「验证码已发送」"],
+    "登录·输入校验失败": ["保留邮箱和验证码；邮箱格式错误、验证码未满 6 位或未发送验证码时不提交", "显示对应行内错误；不得先弹协议确认弹窗"],
+    "登录·协议未确认": ["客户端输入校验已通过，协议项仍未选中，保留当前邮箱和验证码", "点击登录：弹出“请阅读并同意以下条款”弹窗"],
+    "登录·协议确认弹窗": ["背景变暗，底部弹窗展示与登录/注册页一致的条款说明及同意/不同意操作", "弹窗：「请阅读并同意以下条款」；按钮：「同意并继续」「不同意」"],
+    "登录·提交中": ["登录按钮禁用并显示 Loading，保留邮箱和验证码", "按钮：「登录中…」；阻止重复登录"],
+    "登录·验证码错误": ["停留当前页并保留邮箱，允许重新输入验证码", "Toast：「验证码错误，请重新输入」"],
+    "登录·账号状态异常": ["凭证校验后发现账号不可登录，保留当前输入", "Toast：展示对应账号状态及处理方向"],
+    "登录·网络异常": ["保留邮箱和验证码，登录按钮恢复可用", "Toast：「网络异常，请检查网络后重试」"],
+    "登录·成功": ["验证码认证与账号状态检查通过，开始登录后初始化", "进入 APP-ONB-04 绑定你的设备"]
   },
   "APP-ONB-04": {
     "待开始": ["展示绑定说明、预计耗时、设备靠近提示和开始按钮", "无"],
@@ -1837,7 +1876,10 @@ pages.forEach((page) => {
   if (page.states?.length && !page.stateDetails?.length) page.stateDetails = buildStateDetails(page);
 });
 
-let currentPageId = new URLSearchParams(window.location.search).get("page") || "APP-PRD-00";
+const prototypeUrlParams = new URLSearchParams(window.location.search);
+let currentPageId = prototypeUrlParams.get("page") || "APP-PRD-00";
+const showcasePreset = prototypeUrlParams.get("showcase") || "";
+document.body.classList.toggle("showcase-mode", Boolean(showcasePreset));
 if (currentPageId === "APP-HOME-02") currentPageId = "APP-HOME-01";
 if (currentPageId === "APP-SYNC-02") currentPageId = "APP-SYNC-01";
 let previousPageId = null;
@@ -2135,6 +2177,24 @@ function resumeFirmwareUpdateAtConnection() {
   }
 }
 
+function resetPrototypeViewportToTop() {
+  if (showcasePreset) return;
+  const scroller = document.scrollingElement || document.documentElement;
+  if (scroller) scroller.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+  window.scrollTo(0, 0);
+}
+
+function schedulePrototypeViewportTopReset() {
+  if (showcasePreset) return;
+  resetPrototypeViewportToTop();
+  requestAnimationFrame(() => {
+    resetPrototypeViewportToTop();
+    window.setTimeout(resetPrototypeViewportToTop, 0);
+  });
+}
+
 function go(id) {
   if (syncPrototypeTimer) {
     window.clearTimeout(syncPrototypeTimer);
@@ -2251,6 +2311,7 @@ function go(id) {
     fileDetailGeneratingInitialized = false;
   }
   render();
+  schedulePrototypeViewportTopReset();
 }
 
 function readQuickRecordPreference() {
@@ -2655,10 +2716,7 @@ function homeSyncTaskPercent(task) {
 }
 
 function shouldShowHomeSyncStatus() {
-  if (homeSyncStage !== "finishing" || !homeSyncQueue.length) return false;
-  const stats = homeSyncStats();
-  const unfinishedTaskCount = homeSyncQueue.filter((task) => task.status !== "completed").length;
-  return !(unfinishedTaskCount < 2 && stats.remainingMinutes < 3);
+  return homeSyncStage === "finishing" && homeSyncQueue.length > 0;
 }
 
 function renderHomeSyncModule(stage = homeSyncStage) {
@@ -2992,19 +3050,19 @@ function keyboardMock(type = "number") {
 }
 
 function renderLogin() {
-  const canLogin = Boolean(loginEmail.trim() && loginPassword);
+  const canLogin = Boolean(loginEmail.trim() && loginPassword) && !loginSubmitting;
   const agreementChecked = loginAgreementAccepted;
   const loginScreen = screen(`
     <div class="login-brand">AI RECORDER</div>
     <h1 class="login-title">开始使用</h1>
-    <button class="auth-option" data-action="login-with-provider" data-provider="google"><span class="google-mark">G</span><strong>Google 账号登录</strong></button>
-    <button class="auth-option" data-action="login-with-provider" data-provider="apple"><span class="apple-mark">●</span><strong>Apple 账号登录</strong></button>
+    <button class="auth-option" data-action="login-with-provider" data-provider="google" ${loginSubmitting ? "disabled" : ""}><span class="google-mark">G</span><strong>${loginSubmitting && loginAgreementPendingAction === "google" ? "Google 登录中…" : "Google 账号登录"}</strong></button>
+    <button class="auth-option" data-action="login-with-provider" data-provider="apple" ${loginSubmitting ? "disabled" : ""}><span class="apple-mark">●</span><strong>${loginSubmitting && loginAgreementPendingAction === "apple" ? "Apple 登录中…" : "Apple 账号登录"}</strong></button>
     <div class="login-divider"><span></span><b>或</b><span></span></div>
     <label class="input-box auth-login-input"><input id="loginEmail" type="email" value="${h(loginEmail)}" placeholder="邮箱地址" autocomplete="email"></label>
     <label class="input-box auth-login-input"><input id="loginPassword" type="password" value="${h(loginPassword)}" placeholder="密码" autocomplete="current-password"></label>
     ${authNotice(loginNotice, loginNoticeTone)}
     <button class="link-btn" data-go="APP-ONB-05">忘记密码?</button>
-    <button class="primary-btn login-submit ${canLogin ? "" : "disabled"}" data-action="login-with-password" ${canLogin ? "" : "disabled"}>登录</button>
+    <button class="primary-btn login-submit ${canLogin ? "" : "disabled"}" data-action="login-with-password" ${canLogin ? "" : "disabled"}>${loginSubmitting && loginAgreementPendingAction === "password" ? "登录中…" : "登录"}</button>
     <button class="link-btn center" data-go="APP-ONB-06">使用验证码登录</button>
     <p class="register-line">还没有账号？ <button class="link-btn inline" data-go="APP-ONB-02">注册</button></p>
     <div class="agreement-list">
@@ -3044,22 +3102,22 @@ function renderAgreementPrompt(mode) {
   return `
     <div class="scrim login-agreement-prompt-scrim" data-action="${closeAction}"></div>
     <section class="login-agreement-prompt" role="dialog" aria-modal="true" aria-labelledby="loginAgreementPromptTitle">
-      <h2 id="loginAgreementPromptTitle">请阅读并同意以下条款</h2>
-      <p>我已阅读并同意《用户协议》和《隐私政策》，并知晓首次登录将自动创建账号。</p>
-      <button class="primary-btn" data-action="${acceptAction}">同意并继续</button>
-      <button class="login-agreement-decline" data-action="${closeAction}">不同意</button>
+      <h2 id="loginAgreementPromptTitle">${h(agreementPromptCopy.title)}</h2>
+      <p>${h(agreementPromptCopy.body)}</p>
+      <button class="primary-btn" data-action="${acceptAction}">${h(agreementPromptCopy.accept)}</button>
+      <button class="login-agreement-decline" data-action="${closeAction}">${h(agreementPromptCopy.decline)}</button>
     </section>
   `;
 }
 
 function renderRegister() {
-  const canContinue = Boolean(registerEmail.trim() && registerPassword);
+  const canContinue = Boolean(registerEmail.trim() && registerPassword) && !registerSubmitting;
   const registerScreen = authScreen("账号注册", `
     <div class="auth-form">
       ${authInput("registerEmail", registerEmail, "邮箱地址", { type: "email", autocomplete: "email" })}
       ${authInput("registerPassword", registerPassword, "密码（至少 8 位）", { type: registerPasswordVisible ? "text" : "password", autocomplete: "new-password", toggleAction: "toggle-register-password" })}
       ${authNotice(registerNotice, registerNoticeTone)}
-      <button class="primary-btn auth-primary ${canContinue ? "" : "disabled"}" data-action="submit-register" ${canContinue ? "" : "disabled"}>下一步</button>
+      <button class="primary-btn auth-primary ${canContinue ? "" : "disabled"}" data-action="submit-register" ${canContinue ? "" : "disabled"}>${registerSubmitting ? "发送中…" : "下一步"}</button>
       ${authAgreement({ interactive: true })}
     </div>
   `);
@@ -3068,7 +3126,7 @@ function renderRegister() {
 
 function renderRegisterVerify() {
   const digits = registerCode.padEnd(6, " ").slice(0, 6).split("");
-  const canConfirm = registerCode.length === 6;
+  const canConfirm = registerCode.length === 6 && !registerCodeVerifying;
   const resendLabel = registerCodeCountdown > 0 ? `重新发送 ${registerCodeCountdown}` : "重新发送验证码";
   return authScreen("验证你的邮箱", `
     <p class="auth-lead">我们已经发送了一条验证码到你的邮箱<br><strong>${h(registerEmail || "demo@example.com")}</strong></p>
@@ -3077,25 +3135,25 @@ function renderRegisterVerify() {
     </div>
     <button class="resend-text resend-action" data-action="resend-register-code" ${registerCodeCountdown > 0 ? "disabled" : ""}>${h(resendLabel)}</button>
     ${authNotice(registerCodeNotice, registerCodeNoticeTone)}
-    <button class="primary-btn auth-primary ${canConfirm ? "" : "disabled"}" data-action="confirm-register-code" ${canConfirm ? "" : "disabled"}>开始使用</button>
+    <button class="primary-btn auth-primary ${canConfirm ? "" : "disabled"}" data-action="confirm-register-code" ${canConfirm ? "" : "disabled"}>${registerCodeVerifying ? "验证中…" : "开始使用"}</button>
   `, { back: "APP-ONB-02" });
 }
 
 function renderResetPassword() {
-  const canContinue = Boolean(resetPasswordEmail.trim() && resetPasswordValue);
+  const canContinue = Boolean(resetPasswordEmail.trim() && resetPasswordValue) && !resetPasswordSubmitting;
   return authScreen("重置密码", `
     <div class="auth-form">
       ${authInput("resetPasswordEmail", resetPasswordEmail, "账号邮箱", { type: "email", autocomplete: "email" })}
       ${authInput("resetPasswordValue", resetPasswordValue, "输入新密码（至少 8 位）", { type: "password", autocomplete: "new-password" })}
       ${authNotice(resetPasswordNotice, resetPasswordNoticeTone)}
-      <button class="primary-btn auth-primary ${canContinue ? "" : "disabled"}" data-action="submit-reset-password" ${canContinue ? "" : "disabled"}>下一步</button>
+      <button class="primary-btn auth-primary ${canContinue ? "" : "disabled"}" data-action="submit-reset-password" ${canContinue ? "" : "disabled"}>${resetPasswordSubmitting ? "发送中…" : "下一步"}</button>
     </div>
   `);
 }
 
 function renderResetPasswordVerify() {
   const digits = resetPasswordCode.padEnd(6, " ").slice(0, 6).split("");
-  const canConfirm = resetPasswordCodeSent && Boolean(resetPasswordValue) && resetPasswordCode.length === 6;
+  const canConfirm = resetPasswordCodeSent && Boolean(resetPasswordValue) && resetPasswordCode.length === 6 && !resetPasswordVerifying;
   const resendLabel = resetPasswordCountdown > 0 ? `重新发送 ${resetPasswordCountdown}` : "重新发送验证码";
   const verifyNotice = resetPasswordCodeSent
     ? authNotice(resetPasswordNotice, resetPasswordNoticeTone)
@@ -3107,21 +3165,21 @@ function renderResetPasswordVerify() {
     </div>
     <button class="resend-text resend-action" data-action="resend-reset-code" ${!resetPasswordCodeSent || resetPasswordCountdown > 0 ? "disabled" : ""}>${h(resendLabel)}</button>
     ${verifyNotice}
-    <button class="primary-btn auth-primary ${canConfirm ? "" : "disabled"}" data-action="confirm-reset-password" ${canConfirm ? "" : "disabled"}>确认</button>
+    <button class="primary-btn auth-primary ${canConfirm ? "" : "disabled"}" data-action="confirm-reset-password" ${canConfirm ? "" : "disabled"}>${resetPasswordVerifying ? "验证中…" : "确认"}</button>
   `, { back: "APP-ONB-05" });
 }
 
 function renderCodeLogin() {
-  const canLogin = codeLoginCodeSent && codeLoginCode.length === 6;
+  const canLogin = codeLoginCodeSent && codeLoginCode.length === 6 && !codeLoginSubmitting;
   const codeLoginScreen = authScreen("邮箱登录", `
     <div class="auth-form">
       ${authInput("codeLoginEmail", codeLoginEmail, "邮箱", { type: "email", autocomplete: "email" })}
       <div class="auth-code-row">
         ${authInput("codeLoginCode", codeLoginCode, "验证码", { autocomplete: "one-time-code" })}
-        <button class="primary-btn ${codeLoginCodeSent ? "sent" : ""}" data-action="send-code-login">${codeLoginCodeSent ? "重新发送" : "发送"}</button>
+        <button class="primary-btn ${codeLoginCodeSent ? "sent" : ""}" data-action="send-code-login" ${codeLoginSending ? "disabled" : ""}>${codeLoginSending ? "发送中…" : codeLoginCodeSent ? "重新发送" : "发送"}</button>
       </div>
       ${authNotice(codeLoginNotice, codeLoginNoticeTone)}
-      <button class="primary-btn auth-primary ${canLogin ? "" : "disabled"}" data-action="login-with-code" ${canLogin ? "" : "disabled"}>登录</button>
+      <button class="primary-btn auth-primary ${canLogin ? "" : "disabled"}" data-action="login-with-code" ${canLogin ? "" : "disabled"}>${codeLoginSubmitting ? "登录中…" : "登录"}</button>
       <button class="link-btn center" data-go="APP-ONB-01">使用密码登录</button>
       <p class="register-line">还没有账号吗？ <button class="link-btn inline" data-go="APP-ONB-02">注册</button></p>
       ${authAgreement({ interactive: true, agreementKey: "codeLogin" })}
@@ -3363,7 +3421,7 @@ function renderFilterFolderEditorSheet() {
       <form id="filterFolderForm" data-action="save-filter-folder">
         <label>
           <span>文件夹名称</span>
-          <input id="filterFolderName" maxlength="20" placeholder="输入文件夹名称" value="${h(value)}" autocomplete="off" autofocus>
+          <input id="filterFolderName" maxlength="20" placeholder="输入文件夹名称" value="${h(value)}" autocomplete="off" ${showcasePreset ? "" : "autofocus"}>
         </label>
         ${filterFolderError ? `<p>${h(filterFolderError)}</p>` : `<small>用于整理文件列表中的录音和导入音频。</small>`}
       </form>
@@ -4988,7 +5046,7 @@ function renderMoveFolderSheet() {
       <div class="folder-section-title"><h3>我的文件夹</h3><button data-action="open-create-folder" aria-label="添加新的文件夹">＋</button></div>
       ${moveFolderCreateOpen ? `
         <form class="folder-create-form" data-action="save-new-folder">
-          <input id="newFolderName" maxlength="20" placeholder="输入文件夹名称" aria-label="文件夹名称" autofocus>
+          <input id="newFolderName" maxlength="20" placeholder="输入文件夹名称" aria-label="文件夹名称" ${showcasePreset ? "" : "autofocus"}>
           <button type="submit">保存</button>
         </form>
       ` : ""}
@@ -5848,7 +5906,7 @@ function renderTermEditorSheet() {
       </header>
       <label class="term-editor-field">
         <span>术语</span>
-        <input id="termSheetInput" value="${h(value)}" maxlength="40" placeholder="AI 录音卡" aria-label="术语" autofocus>
+        <input id="termSheetInput" value="${h(value)}" maxlength="40" placeholder="AI 录音卡" aria-label="术语" ${showcasePreset ? "" : "autofocus"}>
         <button type="button" data-action="clear-term-draft" aria-label="清空术语">×</button>
       </label>
       <p class="${termSheetError ? "term-sheet-error" : ""}">${termSheetError || "添加常用术语，例如：名字、公司、行业术语等"}</p>
@@ -6951,10 +7009,191 @@ function renderNav() {
   `).join("");
 }
 
+const verifiedPageShowcases = {
+  "APP-ONB-01": [
+    ["邮箱格式错误", "onb01-invalid-email"],
+    ["账号未找到", "onb01-account-missing"],
+    ["邮箱或密码错误", "onb01-wrong-password"],
+    ["协议确认弹窗", "onb01-agreement"]
+  ],
+  "APP-ONB-02": [
+    ["邮箱格式错误", "onb02-invalid-email"],
+    ["密码长度不足", "onb02-short-password"],
+    ["协议确认弹窗", "onb02-agreement"]
+  ],
+  "APP-ONB-03": [
+    ["验证码错误", "onb03-wrong-code"],
+    ["验证码已重新发送", "onb03-code-resent"]
+  ],
+  "APP-ONB-05": [
+    ["邮箱格式错误", "onb05-invalid-email"],
+    ["新密码长度不足", "onb05-short-password"],
+    ["账号未找到", "onb05-account-missing"]
+  ],
+  "APP-ONB-07": [
+    ["验证码已发送，倒计时中", "onb07-countdown"],
+    ["验证码错误", "onb07-wrong-code"],
+    ["倒计时结束，可重新发送", "onb07-resend-ready"]
+  ],
+  "APP-ONB-06": [
+    ["邮箱格式错误", "onb06-invalid-email"],
+    ["账号未注册", "onb06-account-missing"],
+    ["验证码已发送", "onb06-code-sent"],
+    ["协议确认弹窗", "onb06-agreement"],
+    ["验证码错误", "onb06-wrong-code"],
+    ["请先发送验证码", "onb06-send-first"]
+  ],
+  "APP-DEV-02": [
+    ["SN 位置说明弹窗", "dev02-sn-dialog"]
+  ],
+  "APP-SYNC-01": [
+    ["系统加入 Wi-Fi 确认", "sync01-system-prompt"],
+    ["连接中", "sync01-connecting"],
+    ["连接失败", "sync01-failed"],
+    ["连接成功提示", "sync01-success"]
+  ],
+  "APP-HOME-01": [
+    ["未添加录音卡", "home01-no-device"],
+    ["当前无同步任务", "home01-no-sync"],
+    ["全部文件空状态", "home01-empty-files"],
+    ["全部文件选择模式", "home01-selection-mode"],
+    ["切换设备", "home01-device-menu"],
+    ["文件快捷操作", "home01-file-menu"],
+    ["重命名文件", "home01-rename"],
+    ["文件名校验错误", "home01-rename-error"],
+    ["移至回收站确认", "home01-recycle-confirm"],
+    ["移动文件", "home01-move-folder"],
+    ["调整等待传输顺序", "home01-priority-menu"],
+    ["操作成功提示", "home01-success-toast"]
+  ],
+  "APP-FILE-03": [
+    ["添加文件夹", "file03-create-folder"],
+    ["文件夹名称校验错误", "file03-folder-error"],
+    ["文件夹操作", "file03-folder-actions"],
+    ["删除非空文件夹确认", "file03-delete-confirm"]
+  ],
+  "APP-FILE-23": [
+    ["批量选择", "file23-selection"],
+    ["永久删除确认", "file23-delete-confirm"],
+    ["恢复成功提示", "file23-restore-toast"]
+  ],
+  "APP-REC-04": [
+    ["输入标记", "rec04-input-mark"],
+    ["系统相机", "rec04-camera"],
+    ["照片预览", "rec04-photo-viewer"],
+    ["AI 照片说明完成", "rec04-ai-caption"]
+  ],
+  "APP-FILE-01": [
+    ["文件提问", "file01-ask"],
+    ["回答生成中", "file01-ask-thinking"],
+    ["回答完成", "file01-ask-answer"],
+    ["查看回答来源", "file01-ask-source"],
+    ["复制成功提示", "file01-copy-toast"]
+  ],
+  "APP-AI-01": [
+    ["自定义生成未选择模板", "ai01-template-required"]
+  ],
+  "APP-ME-16": [
+    ["编辑用户名称", "me16-name-editor"],
+    ["用户名称校验错误", "me16-name-error"],
+    ["更换头像", "me16-avatar-actions"],
+    ["头像拍照", "me16-avatar-camera"],
+    ["头像更新成功提示", "me16-avatar-success"]
+  ],
+  "APP-ME-34": [
+    ["启用术语条件不足", "me34-enable-notice"]
+  ],
+  "APP-ME-36": [
+    ["添加术语", "me36-create-term"],
+    ["术语名称校验错误", "me36-term-error"],
+    ["编辑术语", "me36-edit-term"]
+  ],
+  "APP-ME-41": [
+    ["当前密码错误", "me41-current-error"],
+    ["新密码长度不足", "me41-short-password"],
+    ["两次密码不一致", "me41-mismatch"]
+  ],
+  "APP-ME-19": [
+    ["退出设备登录确认", "me19-logout-confirm"]
+  ],
+  "APP-ME-22": [
+    ["密码身份验证", "me22-password-verify"],
+    ["密码验证错误", "me22-password-error"],
+    ["验证码已发送", "me22-code-sent"],
+    ["验证码错误", "me22-code-error"]
+  ],
+  "APP-DEV-03": [
+    ["还原所有设置确认", "dev03-reset-confirm"],
+    ["录音中禁止设备操作", "dev03-recording-blocked"],
+    ["刷新连接中", "dev03-connection-pending"]
+  ],
+  "APP-DEV-10": [
+    ["还原所有设置确认", "dev10-reset-confirm"],
+    ["解除并清除数据确认", "dev10-clear-confirm"],
+    ["密码身份验证", "dev10-password-verify"],
+    ["密码验证错误", "dev10-password-error"],
+    ["验证码已发送", "dev10-code-sent"],
+    ["验证码错误", "dev10-code-error"]
+  ],
+  "APP-DEV-08": [
+    ["系统加入 Wi-Fi 确认", "dev08-system-prompt"],
+    ["热点连接失败后重试", "dev08-reconnect"]
+  ]
+};
+
+function showcaseUrl(pageId, preset) {
+  const url = new URL(window.location.href);
+  url.search = "";
+  url.searchParams.set("page", pageId);
+  url.searchParams.set("showcase", preset);
+  return url.href;
+}
+
+function renderVerifiedPageSupplement(page) {
+  const showcases = verifiedPageShowcases[page.id] || [];
+  if (!showcases.length) return "";
+  return `
+    <section class="page-supplement verified-page-supplement" aria-labelledby="pageSupplementTitle">
+      <header class="page-supplement-head">
+        <div>
+          <p>${h(page.id)}</p>
+          <h2 id="pageSupplementTitle">当前页面状态与反馈</h2>
+        </div>
+        <span>真实原型状态 · 不可交互</span>
+      </header>
+      <div class="supplement-snapshot-grid">
+        ${showcases.map(([label, preset]) => `
+          <figure class="supplement-snapshot-card">
+            <figcaption>${h(label)}</figcaption>
+            <iframe title="${h(`${page.title}－${label}`)}" src="${h(showcaseUrl(page.id, preset))}" tabindex="-1" loading="eager"></iframe>
+          </figure>
+        `).join("")}
+      </div>
+    </section>
+  `;
+}
+
 function renderFlow() {
+  const target = document.getElementById("flowStrip");
+  if (showcasePreset) {
+    target.dataset.renderedPageId = "";
+    target.className = "flow-strip";
+    target.innerHTML = "";
+    return;
+  }
+  const page = pageById(currentPageId);
+  if (target.dataset.renderedPageId === page.id) return;
+  target.dataset.renderedPageId = page.id;
+  if (page && page.id !== "APP-PRD-00") {
+    const supplement = renderVerifiedPageSupplement(page);
+    target.className = supplement ? "flow-strip page-supplement-slot" : "flow-strip";
+    target.innerHTML = supplement;
+    return;
+  }
+  target.className = "flow-strip";
   const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-07", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-DEV-05", "APP-HOME-01", "APP-SYNC-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-REC-03", "APP-AI-02", "APP-AI-03", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-24", "APP-FILE-25", "APP-FILE-26", "APP-FILE-27", "APP-FILE-28", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-01", "APP-ME-16", "APP-ME-26", "APP-ME-27", "APP-ME-28", "APP-ME-29", "APP-ME-30", "APP-ME-31", "APP-ME-32", "APP-ME-33", "APP-ME-34", "APP-ME-35", "APP-ME-36", "APP-ME-37", "APP-ME-38", "APP-ME-40", "APP-ME-39", "APP-ME-17", "APP-ME-18", "APP-ME-41", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-23", "APP-ME-10", "APP-ME-11", "APP-ME-12", "APP-DEV-03", "APP-DEV-11", "APP-DEV-10", "APP-ME-04", "APP-ME-24", "APP-ME-25", "APP-DEV-06", "APP-DEV-07", "APP-DEV-08", "APP-DEV-09"];
   flow.splice(flow.indexOf("APP-FILE-03") + 1, 0, "APP-FILE-23");
-  document.getElementById("flowStrip").innerHTML = flow.map((id, index) => {
+  target.innerHTML = flow.map((id, index) => {
     const page = pageById(id);
     return `<button class="${id === currentPageId ? "active" : ""}" data-go="${id}">${index + 1}. ${h(page.title)}</button>`;
   }).join("");
@@ -7202,6 +7441,9 @@ function render() {
   document.getElementById("screenTitle").textContent = `${page.id} ${page.title}`;
   document.getElementById("screenGoal").textContent = page.goal;
   document.getElementById("phone").innerHTML = (renderers[page.id] || renderHome)();
+  if (showcasePreset) {
+    document.querySelectorAll("#phone [autofocus]").forEach((element) => element.removeAttribute("autofocus"));
+  }
   const heatmapScroller = document.querySelector(".settings-week-heatmap-scroll");
   if (heatmapScroller) {
     requestAnimationFrame(() => {
@@ -7215,21 +7457,21 @@ function render() {
   if (page.id === "APP-FILE-01" && fileDetailActiveTab === "summary") {
     requestAnimationFrame(setupFileDetailSummarySectionSpy);
   }
-  if (page.id === "APP-DEV-11") {
+  if (!showcasePreset && page.id === "APP-DEV-11") {
     requestAnimationFrame(() => {
       const input = document.getElementById("deviceNameInput");
       input?.focus();
       input?.setSelectionRange(input.value.length, input.value.length);
     });
   }
-  if (page.id === "APP-ME-16" && accountUserNameEditorOpen) {
+  if (!showcasePreset && page.id === "APP-ME-16" && accountUserNameEditorOpen) {
     requestAnimationFrame(() => {
       const input = document.getElementById("accountNameInput");
       input?.focus();
       input?.setSelectionRange(input.value.length, input.value.length);
     });
   }
-  if (homeFileRenameId) {
+  if (!showcasePreset && homeFileRenameId) {
     requestAnimationFrame(() => {
       const input = document.getElementById("homeFileRenameInput");
       input?.focus();
@@ -7610,14 +7852,20 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (action && action.dataset.action === "login-with-provider") {
-    loginAgreementPendingAction = "social";
+    if (loginSubmitting) return;
+    loginAgreementPendingAction = action.dataset.provider || "google";
     if (!loginAgreementAccepted) {
       loginAgreementPromptOpen = true;
       render();
       return;
     }
     loginAgreementPromptOpen = false;
-    go("APP-ONB-04");
+    loginSubmitting = true;
+    render();
+    window.setTimeout(() => {
+      loginSubmitting = false;
+      if (currentPageId === "APP-ONB-01") go("APP-ONB-04");
+    }, 650);
     return;
   }
   if (action && action.dataset.action === "close-login-agreement-prompt") {
@@ -7628,8 +7876,10 @@ document.addEventListener("click", (event) => {
   if (action && action.dataset.action === "accept-login-agreement") {
     loginAgreementAccepted = true;
     loginAgreementPromptOpen = false;
-    if (loginAgreementPendingAction === "social") {
-      go("APP-ONB-04");
+    if (loginAgreementPendingAction === "google" || loginAgreementPendingAction === "apple") {
+      const pendingProvider = loginAgreementPendingAction;
+      render();
+      requestAnimationFrame(() => document.querySelector(`[data-action='login-with-provider'][data-provider='${pendingProvider}']`)?.click());
       return;
     }
     render();
@@ -7661,6 +7911,7 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (action && action.dataset.action === "submit-register") {
+    if (registerSubmitting) return;
     registerEmail = document.getElementById("registerEmail")?.value.trim().toLowerCase() || "";
     registerPassword = document.getElementById("registerPassword")?.value || "";
     if (!isValidEmail(registerEmail)) {
@@ -7686,12 +7937,18 @@ document.addEventListener("click", (event) => {
     }
     registerNotice = "";
     registerNoticeTone = "";
-    registerCode = "";
-    registerCodeNotice = "";
-    registerCodeNoticeTone = "";
-    startRegisterCodeCountdown();
-    go("APP-ONB-03");
-    requestAnimationFrame(() => document.querySelector(".register-code-digit")?.focus());
+    registerSubmitting = true;
+    render();
+    window.setTimeout(() => {
+      registerSubmitting = false;
+      if (currentPageId !== "APP-ONB-02") return;
+      registerCode = "";
+      registerCodeNotice = "";
+      registerCodeNoticeTone = "";
+      startRegisterCodeCountdown();
+      go("APP-ONB-03");
+      requestAnimationFrame(() => document.querySelector(".register-code-digit")?.focus());
+    }, 650);
     return;
   }
   if (action && action.dataset.action === "resend-register-code") {
@@ -7705,27 +7962,35 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (action && action.dataset.action === "confirm-register-code") {
+    if (registerCodeVerifying) return;
     const code = [...document.querySelectorAll(".register-code-digit")].map((input) => input.value).join("");
     registerCode = code;
     if (code.length !== 6) return;
-    if (code !== prototypeVerificationCode) {
-      registerCodeNotice = "验证码错误，请检查后重新输入。";
-      registerCodeNoticeTone = "error";
-      render();
-      requestAnimationFrame(() => document.querySelector(".register-code-digit")?.focus());
-      return;
-    }
     registerCodeNotice = "";
     registerCodeNoticeTone = "";
-    if (registerCodeTimer) {
-      window.clearInterval(registerCodeTimer);
-      registerCodeTimer = null;
-    }
-    registerCodeCountdown = 0;
-    go("APP-ONB-04");
+    registerCodeVerifying = true;
+    render();
+    window.setTimeout(() => {
+      registerCodeVerifying = false;
+      if (currentPageId !== "APP-ONB-03") return;
+      if (code !== prototypeVerificationCode) {
+        registerCodeNotice = "验证码错误，请检查后重新输入。";
+        registerCodeNoticeTone = "error";
+        render();
+        requestAnimationFrame(() => document.querySelector(".register-code-digit")?.focus());
+        return;
+      }
+      if (registerCodeTimer) {
+        window.clearInterval(registerCodeTimer);
+        registerCodeTimer = null;
+      }
+      registerCodeCountdown = 0;
+      go("APP-ONB-04");
+    }, 650);
     return;
   }
   if (action && action.dataset.action === "send-code-login") {
+    if (codeLoginSending) return;
     codeLoginEmail = document.getElementById("codeLoginEmail")?.value.trim().toLowerCase() || "";
     codeLoginCode = "";
     if (!isValidEmail(codeLoginEmail)) {
@@ -7736,33 +8001,44 @@ document.addEventListener("click", (event) => {
       requestAnimationFrame(() => document.getElementById("codeLoginEmail")?.focus());
       return;
     }
-    if (!Object.prototype.hasOwnProperty.call(prototypeAccounts, codeLoginEmail)) {
-      codeLoginCodeSent = false;
-      codeLoginNotice = "该邮箱尚未注册，请先注册账号。";
-      codeLoginNoticeTone = "error";
-      render();
-      return;
-    }
-    codeLoginCodeSent = true;
-    codeLoginNotice = "验证码已发送至该邮箱。";
-    codeLoginNoticeTone = "success";
+    codeLoginNotice = "";
+    codeLoginNoticeTone = "";
+    codeLoginSending = true;
     render();
-    requestAnimationFrame(() => document.getElementById("codeLoginCode")?.focus());
+    window.setTimeout(() => {
+      codeLoginSending = false;
+      if (currentPageId !== "APP-ONB-06") return;
+      if (!Object.prototype.hasOwnProperty.call(prototypeAccounts, codeLoginEmail)) {
+        codeLoginCodeSent = false;
+        codeLoginNotice = "该邮箱尚未注册，请先注册账号。";
+        codeLoginNoticeTone = "error";
+        render();
+        return;
+      }
+      codeLoginCodeSent = true;
+      codeLoginNotice = "验证码已发送至该邮箱。";
+      codeLoginNoticeTone = "success";
+      render();
+      requestAnimationFrame(() => document.getElementById("codeLoginCode")?.focus());
+    }, 650);
     return;
   }
   if (action && action.dataset.action === "login-with-code") {
+    if (codeLoginSubmitting) return;
     codeLoginEmail = document.getElementById("codeLoginEmail")?.value.trim().toLowerCase() || "";
     codeLoginCode = document.getElementById("codeLoginCode")?.value.replace(/\D/g, "").slice(0, 6) || "";
-    if (!Object.prototype.hasOwnProperty.call(prototypeAccounts, codeLoginEmail)) {
-      codeLoginNotice = "该邮箱尚未注册，请先注册账号。";
+    if (!codeLoginEmail || codeLoginCode.length !== 6) {
+      codeLoginNotice = "请完整填写邮箱和 6 位验证码。";
       codeLoginNoticeTone = "error";
       render();
+      requestAnimationFrame(() => (codeLoginEmail ? document.getElementById("codeLoginCode") : document.getElementById("codeLoginEmail"))?.focus());
       return;
     }
-    if (!codeLoginCodeSent) {
-      codeLoginNotice = "请先发送验证码。";
+    if (!isValidEmail(codeLoginEmail)) {
+      codeLoginNotice = "请输入有效的邮箱地址。";
       codeLoginNoticeTone = "error";
       render();
+      requestAnimationFrame(() => document.getElementById("codeLoginEmail")?.focus());
       return;
     }
     if (!codeLoginAgreementAccepted) {
@@ -7772,16 +8048,34 @@ document.addEventListener("click", (event) => {
       render();
       return;
     }
-    if (codeLoginCode !== prototypeVerificationCode) {
-      codeLoginNotice = "验证码错误，请检查后重新输入。";
-      codeLoginNoticeTone = "error";
-      render();
-      requestAnimationFrame(() => document.getElementById("codeLoginCode")?.focus());
-      return;
-    }
     codeLoginNotice = "";
     codeLoginNoticeTone = "";
-    go("APP-ONB-04");
+    codeLoginSubmitting = true;
+    render();
+    window.setTimeout(() => {
+      codeLoginSubmitting = false;
+      if (currentPageId !== "APP-ONB-06") return;
+      if (!codeLoginCodeSent) {
+        codeLoginNotice = "请先发送验证码。";
+        codeLoginNoticeTone = "error";
+        render();
+        return;
+      }
+      if (codeLoginCode !== prototypeVerificationCode) {
+        codeLoginNotice = "验证码错误，请检查后重新输入。";
+        codeLoginNoticeTone = "error";
+        render();
+        requestAnimationFrame(() => document.getElementById("codeLoginCode")?.focus());
+        return;
+      }
+      if (!Object.prototype.hasOwnProperty.call(prototypeAccounts, codeLoginEmail)) {
+        codeLoginNotice = "该账号当前无法登录，请先确认账号状态。";
+        codeLoginNoticeTone = "error";
+        render();
+        return;
+      }
+      go("APP-ONB-04");
+    }, 650);
     return;
   }
   if (action && action.dataset.action === "toggle-change-password-visibility") {
@@ -7838,67 +8132,83 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (action && action.dataset.action === "login-with-password") {
+    if (loginSubmitting) return;
     loginEmail = document.getElementById("loginEmail")?.value.trim().toLowerCase() || "";
     loginPassword = document.getElementById("loginPassword")?.value || "";
     if (!loginEmail || !loginPassword) return;
+    if (!isValidEmail(loginEmail)) {
+      loginNotice = loginFeedbackCopy.invalidEmail;
+      loginNoticeTone = "error";
+      render();
+      requestAnimationFrame(() => document.getElementById("loginEmail")?.focus());
+      return;
+    }
     if (!loginAgreementAccepted) {
       loginAgreementPendingAction = "password";
       loginAgreementPromptOpen = true;
       render();
       return;
     }
-    if (!isValidEmail(loginEmail)) {
-      loginNotice = "请输入有效的邮箱地址。";
-      loginNoticeTone = "error";
-      render();
-      requestAnimationFrame(() => document.getElementById("loginEmail")?.focus());
-      return;
-    }
-    if (!Object.prototype.hasOwnProperty.call(prototypeAccounts, loginEmail)) {
-      loginNotice = "未找到该邮箱对应的账号，请检查后重试。";
-      loginNoticeTone = "error";
-      render();
-      return;
-    }
-    if (prototypeAccounts[loginEmail] !== loginPassword) {
-      loginNotice = "邮箱或密码错误，请重新输入。";
-      loginNoticeTone = "error";
-      render();
-      return;
-    }
     loginNotice = "";
     loginNoticeTone = "";
-    go("APP-ONB-04");
+    loginSubmitting = true;
+    render();
+    window.setTimeout(() => {
+      loginSubmitting = false;
+      if (currentPageId !== "APP-ONB-01") return;
+      if (!Object.prototype.hasOwnProperty.call(prototypeAccounts, loginEmail)) {
+        loginNotice = loginFeedbackCopy.accountMissing;
+        loginNoticeTone = "error";
+        render();
+        return;
+      }
+      if (prototypeAccounts[loginEmail] !== loginPassword) {
+        loginNotice = loginFeedbackCopy.wrongCredentials;
+        loginNoticeTone = "error";
+        render();
+        return;
+      }
+      go("APP-ONB-04");
+    }, 650);
     return;
   }
   if (action && action.dataset.action === "submit-reset-password") {
+    if (resetPasswordSubmitting) return;
     resetPasswordEmail = document.getElementById("resetPasswordEmail")?.value.trim().toLowerCase() || "";
     resetPasswordValue = document.getElementById("resetPasswordValue")?.value || "";
     if (!/^\S+@\S+\.\S+$/.test(resetPasswordEmail)) {
       resetPasswordNotice = "请输入有效的账号邮箱。";
       resetPasswordNoticeTone = "error";
       render();
+      requestAnimationFrame(() => document.getElementById("resetPasswordEmail")?.focus());
       return;
     }
     if (resetPasswordValue.length < 8) {
       resetPasswordNotice = "新密码至少需要 8 位。";
       resetPasswordNoticeTone = "error";
       render();
+      requestAnimationFrame(() => document.getElementById("resetPasswordValue")?.focus());
       return;
     }
-    if (!Object.prototype.hasOwnProperty.call(prototypeAccounts, resetPasswordEmail)) {
-      resetPasswordNotice = "未找到该邮箱对应的账号，请检查后重试。";
-      resetPasswordNoticeTone = "error";
-      render();
-      return;
-    }
-    resetPasswordCode = "";
-    resetPasswordCodeSent = true;
     resetPasswordNotice = "";
     resetPasswordNoticeTone = "";
-    startResetPasswordCountdown();
-    go("APP-ONB-07");
-    requestAnimationFrame(() => document.querySelector(".reset-code-digit")?.focus());
+    resetPasswordSubmitting = true;
+    render();
+    window.setTimeout(() => {
+      resetPasswordSubmitting = false;
+      if (currentPageId !== "APP-ONB-05") return;
+      if (!Object.prototype.hasOwnProperty.call(prototypeAccounts, resetPasswordEmail)) {
+        resetPasswordNotice = "未找到该邮箱对应的账号，请检查后重试。";
+        resetPasswordNoticeTone = "error";
+        render();
+        return;
+      }
+      resetPasswordCode = "";
+      resetPasswordCodeSent = true;
+      startResetPasswordCountdown();
+      go("APP-ONB-07");
+      requestAnimationFrame(() => document.querySelector(".reset-code-digit")?.focus());
+    }, 650);
     return;
   }
   if (action && action.dataset.action === "resend-reset-code") {
@@ -7913,32 +8223,39 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (action && action.dataset.action === "confirm-reset-password") {
+    if (resetPasswordVerifying) return;
     const code = [...document.querySelectorAll(".reset-code-digit")].map((input) => input.value).join("");
     resetPasswordCode = code;
     if (!resetPasswordCodeSent || !resetPasswordValue || code.length !== 6) return;
-    if (code !== prototypeVerificationCode) {
-      resetPasswordNotice = "验证码错误，请检查后重新输入。";
-      resetPasswordNoticeTone = "error";
-      render();
-      requestAnimationFrame(() => document.querySelector(".reset-code-digit")?.focus());
-      return;
-    }
-    loginEmail = resetPasswordEmail;
-    loginPassword = "";
-    loginNotice = "密码重置演示已完成，请使用原密码登录。";
-    loginNoticeTone = "success";
-    resetPasswordValue = "";
-    resetPasswordCode = "";
-    resetPasswordCodeSent = false;
     resetPasswordNotice = "";
     resetPasswordNoticeTone = "";
-    if (resetPasswordTimer) {
-      window.clearInterval(resetPasswordTimer);
-      resetPasswordTimer = null;
-    }
-    resetPasswordCountdown = 0;
-    go("APP-ONB-01");
-    requestAnimationFrame(() => document.getElementById("loginPassword")?.focus());
+    resetPasswordVerifying = true;
+    render();
+    window.setTimeout(() => {
+      resetPasswordVerifying = false;
+      if (currentPageId !== "APP-ONB-07") return;
+      if (code !== prototypeVerificationCode) {
+        resetPasswordNotice = "验证码错误，请检查后重新输入。";
+        resetPasswordNoticeTone = "error";
+        render();
+        requestAnimationFrame(() => document.querySelector(".reset-code-digit")?.focus());
+        return;
+      }
+      loginEmail = resetPasswordEmail;
+      loginPassword = "";
+      loginNotice = "密码重置演示已完成，请使用原密码登录。";
+      loginNoticeTone = "success";
+      resetPasswordValue = "";
+      resetPasswordCode = "";
+      resetPasswordCodeSent = false;
+      if (resetPasswordTimer) {
+        window.clearInterval(resetPasswordTimer);
+        resetPasswordTimer = null;
+      }
+      resetPasswordCountdown = 0;
+      go("APP-ONB-01");
+      requestAnimationFrame(() => document.getElementById("loginPassword")?.focus());
+    }, 650);
     return;
   }
   if (action && action.dataset.action === "start-firmware-update") {
@@ -9242,7 +9559,7 @@ document.addEventListener("input", (event) => {
       document.querySelector(".auth-screen .auth-notice")?.remove();
     }
     const button = document.querySelector("[data-action='submit-register']");
-    const canContinue = Boolean(registerEmail.trim() && registerPassword);
+    const canContinue = Boolean(registerEmail.trim() && registerPassword) && !registerSubmitting;
     if (button) {
       button.disabled = !canContinue;
       button.classList.toggle("disabled", !canContinue);
@@ -9260,8 +9577,8 @@ document.addEventListener("input", (event) => {
     if (event.target.value) inputs[Number(event.target.dataset.codeIndex) + 1]?.focus();
     const button = document.querySelector("[data-action='confirm-register-code']");
     if (button) {
-      button.disabled = registerCode.length !== 6;
-      button.classList.toggle("disabled", registerCode.length !== 6);
+      button.disabled = registerCode.length !== 6 || registerCodeVerifying;
+      button.classList.toggle("disabled", registerCode.length !== 6 || registerCodeVerifying);
     }
   }
   if (event.target.id === "codeLoginEmail") {
@@ -9291,7 +9608,7 @@ document.addEventListener("input", (event) => {
       document.querySelector(".auth-screen .auth-notice")?.remove();
     }
     const button = document.querySelector("[data-action='login-with-code']");
-    const canLogin = codeLoginCodeSent && codeLoginCode.length === 6;
+    const canLogin = codeLoginCodeSent && codeLoginCode.length === 6 && !codeLoginSubmitting;
     if (button) {
       button.disabled = !canLogin;
       button.classList.toggle("disabled", !canLogin);
@@ -9322,7 +9639,7 @@ document.addEventListener("input", (event) => {
       document.querySelector(".auth-notice")?.remove();
     }
     const button = document.querySelector("[data-action='login-with-password']");
-    const canLogin = Boolean(loginEmail.trim() && loginPassword);
+    const canLogin = Boolean(loginEmail.trim() && loginPassword) && !loginSubmitting;
     if (button) {
       button.disabled = !canLogin;
       button.classList.toggle("disabled", !canLogin);
@@ -9337,7 +9654,7 @@ document.addEventListener("input", (event) => {
       document.querySelector(".auth-screen .auth-notice")?.remove();
     }
     const button = document.querySelector("[data-action='submit-reset-password']");
-    const canContinue = Boolean(resetPasswordEmail.trim() && resetPasswordValue);
+    const canContinue = Boolean(resetPasswordEmail.trim() && resetPasswordValue) && !resetPasswordSubmitting;
     if (button) {
       button.disabled = !canContinue;
       button.classList.toggle("disabled", !canContinue);
@@ -9350,7 +9667,7 @@ document.addEventListener("input", (event) => {
     resetPasswordCode = inputs.map((input) => input.value).join("");
     if (event.target.value) inputs[Number(event.target.dataset.codeIndex) + 1]?.focus();
     const button = document.querySelector("[data-action='confirm-reset-password']");
-    const canConfirm = resetPasswordCodeSent && Boolean(resetPasswordValue) && resetPasswordCode.length === 6;
+    const canConfirm = resetPasswordCodeSent && Boolean(resetPasswordValue) && resetPasswordCode.length === 6 && !resetPasswordVerifying;
     if (button) {
       button.disabled = !canConfirm;
       button.classList.toggle("disabled", !canConfirm);
@@ -9522,12 +9839,430 @@ document.addEventListener("submit", (event) => {
   startAskPlaudThinking();
 });
 
-if (currentPageId === "APP-DEV-08") {
+function applyShowcasePreset(preset) {
+  switch (preset) {
+    case "onb01-invalid-email":
+      loginEmail = "invalid-email";
+      loginPassword = prototypeLoginPassword;
+      loginNotice = loginFeedbackCopy.invalidEmail;
+      loginNoticeTone = "error";
+      break;
+    case "onb01-account-missing":
+      loginEmail = "demo@example.com";
+      loginPassword = prototypeLoginPassword;
+      loginNotice = loginFeedbackCopy.accountMissing;
+      loginNoticeTone = "error";
+      break;
+    case "onb01-wrong-password":
+      loginEmail = currentAccountEmail;
+      loginPassword = "wrong-password";
+      loginNotice = loginFeedbackCopy.wrongCredentials;
+      loginNoticeTone = "error";
+      break;
+    case "onb01-agreement":
+      loginEmail = currentAccountEmail;
+      loginPassword = prototypeLoginPassword;
+      loginAgreementAccepted = false;
+      loginAgreementPromptOpen = true;
+      break;
+    case "onb02-invalid-email":
+      registerEmail = "invalid-email";
+      registerPassword = prototypeLoginPassword;
+      registerNotice = "请输入有效的邮箱地址。";
+      registerNoticeTone = "error";
+      break;
+    case "onb02-short-password":
+      registerEmail = "demo@example.com";
+      registerPassword = "1234567";
+      registerNotice = "密码至少需要 8 位。";
+      registerNoticeTone = "error";
+      break;
+    case "onb02-agreement":
+      registerEmail = "demo@example.com";
+      registerPassword = prototypeLoginPassword;
+      registerAgreementAccepted = false;
+      registerAgreementPromptOpen = true;
+      break;
+    case "onb03-wrong-code":
+      registerEmail = "demo@example.com";
+      registerCode = "123456";
+      registerCodeNotice = "验证码错误，请检查后重新输入。";
+      registerCodeNoticeTone = "error";
+      break;
+    case "onb03-code-resent":
+      registerEmail = "demo@example.com";
+      registerCodeCountdown = 60;
+      registerCodeNotice = "验证码已重新发送。";
+      registerCodeNoticeTone = "success";
+      break;
+    case "onb05-invalid-email":
+      resetPasswordEmail = "invalid-email";
+      resetPasswordValue = prototypeLoginPassword;
+      resetPasswordNotice = "请输入有效的账号邮箱。";
+      resetPasswordNoticeTone = "error";
+      break;
+    case "onb05-short-password":
+      resetPasswordEmail = currentAccountEmail;
+      resetPasswordValue = "1234567";
+      resetPasswordNotice = "新密码至少需要 8 位。";
+      resetPasswordNoticeTone = "error";
+      break;
+    case "onb05-account-missing":
+      resetPasswordEmail = "demo@example.com";
+      resetPasswordValue = prototypeLoginPassword;
+      resetPasswordNotice = "未找到该邮箱对应的账号，请检查后重试。";
+      resetPasswordNoticeTone = "error";
+      break;
+    case "onb07-countdown":
+      resetPasswordEmail = currentAccountEmail;
+      resetPasswordValue = prototypeLoginPassword;
+      resetPasswordCode = "";
+      resetPasswordCodeSent = true;
+      resetPasswordCountdown = 60;
+      resetPasswordNotice = "";
+      resetPasswordNoticeTone = "";
+      break;
+    case "onb07-wrong-code":
+      resetPasswordEmail = currentAccountEmail;
+      resetPasswordValue = prototypeLoginPassword;
+      resetPasswordCode = "123456";
+      resetPasswordCodeSent = true;
+      resetPasswordCountdown = 38;
+      resetPasswordNotice = "验证码错误，请检查后重新输入。";
+      resetPasswordNoticeTone = "error";
+      break;
+    case "onb07-resend-ready":
+      resetPasswordEmail = currentAccountEmail;
+      resetPasswordValue = prototypeLoginPassword;
+      resetPasswordCode = "";
+      resetPasswordCodeSent = true;
+      resetPasswordCountdown = 0;
+      resetPasswordNotice = "";
+      resetPasswordNoticeTone = "";
+      break;
+    case "onb06-invalid-email":
+      codeLoginEmail = "invalid-email";
+      codeLoginNotice = "请输入有效的邮箱地址。";
+      codeLoginNoticeTone = "error";
+      break;
+    case "onb06-account-missing":
+      codeLoginEmail = "demo@example.com";
+      codeLoginNotice = "该邮箱尚未注册，请先注册账号。";
+      codeLoginNoticeTone = "error";
+      break;
+    case "onb06-code-sent":
+      codeLoginEmail = currentAccountEmail;
+      codeLoginCodeSent = true;
+      codeLoginNotice = "验证码已发送至该邮箱。";
+      codeLoginNoticeTone = "success";
+      break;
+    case "onb06-agreement":
+      codeLoginEmail = currentAccountEmail;
+      codeLoginCode = "123456";
+      codeLoginCodeSent = true;
+      codeLoginAgreementAccepted = false;
+      codeLoginAgreementPromptOpen = true;
+      break;
+    case "onb06-wrong-code":
+      codeLoginEmail = currentAccountEmail;
+      codeLoginCode = "123456";
+      codeLoginCodeSent = true;
+      codeLoginAgreementAccepted = true;
+      codeLoginNotice = "验证码错误，请检查后重新输入。";
+      codeLoginNoticeTone = "error";
+      break;
+    case "onb06-send-first":
+      codeLoginEmail = currentAccountEmail;
+      codeLoginCode = "123456";
+      codeLoginCodeSent = false;
+      codeLoginAgreementAccepted = true;
+      codeLoginNotice = "请先发送验证码。";
+      codeLoginNoticeTone = "error";
+      break;
+    case "dev02-sn-dialog":
+      deviceSnTipOpen = true;
+      break;
+    case "sync01-system-prompt":
+      hotspotTransferState = "systemPrompt";
+      break;
+    case "sync01-connecting":
+      hotspotTransferState = "connecting";
+      break;
+    case "sync01-failed":
+      hotspotTransferState = "failed";
+      break;
+    case "sync01-success":
+      hotspotTransferState = "success";
+      startHomeFastTransfer();
+      break;
+    case "home01-no-device":
+      showNoHomeDevice();
+      break;
+    case "home01-no-sync":
+      showNoHomeSyncTasks();
+      break;
+    case "home01-empty-files":
+      showHomeEmptyFiles();
+      break;
+    case "home01-selection-mode":
+      showHomeSelectionModeDemo();
+      break;
+    case "home01-device-menu":
+      homeDeviceMenuOpen = true;
+      break;
+    case "home01-file-menu":
+      homeQuickMenuFileId = "home-file-board";
+      break;
+    case "home01-rename":
+      homeFileRenameId = "home-file-board";
+      homeFileRenameDraft = "Board meeting - 需求评审";
+      break;
+    case "home01-rename-error":
+      homeFileRenameId = "home-file-board";
+      homeFileRenameDraft = "";
+      homeFileRenameError = "请输入文件名";
+      break;
+    case "home01-recycle-confirm":
+      homeFileRecycleConfirmOpen = true;
+      homeFileRecycleIds = new Set(["home-file-board"]);
+      break;
+    case "home01-move-folder":
+      homeFileMoveSheetOpen = true;
+      homeFileMoveIds = new Set(["home-file-board"]);
+      selectedMoveFolderId = "work";
+      break;
+    case "home01-priority-menu":
+      homePriorityMenuTaskId = "sync-05";
+      break;
+    case "home01-success-toast":
+      homeFileNotice = "文件名已更新";
+      break;
+    case "file03-create-folder":
+      filterFolderSheetMode = "create";
+      break;
+    case "file03-folder-error":
+      filterFolderSheetMode = "create";
+      filterFolderError = "请输入文件夹名称";
+      break;
+    case "file03-folder-actions":
+      filterFolderSheetMode = "actions";
+      activeFilterFolderId = "work";
+      break;
+    case "file03-delete-confirm":
+      activeFilterFolderId = "work";
+      pendingDeleteFilterFolderId = "work";
+      break;
+    case "file23-selection":
+      recycleSelectionMode = true;
+      selectedRecycleIds = new Set(["recycle-1", "recycle-2"]);
+      break;
+    case "file23-delete-confirm":
+      recycleSelectionMode = true;
+      selectedRecycleIds = new Set(["recycle-1", "recycle-2"]);
+      recycleDeleteConfirmOpen = true;
+      break;
+    case "file23-restore-toast":
+      recycleBinItems = recycleBinItems.filter((item) => item.id === "recycle-3");
+      recycleNotice = "已恢复 2 个文件";
+      break;
+    case "rec04-input-mark":
+      recordingEditor = { mode: "new-input", markId: "", draft: "", time: "00:31:04" };
+      break;
+    case "rec04-camera":
+      recordingCameraOpen = true;
+      break;
+    case "rec04-photo-viewer":
+      recordingPhotoViewerId = "recording-mark-photo";
+      break;
+    case "rec04-ai-caption":
+      recordingMarks = recordingMarks.map((mark) => mark.id === "recording-mark-photo"
+        ? { ...mark, caption: "会议笔记记录了项目进展、待办事项和下一步计划。", captionSource: "ai" }
+        : mark);
+      recordingNotice = "AI 已生成照片说明";
+      break;
+    case "file01-ask":
+      askPlaudMode = "intro";
+      break;
+    case "file01-ask-thinking":
+      askPlaudMode = "thinking";
+      askPlaudPrompt = askPlaudSuggestions[0];
+      askPlaudThinkingStage = "thinking";
+      break;
+    case "file01-ask-answer":
+      askPlaudMode = "answer";
+      askPlaudPrompt = askPlaudSuggestions[0];
+      askPlaudThinkingStage = "complete";
+      break;
+    case "file01-ask-source":
+      askPlaudMode = "answer";
+      askPlaudPrompt = askPlaudSuggestions[0];
+      askPlaudThinkingStage = "complete";
+      askPlaudSourceIndex = 1;
+      break;
+    case "file01-copy-toast":
+      fileDetailNotice = "已复制到剪贴板";
+      break;
+    case "ai01-template-required":
+      generationMode = "custom";
+      selectedTemplateId = "";
+      generationNotice = "请选择模板";
+      break;
+    case "me16-name-editor":
+      accountUserNameDraft = accountUserName;
+      accountUserNameEditorOpen = true;
+      break;
+    case "me16-name-error":
+      accountUserNameDraft = "";
+      accountUserNameError = "请输入名称";
+      accountUserNameEditorOpen = true;
+      break;
+    case "me16-avatar-actions":
+      accountAvatarFlow = "actions";
+      break;
+    case "me16-avatar-camera":
+      accountAvatarFlow = "camera";
+      break;
+    case "me16-avatar-success":
+      accountAvatarNotice = "头像已更新";
+      break;
+    case "me34-enable-notice":
+      pendingTermsEnableNotice = true;
+      break;
+    case "me36-create-term":
+      termSheetMode = "create";
+      break;
+    case "me36-term-error":
+      termSheetMode = "create";
+      termSheetError = "请输入术语";
+      break;
+    case "me36-edit-term":
+      customTerms = ["AI 录音卡"];
+      termEditorIndex = 0;
+      termSheetMode = "edit";
+      break;
+    case "me41-current-error":
+      changePasswordCurrent = "wrong-password";
+      changePasswordNew = "NewPassword8";
+      changePasswordConfirm = "NewPassword8";
+      changePasswordNotice = "当前密码不正确，请重新输入。";
+      changePasswordNoticeTone = "error";
+      break;
+    case "me41-short-password":
+      changePasswordCurrent = changePasswordPrototypeCurrent;
+      changePasswordNew = "1234567";
+      changePasswordConfirm = "1234567";
+      changePasswordNotice = "新密码至少需要 8 位。";
+      changePasswordNoticeTone = "error";
+      break;
+    case "me41-mismatch":
+      changePasswordCurrent = changePasswordPrototypeCurrent;
+      changePasswordNew = "NewPassword8";
+      changePasswordConfirm = "NewPassword9";
+      changePasswordNotice = "两次输入的新密码不一致。";
+      changePasswordNoticeTone = "error";
+      break;
+    case "me19-logout-confirm":
+      pendingLogoutDeviceId = "web1";
+      break;
+    case "me22-password-verify":
+      deleteAccountStep = "confirm";
+      deleteAccountConfirmMode = "password";
+      break;
+    case "me22-password-error":
+      deleteAccountStep = "confirm";
+      deleteAccountConfirmMode = "password";
+      deleteAccountPassword = "wrong-password";
+      deleteAccountConfirmNotice = "账号密码错误";
+      deleteAccountConfirmNoticeTone = "error";
+      break;
+    case "me22-code-sent":
+      deleteAccountStep = "confirm";
+      deleteAccountConfirmMode = "code";
+      deleteAccountCodeSent = true;
+      deleteAccountConfirmNotice = "验证码已发送至 3*******6@qq.com，请输入 6 位验证码完成身份确认。";
+      deleteAccountConfirmNoticeTone = "success";
+      break;
+    case "me22-code-error":
+      deleteAccountStep = "confirm";
+      deleteAccountConfirmMode = "code";
+      deleteAccountCodeSent = true;
+      deleteAccountCode = "123456";
+      deleteAccountConfirmNotice = "验证码错误，请检查后重新输入。";
+      deleteAccountConfirmNoticeTone = "error";
+      break;
+    case "dev03-reset-confirm":
+      deviceDangerAction = "reset";
+      deviceDangerStep = "confirm";
+      break;
+    case "dev03-recording-blocked":
+      deviceRecordingActive = true;
+      deviceActionNotice = "正在录音中，请结束录音后再试。";
+      break;
+    case "dev03-connection-pending":
+      deviceConnectionPendingId = "a1";
+      break;
+    case "dev10-reset-confirm":
+      deviceDangerAction = "reset";
+      deviceDangerStep = "confirm";
+      break;
+    case "dev10-clear-confirm":
+      deviceDangerAction = "clear";
+      deviceDangerStep = "confirm";
+      break;
+    case "dev10-password-verify":
+      deviceDangerAction = "clear";
+      deviceDangerStep = "verify";
+      deviceDangerConfirmMode = "password";
+      break;
+    case "dev10-password-error":
+      deviceDangerAction = "clear";
+      deviceDangerStep = "verify";
+      deviceDangerConfirmMode = "password";
+      deviceDangerPassword = "wrong-password";
+      deviceDangerNotice = "账号密码错误";
+      deviceDangerNoticeTone = "error";
+      break;
+    case "dev10-code-sent":
+      deviceDangerAction = "clear";
+      deviceDangerStep = "verify";
+      deviceDangerConfirmMode = "code";
+      deviceDangerCodeSent = true;
+      deviceDangerNotice = "验证码已发送至 3*******6@qq.com，请输入 6 位验证码。";
+      deviceDangerNoticeTone = "success";
+      break;
+    case "dev10-code-error":
+      deviceDangerAction = "clear";
+      deviceDangerStep = "verify";
+      deviceDangerConfirmMode = "code";
+      deviceDangerCodeSent = true;
+      deviceDangerCode = "123456";
+      deviceDangerNotice = "验证码错误，请检查后重新输入。";
+      deviceDangerNoticeTone = "error";
+      break;
+    case "dev08-system-prompt":
+      firmwareUpdateTransport = "wifi";
+      firmwareUpdateStep = "connect";
+      firmwareJoinPromptOpen = true;
+      break;
+    case "dev08-reconnect":
+      firmwareUpdateTransport = "wifi";
+      firmwareUpdateStep = "connect";
+      firmwareJoinPromptOpen = false;
+      break;
+    default:
+      break;
+  }
+}
+
+applyShowcasePreset(showcasePreset);
+
+if (currentPageId === "APP-DEV-08" && !showcasePreset) {
   beginFirmwareUpdateFlow();
 }
 
 try {
   render();
+  schedulePrototypeViewportTopReset();
 } catch (error) {
   const target = document.getElementById("phone");
   if (target) {

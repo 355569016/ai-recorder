@@ -1,3 +1,163 @@
+# APP-HOME-01 文件首页状态快照补充（2026-09-04）
+
+preview URL: `http://127.0.0.1:4174/index.html?page=APP-HOME-01`
+scope: 补齐文件首页已在原型状态链路中定义、但底部状态与反馈区此前缺失的真实页面状态
+
+## Evidence
+
+- 新增“未添加录音卡”快照：复用 `showNoHomeDevice()`，保留首页原有无设备入口布局，不展示虚构设备信息、同步条或快传入口。
+- 新增“当前无同步任务”快照：复用 `showNoHomeSyncTasks()`，按首页规则隐藏同步状态条和置灰传输记录。
+- 新增“全部文件空状态”快照：复用 `showHomeEmptyFiles()`，展示原型已有的“暂无文件”空状态。
+- 新增“全部文件选择模式”快照：复用 `showHomeSelectionModeDemo()`，展示原型已有的选择模式和底部操作区。
+- 底部 iframe 仍为静态视觉样例，中央手机保持真实可交互；未添加任何原型中不存在的提示语或弹窗。
+
+## Checks
+
+- `node scripts/build-inline.js`、`node --check app.js`、`node --check scripts/build-inline.js`、`node --check scripts/build-prd-preview.js` 和 `git diff --check` 通过。
+- `app.js` 与生成的 `index.html` 均包含 4 个新增快照映射及对应预设状态。
+
+final result: passed
+
+# APP-SYNC-01 成功态 Wi-Fi 快传入口校准（2026-09-04）
+
+preview URL: `http://127.0.0.1:4174/index.html?page=APP-SYNC-01&showcase=sync01-success`
+scope: 连接设备开启高速传输成功后，文件首页同步摘要的传输方式与主操作入口
+
+## Evidence
+
+- `sync01-success` 预设同时设置 `hotspotTransferState = "success"` 并调用 `startHomeFastTransfer()`，与真实成功点击链路保持一致。
+- 成功态复用 `renderHotspotTransfer()` 的文件首页渲染；Wi-Fi 快传状态显示“Wi-Fi 快传”、完整进度和“结束快传”入口，不再显示“快传”入口。
+
+## Checks
+
+- `node scripts/build-inline.js`、`node --check app.js`、`node --check scripts/build-inline.js`、`node --check scripts/build-prd-preview.js` 和 `git diff --check` 通过。
+- `app.js` 与生成的 `index.html` 静态映射断言 3/3 通过：成功预设切换快传模式、热点传输赋值和“结束快传”渲染分支均存在。
+- 本轮浏览器直达本地成功快照被安全审查阻断，未将该项视觉结果标记为运行态已通过；此前真实成功链路仍由 `confirm-hotspot-join` / `retry-hotspot-connecting` 统一调用 `startHomeFastTransfer()`。
+
+final result: passed with browser visual verification pending
+
+# APP-ONB-01 内容上限与自动堆叠校准（2026-09-03）
+
+reference visual: `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-05fff3f0-ba59-4792-9973-8a166a1c1ed8.png`
+preview URL: `http://127.0.0.1:4174/index.html?page=APP-ONB-01`
+scope: 仅调整 APP-ONB-01 底部反馈示例的内容上限、网格排列和留白
+
+## Evidence
+
+- 每个反馈示例卡片及其内部内容限制为 390px，和中央手机屏幕宽度一致；不会被底部白色容器拉宽。
+- 桌面宽屏下按钮状态、页内错误、协议 Bottom Sheet 能并排放置；900px 和 600px 窄视口下自动向下堆叠。
+- 网格设置顶部对齐，卡片按自身内容高度收紧，额外空间保留为说明区留白。
+- 长文案继续遵循实际屏幕宽度自然换行；按钮文案保持单行。
+- 三个视口均无横向溢出，其他页面未应用新补充区结构。
+
+## Checks
+
+- `node scripts/build-inline.js`、`node --check app.js` 和 `git diff --check` 通过。
+- 浏览器 console error / warning：空。
+
+final result: passed
+
+# APP-ONB-01 补充区示例控件固定比例（2026-09-03）
+
+reference visual: `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-e9dc88b3-9b8d-4c96-8a48-abac336d3465.png`
+preview URL: `http://127.0.0.1:4174/index.html?page=APP-ONB-01`
+scope: 仅调整底部说明区内部示例控件；白色反馈容器继续自适应
+
+## Evidence
+
+- 登录按钮示例固定为 190px 宽，移动端降为最多 280px；不随底部白色容器拉伸，也不换行。
+- 协议 Bottom Sheet 预览保持 430px 最大宽度，错误反馈列表保持 540px 最大宽度；多出的空间留作说明区留白。
+- 2048 × 1152 视口实测补充容器宽 1320px、按钮宽 190px；407px 移动视口实测容器宽 379px，无横向溢出。
+- 按钮色调保持与真实原型一致：灰色 disabled、黑色主操作、浅灰色“不同意”。
+
+## Checks
+
+- `node scripts/build-inline.js`、`node --check app.js` 和 `git diff --check` 通过。
+- APP-ONB-02 仍为原 `.flow-strip` 页面标签区，未受本次样式影响。
+- 浏览器 console error / warning：空。
+
+final result: passed
+
+# APP-ONB-01 补充区宽度与按钮色调校准（2026-09-03）
+
+reference visuals:
+- `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-1a113b49-d7e6-40da-8d91-08ed15039a23.png`
+- `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-b5951b42-df4d-4e87-94a2-ea3ffc3a7475.png`
+- `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-d08b33e6-1a53-4f3f-a774-7f820eca501e.png`
+preview URL: `http://127.0.0.1:4174/index.html?page=APP-ONB-01`
+scope: 仅调整 APP-ONB-01 底部说明区宽度和按钮视觉，中央手机及其他页面保持原行为
+
+## Evidence
+
+- 补充区由固定 980px 改为容器自适应宽度，并设置 1680px 上限；2048 × 1152 视口实测宽度 1320px，无横向溢出。
+- 补充区按钮已覆盖旧 `.flow-strip button` 的样式优先级：不可提交/提交中为 `#c8c8c8`，正常提交与“同意并继续”为 `#111`，协议拒绝为 `#e9ecf2`。
+- 颜色与真实原型运行态一致；提交中继续保留 disabled 灰色，不新增交互图标。
+- 其他页面仍使用原 `.flow-strip` 页面标签结构，未应用补充区样式。
+
+## Checks
+
+- `node scripts/build-inline.js`、`node --check app.js` 和 `git diff --check` 通过。
+- 浏览器 console error / warning：空。
+
+final result: passed
+
+# APP-ONB-01 当前页面状态与反馈静态说明区（2026-09-03）
+
+reference visual: `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-1c6853cd-5936-41bc-847b-2aeda26fd3a9.png`
+preview URL: `http://127.0.0.1:4174/index.html?page=APP-ONB-01`
+scope: 仅调整 APP-ONB-01 底部补充说明区；中央手机仍为真实可交互原型，底部仅为不可交互的当前页面视觉样例
+
+## Runtime and visual evidence
+
+- 底部按钮状态复用登录页真实按钮样式，包含不可提交、可提交和提交中；提交中仅显示“登录中…”，未添加真实交互中不存在的 Loading 图标。
+- 三类错误反馈复用真实 `.auth-notice.error` 样式与运行态文案：邮箱格式错误、账号未找到、邮箱或密码错误；未增加原型中不存在的网络异常状态。
+- 协议确认样例复用真实 `.login-agreement-prompt` 结构，并与实际弹窗共用标题、说明和两个按钮文案；浏览器逐项比对结果一致。
+- 输入无效邮箱后点击登录，页面先显示“请输入有效的邮箱地址。”且不打开协议弹窗；有效演示账号未确认协议时打开真实协议弹窗，点击“不同意”后关闭并停留 APP-ONB-01。
+- 2048 × 1152 视口下，中央手机底部与说明区顶部间距为 60px，无横向溢出；说明区整体不可交互。
+- APP-ONB-01 不显示“关键流程”标题，也不显示“按需显示”；APP-ONB-02 仍保留原全局页面标签区，确认其他页面未套用本次结构。
+- 浏览器 console error / warning：空。
+
+## Code and build checks
+
+- `node scripts/build-inline.js`、`node --check app.js`、`node --check scripts/build-inline.js`、`node --check scripts/build-prd-preview.js` 和 `git diff --check` 通过。
+- `index.html` 已由最新 `app.js` 重建；APP-ONB-01 需求状态说明已同步为真实原型反馈。
+
+final result: passed
+
+# 首启与账号统一校验顺序与状态机（2026-09-03）
+
+reference visual paths:
+- `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-1521da2a-59c0-4650-91fa-6340bb75ab54.png`
+- `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-2ac09840-f4ea-488a-b860-3505c8147072.png`
+
+preview URL: `http://127.0.0.1:4176/index.html?page=APP-ONB-01`
+scope: APP-ONB-01 / 02 / 03 / 05 / 06 / 07 的输入校验、协议确认、提交防重、凭证结果、成功回链和右侧页面状态表
+
+## Runtime evidence
+
+- APP-ONB-01 输入 `bad-email` 和完整密码后点击登录，页面先显示“请输入有效的邮箱地址。”，协议确认弹窗不可见；改为有效演示邮箱后点击登录才展示协议弹窗。
+- APP-ONB-01 点击“同意并继续”后按钮显示“登录中…”且 disabled，随后进入 APP-ONB-04；Google 登录同样先确认协议，提交中显示“Google 登录中…”并禁用入口。
+- APP-ONB-02 依次验证邮箱格式错误、密码少于 8 位，两种输入错误均不打开协议弹窗；合法输入才打开协议弹窗，同意后显示“发送中…”并进入 APP-ONB-03。
+- APP-ONB-03 提交错误验证码时先显示“验证中…”且禁用按钮，随后保留输入并显示验证码错误；输入 `888888` 后进入 APP-ONB-04。
+- APP-ONB-06 发送验证码分支已验证：错误邮箱直接显示格式错误；未注册邮箱先进入“发送中…”再显示账号未注册；固定账号发送成功后显示验证码已发送。
+- APP-ONB-06 登录分支已验证：完整输入错误验证码但未确认协议时先展示协议弹窗；同意后进入“登录中…”，随后显示验证码错误；改为 `888888` 后进入 APP-ONB-04。
+- APP-ONB-05 依次验证邮箱格式、密码长度、提交中和账号不存在；固定账号提交后进入 APP-ONB-07。
+- APP-ONB-07 错误验证码先进入“验证中…”再显示凭证错误；输入 `888888` 后返回 APP-ONB-01，并显示继续使用原密码登录的原型提示。
+- 六页右侧状态表顺序已从浏览器 DOM 逐页读取；APP-ONB-06 明确拆分为“发送验证码”和“提交登录”两条有前缀的状态链。
+- 浏览器 console error / warning：空。
+
+## Code and build checks
+
+- `node scripts/build-inline.js`、`node --check app.js`、`node --check scripts/build-inline.js`、`node --check scripts/build-prd-preview.js` 和 `git diff --check` 通过。
+- `index.html` 已由最新 `app.js` 重建；页面效果需求文档新增统一校验优先级，并补齐 APP-ONB-07 独立章节。
+
+## Boundaries
+
+- 网络异常、安全风控和生产账号状态仍是规格状态，未接入真实后端或真实风控服务；本轮运行态只验证原型已有的本地模拟分支。
+- 本轮未扩展至设置模块中的更改密码、删除账号或设备解绑身份验证页。
+
+final result: passed
+
 # APP-REC-02 快捷录音视觉 QA
 
 source visual truth path: `/Users/andyma/.codex/generated_images/01a02f10-f807-7dc3-8f67-909cceb37be0/exec-fefd8f41-1e3c-45b2-83b4-c6be21b2e99b.png`
@@ -53,6 +213,46 @@ scope: 注册页协议文案、默认勾选状态、未确认拦截和底部条�
 - 浏览器实际视觉与点击链路未复测；当前本地地址被浏览器安全审查拦截，未取得新的运行态截图和控制台结果。
 
 final result: passed with browser visual verification pending
+
+## APP 页面底部真实状态快照（2026-09-03）
+
+reference visuals: `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-55655742-9f17-4252-ad01-8c44d9700dcc.png`, `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-cb7e1b0a-18ec-449e-b5c4-f804957b9069.png`
+preview URL: `http://127.0.0.1:4174/index.html?page=APP-ONB-02`
+scope: 底部“当前页面状态与反馈”只展示原型中已实现、可实际触发的完整页面表现；未核实或原型不存在的状态不展示。
+
+### Content and source checks
+
+- 底部样例不再读取 `stateDetailOverrides` 后自行推断反馈类型，也不再把弹窗、页内错误或 Toast 近似绘制成文字条。
+- 每个样例通过同一页面渲染器、同一状态变量和同一份 CSS 输出完整 390 × 844 页面，因此协议确认包含真实遮罩、标题、正文和两个按钮，页内错误也保留真实输入框、按钮和页面上下文。
+- 已核实并展示 APP-ONB-01、APP-ONB-02、APP-ONB-03、APP-ONB-05、APP-ONB-07、APP-ONB-06 的真实认证异常/反馈状态，以及 APP-DEV-02 的 SN 位置说明弹窗。
+- 在逐页核对实际渲染器与状态变量后，补充 APP-SYNC-01、APP-HOME-01、APP-FILE-03、APP-FILE-23、APP-REC-04、APP-FILE-01、APP-AI-01、APP-ME-16、APP-ME-34、APP-ME-36、APP-ME-41、APP-ME-19、APP-ME-22、APP-DEV-03、APP-DEV-10、APP-DEV-08 的同页真实状态，覆盖系统确认、Bottom Sheet、输入校验、文件操作、照片与来源预览、Toast、账号身份验证和设备危险操作确认。
+- APP-ONB-02 不再错误展示“验证码已发送”Toast；该操作实际会跳转 APP-ONB-03。
+- APP-ONB-06 不再展示原型未实现的“网络异常”，错误和发送成功均使用实际页内反馈，不再误画成黑色 Toast。
+- APP-DEV-02 只保留可实际点击问号触发的 SN 位置说明弹窗，不再展示未实现的连接中、绑定成功或绑定失败状态。
+- APP-DEV-10 补齐“还原所有设置确认”样例；该样例使用 `dev10-reset-confirm` 预设，复用中央原型的完整确认弹窗、影响说明及“取消 / 确认还原”按钮，不再遗漏真实入口。
+- 普通默认态、单纯选中态、跳转后由独立页面承载的状态，以及右侧规格中存在但原型渲染器没有对应实现的状态不生成底部补充区；没有必要补充的页面保持为空。
+
+### Runtime and visual checks
+
+- APP-ONB-02 实际填写合法邮箱和密码并点击“下一步”，确认打开完整协议弹窗；实际交互弹窗与底部快照的 DOM 标记完全一致。
+- APP-DEV-02 实际点击 SN 问号打开说明弹窗；实际交互弹窗与底部快照的 DOM 标记完全一致。
+- 78 个已登记状态逐项在浏览器中加载并断言：页面可渲染、画板严格保持 390 × 844、无“原型渲染错误”，且快照内部不递归生成补充区；78/78 通过。另对 16 个代表性弹窗、错误、来源、相机与系统确认状态逐项断言目标文案和结构存在，16/16 通过。APP-ONB-07 额外核实验证码刚发送时重发按钮置灰禁用，倒计时归零后“重新发送验证码”恢复为蓝色可点击状态。
+- 每个底部快照固定为手机屏幕宽度，不随外部补充区域横向拉伸；外部区域只负责按可用宽度排列卡片，放不下时向下堆叠。
+- 修复底部快照输入框 `autofocus` 抢占父页面焦点并将文档滚动到补充区的问题：展示模式不再触发原型输入框自动聚焦，真实可交互主页面仍保留打开编辑器后的聚焦行为。
+- 从文档底部点击切换至 APP-ME-36、APP-FILE-03 后，等待所有快照加载，父页面 `scrollY` 均为 0；直接打开 APP-HOME-01、APP-ME-16、APP-FILE-03、APP-ME-36 并等待快照加载，父页面均保持顶部且活动元素为 `BODY`。
+- APP-ME-36 实际点击“添加”、APP-FILE-03 实际点击“添加文件夹”后，活动输入框分别仍为 `termSheetInput`、`filterFolderName`，确认修复未破坏主原型输入体验。
+- APP-DEV-10 默认页现在展示 6 个底部状态样例；新增“还原所有设置确认”直达快照与中央原型实际弹窗的标题、影响说明及“取消 / 确认还原”按钮一致，画板保持 390 × 844，页面滚动位置为顶部且无“原型渲染错误”。
+- APP-HOME-01 已移除“未完成同步任务少于 2 个且预计剩余时间少于 3 分钟时隐藏同步状态”的低打扰条件；只要存在同步中任务，首页持续展示同步状态条、整体进度和“快传”入口，只有同步队列为空或批次完成后隐藏。
+- APP-HOME-01 点击“单任务新批次”后实际进入单任务同步状态，页面仍显示“同步中 / 蓝牙 / 35% / 预计 1 分钟 / 快传”，验证了短剩余时间场景不会再隐藏同步模块。
+- 底部状态区按当前页面 ID 只挂载一次：同页 `render()` 不再重写状态区 `innerHTML`，因此中央手机的点击、输入、弹窗开关和状态切换不会重新加载静态 iframe；仅跨页面导航时更新对应状态集合。
+- APP-HOME-01 连续展开/收起设备菜单后，底部仍保持原 8 个状态卡和相同标签；切换到 APP-ME-36 后正确更新为 3 个术语状态卡，再连续打开/关闭术语编辑弹层，底部数量、标签和已渲染页面标识均保持不变。
+- 浏览器 console error / warning：空。
+
+### Code and build checks
+
+- `node scripts/build-inline.js`、`node --check app.js`、`node --check scripts/build-inline.js`、`node --check scripts/build-prd-preview.js` 和 `git diff --check` 通过。
+
+final result: passed
 
 ## APP-ONB-01 Google / Apple 授权登录协议前置确认（2026-09-02）
 
