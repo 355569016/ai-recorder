@@ -780,10 +780,10 @@ const pages = [
     goal: "从文件详情分享当前文件的链接、文本内容或导出文件。",
     entry: "文件详情右上角点击分享按钮。",
     fields: [["share_target", "分享目标", "用户选择"], ["share_link_state", "分享链接状态", "云端分享"], ["copy_content_type", "复制内容", "转写/标记/总结"], ["export_content_type", "导出内容", "录音/转写/标记/总结/思维导图"], ["export_format", "导出格式", "用户选择"], ["export_include_options", "导出附加内容", "用户选择"]],
-    rules: ["分享按钮打开底部分享弹窗。", "分享链接进入分享链接设置页。", "复制到剪贴板包含复制转写、复制标记和复制总结三个选项，右侧均使用复制按钮。", "导出文件支持录音、转写、标记、总结和思维导图；转写可选择时间戳和自动标注说话人，标记可选择时间戳。", "导出总结时仅包含总结部分，不含思维导图；思维导图支持单独导出。", "所有导出项均进入对应底部弹窗，格式可选择，点击导出后给出已生成反馈。"],
+    rules: ["分享按钮打开底部分享弹窗。", "分享链接进入分享链接设置页。", "复制到剪贴板包含复制转写、复制标记和复制总结三个选项，右侧均使用双层方框复制按钮；点击后提示复制成功。", "导出文件支持录音、转写、标记、总结和思维导图；转写可选择时间戳和自动标注说话人，标记可选择时间戳。", "导出总结时仅包含总结部分，不含思维导图；思维导图支持单独导出。", "所有导出项均进入对应底部弹窗，格式可选择，点击导出后给出已生成反馈。"],
     states: ["默认", "分享链接", "复制到剪贴板", "导出文件"],
     deps: ["云端分享链接。", "剪贴板权限。", "导出文件生成。"],
-    acceptance: ["分享弹窗包含分享链接、复制到剪贴板和导出文件三组内容；复制到剪贴板包含转写、标记、总结三个选项，右侧不显示右转箭头。", "导出文件组按录音、转写、标记、总结、思维导图顺序展示，五项均能打开对应导出弹窗；格式、开关、关闭和导出反馈可操作。"]
+    acceptance: ["分享弹窗包含分享链接、复制到剪贴板和导出文件三组内容；复制到剪贴板包含转写、标记、总结三个选项，右侧使用双层方框复制按钮而不是右转箭头；点击任一复制项后展示复制成功 Toast。", "导出文件组按录音、转写、标记、总结、思维导图顺序展示，五项均能打开对应导出弹窗；格式、开关、关闭和导出反馈可操作。"]
   },
   {
     id: "APP-FILE-24",
@@ -4329,7 +4329,7 @@ function showFileDetailNotice(message) {
   fileDetailNoticeTimer = window.setTimeout(() => {
     fileDetailNoticeTimer = null;
     fileDetailNotice = "";
-    if (["APP-FILE-01", "APP-FILE-10", "APP-FILE-15"].includes(currentPageId)) render();
+    if (["APP-FILE-01", "APP-FILE-06", "APP-FILE-10", "APP-FILE-15"].includes(currentPageId)) render();
   }, 1800);
 }
 
@@ -4927,9 +4927,9 @@ function renderShareSheet() {
       <h2>分享</h2>
       <button class="share-row" data-go="APP-FILE-08"><span class="share-icon link"></span><b>分享链接</b><i>›</i></button>
       <h3>复制到剪贴板</h3>
-      <button class="share-row"><span class="share-icon doc"></span><b>转写</b><i>□</i></button>
-      <button class="share-row"><span class="share-icon doc"></span><b>标记</b><i>□</i></button>
-      <button class="share-row"><span class="share-icon doc"></span><b>总结</b><i>□</i></button>
+      <button class="share-row share-copy-row" data-action="copy-share-content" data-copy-type="transcript" aria-label="复制转写"><span class="share-icon doc"></span><b>转写</b><i class="share-copy-button" aria-hidden="true"></i></button>
+      <button class="share-row share-copy-row" data-action="copy-share-content" data-copy-type="marks" aria-label="复制标记"><span class="share-icon doc"></span><b>标记</b><i class="share-copy-button" aria-hidden="true"></i></button>
+      <button class="share-row share-copy-row" data-action="copy-share-content" data-copy-type="summary" aria-label="复制总结"><span class="share-icon doc"></span><b>总结</b><i class="share-copy-button" aria-hidden="true"></i></button>
       <h3>导出文件</h3>
       <button class="share-row" data-go="APP-FILE-24"><span class="share-icon audio"></span><b>录音</b><i>›</i></button>
       <button class="share-row" data-go="APP-FILE-25"><span class="share-icon doc"></span><b>转写</b><i>›</i></button>
@@ -9117,6 +9117,12 @@ document.addEventListener("click", (event) => {
       sharePermissionState = { ...sharePermissionState, [key]: !sharePermissionState[key] };
       render();
     }
+    return;
+  }
+  if (action && action.dataset.action === "copy-share-content") {
+    if (!["transcript", "marks", "summary"].includes(action.dataset.copyType)) return;
+    showFileDetailNotice("复制成功");
+    render();
     return;
   }
   if (action && action.dataset.action === "save-share-permission") {

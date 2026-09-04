@@ -36,6 +36,28 @@ scope: 连接设备开启高速传输成功后，文件首页同步摘要的传�
 
 final result: passed with browser visual verification pending
 
+## APP-DEV-10 危险按钮基础样式与 APP-FILE-06 复制操作（2026-09-04）
+
+scope: 验证身份页危险按钮、分享页转写/标记/总结三个复制入口
+
+### Implementation evidence
+
+- `.danger-fill` 下沉统一的 48px 最小高度、圆角、内边距、内容居中、禁用态和键盘 focus 轮廓，修复验证页按钮显示为扁平红色横条的问题。
+- 检查全部 7 个 `.danger-fill` 使用点；其他删除弹层和账号危险操作已有局部尺寸覆盖，未发现同类漏样式。
+- APP-FILE-06 的转写、标记、总结三项改为整行可点击的复制操作，右侧使用双层方框复制图标；点击后显示“复制成功”Toast，1.8 秒后自动消失。
+- `app.js` 变更已通过 `node scripts/build-inline.js` 同步到 `index.html`；页面效果需求文档已同步复制按钮和 Toast 规则。
+
+### Code checks
+
+- `node --check app.js`、`node --check scripts/build-inline.js`、`node --check scripts/build-prd-preview.js` 和 `git diff --check` 通过。
+- 静态断言确认三个复制按钮均包含 `data-action="copy-share-content"`、不同的 `data-copy-type` 和可访问名称，事件处理器只接受 `transcript`、`marks`、`summary` 三种类型。
+
+### Residual checks
+
+- 浏览器实际视觉与点击链路未复测；本地地址被浏览器安全审查拦截，未取得新的运行态截图和控制台结果。
+
+final result: passed with browser visual verification pending
+
 # APP-ONB-01 内容上限与自动堆叠校准（2026-09-03）
 
 reference visual: `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-05fff3f0-ba59-4792-9973-8a166a1c1ed8.png`
