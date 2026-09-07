@@ -467,12 +467,13 @@ const pages = [
     priority: "P0",
     goal: "3 秒内让用户知道设备是否可用、同步是否进行中，并直接在首页浏览全部文件。",
     entry: "登录/绑定成功后默认进入，底部文件 Tab。",
-    fields: [["device_binding_state", "是否已添加录音卡", "本地数据库/云端设备"], ["current_device", "当前设备", "本地数据库/云端设备"], ["connection_state", "连接状态", "BLE 状态包"], ["battery_storage_record", "电量/存储/录音", "BLE 状态包"], ["recording_live_sync", "录音中持续同步", "BLE 分片传输/本地缓存"], ["sync_batch_id", "本次同步批次", "同步队列"], ["sync_task_count", "已完成数/本批次总数", "同步队列"], ["sync_overall_progress", "本批次整体字节进度", "同步队列"], ["sync_transport", "蓝牙/Wi-Fi 快传", "同步会话"], ["fast_transfer_saved_minutes", "快传预计节省时间", "同步队列/传输速率估算"], ["sync_priority_order", "待同步任务顺序", "同步队列"], ["finish_sync_transfer", "结束录音补传", "同步队列"], ["file_transfer_state", "文件等待传输/正在传输/同步失败", "本地数据库/同步队列"], ["sync_retry_count", "已自动重试次数/重试限额", "同步队列/重试策略"], ["sync_summary", "同步摘要", "本地数据库/BLE 全部文件"], ["file_list", "全部文件", "本地数据库"], ["file_source", "文件来源", "本地数据库"]],
+    fields: [["device_binding_state", "是否已添加录音卡", "本地数据库/云端设备"], ["current_device", "当前设备", "本地数据库/云端设备"], ["connection_state", "连接状态", "BLE 状态包"], ["connection_recovery_state", "恢复后的连接状态", "本地任务/BLE 状态包"], ["battery_storage_record", "电量/存储/录音", "BLE 状态包"], ["phone_storage_available", "手机可用空间", "系统存储检查"], ["phone_storage_alert_state", "手机空间不足弹窗状态", "本地存储检查"], ["recording_transfer_guard", "录音传输互斥状态", "同步队列/录音状态"], ["sync_paused_by_recording", "录音期间的队列冻结状态", "同步队列"], ["sync_batch_id", "本次同步批次", "同步队列"], ["sync_task_count", "已完成数/本批次总数", "同步队列"], ["sync_overall_progress", "本次批次整体字节进度", "同步队列"], ["sync_transport", "蓝牙/Wi-Fi 快传", "同步会话"], ["fast_transfer_saved_minutes", "快传预计节省时间", "同步队列/传输速率估算"], ["sync_priority_order", "待同步任务顺序", "同步队列"], ["resume_sync_after_save", "保存后续传条件", "同步队列"], ["file_transfer_state", "设备到手机传输状态", "本地数据库/同步队列"], ["cloud_sync_enabled", "私有云同步开关", "本地设置/云端账号"], ["cloud_upload_state", "手机到云端上传状态", "本地数据库/云端队列"], ["sync_retry_count", "已自动重试次数/重试限额", "同步队列/重试策略"], ["sync_summary", "同步摘要", "本地数据库/BLE 全部文件"], ["file_list", "全部文件", "本地数据库"], ["file_source", "文件来源", "本地数据库"]],
     rules: [
       "打开 App 时如果硬件正在录音，首页默认只显示设备录音中状态，不展示同步状态条。",
-      "录音中持续同步是后端和 App 端的后台传输接收动作：App 持续接收硬件分片，先写入本地临时缓存和同步队列，但该过程不对用户展示。",
+      "录音期间禁止传输音频，只保留 BLE 控制、录音状态、标记和文件索引同步。",
+      "开始录音前如有 BLE、STA 或 SoftAP 音频正在传输，必须暂停数据通道并保留已确认 offset；录音结束且设备确认文件保存成功后，再从该 offset 自动续传。",
       "用户结束录音后，首页才展示结束录音后的同步传送状态，将录音期间尚未完成的分片继续补传、校验并合并。",
-      "结束录音后立即在全部文件顶部建立临时文件记录；文件等待传输或正在传输时保留该记录，补传完成后转为正常文件并显示未转写。",
+      "结束录音后立即在全部文件顶部建立待传输文件记录；文件等待传输或正在传输时保留该记录，补传完成后转为正常文件并显示未转写。设备已连接且当前未录音时立即开始传输，否则保持等待传输。",
       "首页左上设备状态使用紧凑设备图标入口，不再使用大面积状态卡。",
       "账号尚未添加录音卡时，设备摘要位置复用已添加状态的图标区与信息区布局：左侧使用中性的录音卡入口视觉，右侧显示“添加设备”和轻量引导，不使用贯穿整行的大描边按钮，也不展示设备名称、连接状态、电量、存储或设备下拉入口；点击整行进入 APP-DEV-01 正在搜索设备。",
       "未添加录音卡状态不展示同步状态条、快传入口，以及正在传输或等待传输的置灰文件记录；已同步完成和导入 App 的正常文件仍可浏览。",
@@ -481,7 +482,7 @@ const pages = [
       "蓝牙系统层面可支持手机同时连接多个 BLE 外设，但 AI 录音卡是否允许多设备并发录音/同步取决于固件连接数、带宽、同步队列和冲突处理；MVP 建议支持多设备绑定与切换，当前活跃录音/同步设备一次只选一个。",
       "已绑定设备列表需要展示多个设备的连接状态，支持点击切换；已连接设备显示绿色状态，断开连接设备显示灰色离线状态。",
       "未连接或未绑定时，通过下拉菜单提供添加设备入口，不占用大面积状态卡。",
-      "首页只在结束录音补传或其他需要用户关注的同步任务进行中显示同步状态条；录音中后台持续同步不显示，本批次完成后状态条消失。",
+      "首页只在需要用户关注的同步任务进行中显示同步状态条；录音期间隐藏同步状态条，旧任务仅以置灰的“等待传输”文件行保留在列表内；保存成功后直接新增待传输项，设备已连接且当前未录音时自动开始传输。",
       "蓝牙同步状态条压缩为单行，依次展示同步状态、当前传输方式、本批次整体进度、已完成数/总数和预计剩余时间，末尾显示快传入口；底部保留 2px 整体进度线。",
       "Wi-Fi 快传状态在同一同步区保留上述进度信息和完整进度线，快传入口改为“结束快传”，并增加“加速快传中 / 预计节省约 X 分钟”的收益说明。",
       "外部百分比按本次同步批次全部文件的累计已传输字节除以批次总字节计算，不代表当前单个文件的进度。",
@@ -495,7 +496,12 @@ const pages = [
       "等待传输任务不展示常驻“优先同步”按钮；点击或长按“等待传输”状态打开轻量顺序浮层，可将非下一项任务设为优先。",
       "全部文件中的正在传输和等待传输行整体置灰，且不显示右箭头或进入详情操作；正在传输行不可点击并可显示单文件百分比，等待传输行仅状态区域可点击或长按。",
       "同步传输失败后优先进入后台自动重试；设备恢复连接时自动续传和重试。未达到自动重试限额期间，文件维持置灰的正在重试状态，不显示失败状态或手动重试按钮；达到限额后才显示轻量“同步失败 · 重试”操作，且不显示“录音已安全保留”等未经确认的保障文案。",
-      "同步完成文件恢复正常显示，不保留同步完成标签；按未转写、AI 已生成等后续处理状态展示。",
+      "同步完成文件恢复正常显示，不保留同步完成标签；按未转写、AI 已生成等后续处理状态展示。录音保存成功不弹出文字提示，只通过新增文件行及传输状态反馈。",
+      "设备到手机传输校验完成后，文件恢复为正常黑色可点击行，不展示“已传到手机”完成标签；它可立即打开查看。私有云同步开启时，等待上传显示“等待同步云端”，上传进行中显示“同步云端中”，上传完成后同样恢复正常文件状态。",
+      "私有云同步关闭时，文件列表不展示“等待同步云端”或“同步云端中”；本地文件仍保持正常可查看状态。",
+      "锁屏、系统终止 App 或连接中断后，先从本地恢复任务 ID、已确认 offset、校验信息和暂停原因；首页依次展示已绑定未连接、连接中、连接成功。设备确认队列和手机可用空间后才从 offset 续传。",
+      "手机空间不足时暂停当前任务并保留 offset；App 打开并完成本地空间检查后，如空间不足立即展示空间清理弹窗。关闭弹窗不改变暂停状态。",
+      "空间不足弹窗展示不可点击的“清理手机存储空间”及“系统设置 ＞ 通用 ＞ iPhone 储存空间”路径，由用户自行进入系统清理，不提供快捷入口。弹窗的“清理 AI录音卡 App 存储空间”进入 APP-ME-07，仅清理已同步云端的本地缓存；用户关闭弹窗后再次点击录音、快传、等待释放空间或等待传输入口时重新唤起弹窗。释放空间后仍须通过本地空间复检，才可从 offset 自动续传，不从头重传。",
       "单个任务完成后更新外部已完成数并自动开始待传输列表中的下一项；本批次全部完成后隐藏同步状态条。",
       "本批次完成后若产生新的同步任务，创建新的批次；全部文件列表仅按当前文件状态展示，不出现上一批次的同步队列历史。",
       "同步状态区不使用大卡片或阴影；仅 Wi-Fi 快传状态允许增加一行常驻的加速收益说明，全部文件紧接同步区显示。",
@@ -518,8 +524,8 @@ const pages = [
       "当前没有同步任务时，首页不显示同步状态条，也不显示正在传输或等待传输的置灰文件记录；全部文件直接展示已完成同步的正常文件列表。",
       "同步失败处理强规则：传输失败后先由系统自动重试，不立即向用户显示失败；设备重新连接后自动继续重试。只有达到自动重试限额后，文件才显示轻量“同步失败 · 重试”操作。自动重试限额及退避间隔由同步重试策略配置。"
     ],
-    states: ["未添加录音卡", "未绑定/未连接", "设备已连接", "当前无同步任务", "录音中持续同步", "单任务同步中", "多任务同步中", "Wi-Fi 快传中", "结束快传并由蓝牙续传", "文件正在传输且不可点击", "文件等待传输状态可操作", "已优先", "同步失败自动重试", "设备重连后自动重试", "达到自动重试限额后失败可重试", "单个任务同步完成", "本批次同步完成", "新同步批次", "全部文件空状态", "筛选结果空状态", "左滑直接进入选择模式", "文件选择模式", "单文件快捷菜单", "重命名弹层", "移至回收站确认", "加载更多"],
-    deps: ["BLE 状态包：电量、存储、录音状态。", "BLE 分片传输：录音过程中的增量音频、偏移量和校验值。", "本地数据库：文件列表、同步队列、转写状态。", "本地临时缓存：录音未结束前的已同步分片。", "同步重试策略：重试限额、退避间隔、设备重连触发。", "云端文件：上传/删除/状态，接口待后端定义。"],
+    states: ["未添加录音卡", "已绑定未连接", "设备连接中", "设备连接成功", "当前无同步任务", "录音中查看文件", "保存成功后继续传输", "单任务同步中", "多任务同步中", "Wi-Fi 快传中", "结束快传并由蓝牙续传", "文件正在传输且不可点击", "文件等待传输状态可操作", "手机空间不足暂停", "手机空间不足弹窗", "空间不足弹窗已关闭", "已传到手机", "等待同步云端", "同步云端中", "私有云同步关闭", "已优先", "同步失败自动重试", "设备重连后自动重试", "达到自动重试限额后失败可重试", "单个任务同步完成", "本批次同步完成", "新同步批次", "全部文件空状态", "筛选结果空状态", "左滑直接进入选择模式", "文件选择模式", "单文件快捷菜单", "重命名弹层", "移至回收站确认", "加载更多"],
+    deps: ["BLE 状态包：电量、存储、录音状态。", "BLE/STA/SoftAP 传输：暂停、恢复、已确认偏移量和校验值。", "本地数据库：文件列表、同步队列、转写状态。", "同步队列：录音抢占时保存任务顺序、传输通道和已确认 offset。", "同步重试策略：重试限额、退避间隔、设备重连触发。", "云端文件：上传/删除/状态，接口待后端定义。"],
     acceptance: [
       "打开 App 默认处于硬件录音场景时，首页只展示设备录音中状态，不展示同步进度模块。",
       "点击录音中页结束后，首页必须展示剩余内容补传和校验进度，并在全部文件顶部建立对应临时文件记录。",
@@ -540,7 +546,7 @@ const pages = [
       "等待传输文件默认只显示“等待传输”，不显示“优先同步”或其他右侧按钮；点击或长按状态打开同一轻量浮层，非下一项可设为优先，当前下一项只提示“当前已是下一项”。",
       "设置优先后，目标任务移动到当前传输文件之后，状态改为“已优先”，底部 Toast 短暂提示“已设为优先，将在当前文件后传输”；浮层不推动列表布局并可点击空白处或等待 4 秒关闭。",
       "单个任务完成后已完成数增加并开始下一项；新批次开始后文件列表不展示上一批次的同步队列历史。",
-      "首页设备状态为紧凑图标入口，点击设备图标进入当前设备详情。",
+      "首页设备状态为紧凑图标入口；App 恢复后依次展示已绑定未连接、连接中、连接成功，连接成功后自动恢复可续传任务。",
       "未添加录音卡时，原设备摘要区域以与已添加状态同尺寸、同分区的无外框入口显示“添加设备”；不展示设备名称、电量、存储或连接状态，点击整行进入 APP-DEV-01，且页面不显示同步状态、快传入口和置灰的正在传输/等待传输文件。",
       "当前已选择录音卡的名称、连接状态、电量、存储在设备入口外层可直接查看。",
       "点击设备状态旁下拉箭头展开添加设备和多个已绑定设备。",
@@ -550,10 +556,11 @@ const pages = [
       "仅达到自动重试限额的同步失败行显示轻量“同步失败 · 重试”，点击后进入正在重试状态。",
       "导入音频弹层包含从文件里导入和从相册里导入两个系统选择入口。",
       "下拉/继续滚动可加载更多文件。",
-      "录音主按钮点击前执行登录/绑定/连接检查。"
+      "录音主按钮点击前执行登录/绑定/连接和手机空间检查；空间不足时停留首页并展示空间清理弹窗，不进入准备或录音中页面。",
+      "手机空间不足时，App 打开后自动弹出空间清理弹窗；点灰色遮罩关闭后，点击录音、快传、等待释放空间或等待传输入口均重新弹出。点击“清理 AI录音卡 App 存储空间”进入 APP-ME-07。"
     ],
     prototypeLinks: [["设备详情", "APP-DEV-03"], ["添加设备", "APP-DEV-01"]],
-    prototypeActions: [["未添加录音卡", "home-show-no-device"], ["蓝牙同步", "set-sync-transport", "ble"], ["Wi-Fi 快传", "set-sync-transport", "hotspot"], ["结束快传", "end-home-fast-transfer"], ["当前无同步任务", "home-show-no-sync-tasks"], ["全部文件空状态", "home-show-empty-files"], ["恢复文件示例", "home-reset-file-demo"], ["全部文件选择模式", "home-show-selection-mode"], ["完成当前任务", "home-complete-sync"], ["单任务新批次", "home-start-single-sync-batch"], ["重置多任务同步", "home-reset-sync-batch"]]
+    prototypeActions: [["已绑定未连接", "home-set-connection-state", "disconnected"], ["正在连接", "home-set-connection-state", "connecting"], ["连接成功", "home-set-connection-state", "connected"], ["已传到手机", "home-set-cloud-state", "phone-ready"], ["等待同步云端", "home-set-cloud-state", "waiting"], ["同步云端中", "home-set-cloud-state", "uploading"], ["关闭云端同步", "home-set-cloud-state", "disabled"], ["手机空间不足", "home-set-sync-recovery", "storage-blocked"], ["关闭空间弹窗", "close-home-storage-shortage"], ["空间恢复续传", "home-set-sync-recovery", "storage-recovered"], ["未添加录音卡", "home-show-no-device"], ["蓝牙同步", "set-sync-transport", "ble"], ["Wi-Fi 快传", "set-sync-transport", "hotspot"], ["结束快传", "end-home-fast-transfer"], ["当前无同步任务", "home-show-no-sync-tasks"], ["全部文件空状态", "home-show-empty-files"], ["恢复文件示例", "home-reset-file-demo"], ["全部文件选择模式", "home-show-selection-mode"], ["完成当前任务", "home-complete-sync"], ["单任务新批次", "home-start-single-sync-batch"], ["重置多任务同步", "home-reset-sync-batch"]]
   },
   {
     id: "APP-HOME-03",
@@ -603,11 +610,11 @@ const pages = [
     goal: "查看已移入回收站的音频，并通过单选或多选恢复文件或永久删除文件。",
     entry: "APP-FILE-03 筛选和排序弹层点击回收站。",
     prototypeActions: [["恢复列表", "show-recycle-list"], ["空状态", "show-recycle-empty"]],
-    fields: [["trash_file_list", "回收站文件列表", "本地数据库"], ["selected_file_ids", "已选文件 ID", "用户选择"], ["selected_count", "已选数量", "本地状态"], ["trash_action", "恢复 / 删除", "用户操作"], ["trash_retention_days", "保留天数", "产品规则"]],
-    rules: ["回收站文件保留 30 天，之后自动永久删除。", "默认展示文件名、录音时间与时长、来源和移入回收站时间。", "点击任意文件行即进入选择模式并勾选该文件，继续点击其他文件可多选。", "选择模式顶部显示已选择数量和完成；再次点击已选文件可取消勾选。", "只有至少选中一个文件时，底部才显示恢复和删除操作。", "恢复后文件回到全部文件列表并从回收站移除。", "删除表示永久删除，执行前必须二次确认并明确此操作无法撤销。", "回收站为空时显示暂无音频记录，不显示选择按钮和批量操作栏。"],
-    states: ["列表", "单选", "多选", "删除确认", "恢复完成", "永久删除完成", "空状态"],
-    deps: ["本地数据库：文件删除状态、删除时间和原文件夹。", "文件索引与云端对象删除能力。"],
-    acceptance: ["APP-FILE-03 点击回收站进入本页。", "点击文件行可进入单选并继续多选，顶部已选数量随选择变化。", "未选文件时不显示恢复和删除操作；有选中项时底部操作栏出现。", "点击恢复后所选文件从回收站移除，并提示已恢复。", "点击删除先出现不可撤销确认，确认后才永久移除文件。", "所有文件被恢复或删除后显示暂无音频记录。"]
+    fields: [["trash_file_list", "回收站文件列表", "本地数据库"], ["selected_file_ids", "已选文件 ID", "用户选择"], ["selected_count", "已选数量", "本地状态"], ["trash_action", "恢复 / 删除", "用户操作"], ["trash_retention_days", "保留天数", "产品规则"], ["share_link_state", "分享链接状态", "云端分享服务"], ["generation_task_state", "生成任务状态", "AI 任务服务"], ["content_revision", "文件删除版本", "云端同步服务"]],
+    rules: ["回收站文件保留 30 天，之后自动永久删除。", "默认展示文件名、录音时间与时长、来源和移入回收站时间。", "点击任意文件行即进入选择模式并勾选该文件，继续点击其他文件可多选。", "选择模式顶部显示已选择数量和完成；再次点击已选文件可取消勾选。", "只有至少选中一个文件时，底部才显示恢复和删除操作。", "移入回收站后立即将文件标记为不可访问：分享链接在服务端撤销，外部访问返回文件不可用；生成中、排队或上传中的转写/AI 任务立即发送取消并停止。", "恢复后文件回到全部文件列表并从回收站移除；在原链接未到期且未被用户主动移除时，恢复原分享链接及权限配置。已取消的生成任务不自动继续，用户需手动重新发起。", "删除表示永久删除，执行前必须二次确认并明确此操作无法撤销；确认后保留删除版本标记以避免离线终端把缓存文件重新同步回来。", "其他终端联网时以云端文件状态和删除版本为准：移入回收站、恢复和永久删除均同步更新列表、分享访问和本地任务。", "回收站为空时显示暂无音频记录，不显示选择按钮和批量操作栏。"],
+    states: ["列表", "单选", "多选", "链接已失效", "生成任务已停止", "删除确认", "恢复完成", "永久删除完成", "空状态"],
+    deps: ["本地数据库：文件删除状态、删除时间和原文件夹。", "云端文件版本、分享链接撤销与恢复能力。", "AI 任务取消接口。", "跨端同步服务。"],
+    acceptance: ["APP-FILE-03 点击回收站进入本页。", "点击文件行可进入单选并继续多选，顶部已选数量随选择变化。", "未选文件时不显示恢复和删除操作；有选中项时底部操作栏出现。", "移入回收站后原分享链接立即不可访问，生成任务停止；其他终端联网后同步相同状态。", "点击恢复后所选文件从回收站移除，原链接在未过期且未主动移除时恢复访问，已取消生成任务不自动继续。", "点击删除先出现不可撤销确认，确认后才永久移除文件并保持链接失效。", "所有文件被恢复或删除后显示暂无音频记录。"]
   },
   {
     id: "APP-FILE-13",
@@ -694,14 +701,28 @@ const pages = [
     group: "录音",
     title: "录音中",
     priority: "P0",
-    goal: "明确证明硬件正在录音，并支持标记、暂停、继续和结束。",
+    goal: "以简洁计时和录音入口呈现录音状态，并支持最小化、标记、暂停、继续和结束。",
     entry: "硬件开始录音成功后。",
     prototypeActions: [["默认", "reset-recording-demo"], ["输入态", "start-recording-input"], ["相机", "open-recording-camera"], ["AI 照片说明", "simulate-recording-photo-ai"]],
-    fields: [["record_duration", "录音时长", "BLE 状态包/本地计时"], ["record_state", "录音状态", "BLE 状态包"], ["live_sync_offset", "已同步偏移量", "BLE 分片传输"], ["pending_sync_size", "待补传大小", "同步队列"], ["battery_level", "电量", "BLE 状态包"], ["storage_remaining", "存储", "BLE 状态包"], ["marker_list", "标记记录", "BLE 标记包/本地数据库"], ["marker_type", "标记类型", "输入/拍照/时间标记"], ["marker_source", "标记来源", "APP/录音卡"], ["marker_text", "标记文本", "用户输入/默认标记文本"], ["marker_assets", "标记附件", "系统相机/本地照片"], ["marker_photo_caption", "照片说明", "用户输入/AI 图片识别"], ["marker_caption_source", "照片说明来源", "empty/user/ai"], ["disconnect_timer_mode", "断连计时模式", "本地时钟"]],
-    rules: ["暂停后停留录音中页。", "录音过程中 App 持续从硬件接收音频分片，实时更新首页同步队列，但正式文件需等结束录音和补传完成后生成。", "结束录音后回到文件首页，在首页展示同步传送中状态；完成 CRC/时长/标记校验后新增到文件列表。", "未进入编辑状态时，录音面板底部常驻输入、拍照、标记三个核心辅助功能按钮；进入编辑后只保留原位置输入框和系统键盘，不再增加额外编辑操作栏。", "点击输入先在时间轴末尾插入原位置输入框并展示系统键盘；用户收起键盘或按回车后自动保存，空白的新输入不新增标记。", "点击标记立即新增时间标记，默认记录当前录音时间、来源 APP 与默认文本重点标记；录音卡短按标记记录来源录音卡。", "普通标记直接展示文本，不显示右侧箭头；仅文本超长时折叠并提供展开/收起。", "点击输入标记或时间标记文本进入原位置编辑；时间与来源为只读锚点，时间标记支持删除文本但保留时间锚点。", "点击拍照先唤起系统相机；拍照完成后新增照片标记，记录当前录音时间、来源 APP 和照片附件。", "照片标记展示可点击的小图预览，点击照片打开大图；右上角删除图标删除整条照片标记。", "照片下方说明默认空，点击后在原位置编辑并展示系统键盘；收起键盘或按回车自动保存，转写完成后若说明仍为空且用户未编辑，AI 可结合图片与录音内容生成说明，用户编辑内容不得被 AI 自动覆盖。", "用户点击添加标记或拍照标记时，必须记录当前录音时间戳、标记类型、来源、备注或照片附件，并随音频分片一起进入同步队列。", "录音标记必须在文件详情中形成锚点映射，例如在转写记录 05:12 对应文字右侧内嵌当时拍摄的照片或备注。", "蓝牙断连时硬件仍在本地录音，App 波形图置灰，计时器继续以手机本地时钟模拟增长。", "蓝牙断连期间显示轻微呼吸红点和文案：蓝牙已断开，硬件仍安全录音中，靠近后自动恢复同步。", "蓝牙恢复后根据硬件录音状态包校准本地模拟计时、同步偏移量和标记时间戳。"],
-    states: ["录音中", "暂停中", "输入标记原位编辑态", "编辑标记原位编辑态", "系统键盘展示态", "系统相机态", "照片标记已插入", "照片大图预览", "照片说明为空", "AI 生成照片说明", "标记文本已删除", "设备断连但仍录音", "本地模拟计时", "蓝牙恢复同步", "低电量", "存储不足"],
-    deps: ["BLE 命令包：暂停、继续、结束、添加标记。", "BLE 状态包：录音状态、电量、存储。", "BLE 分片传输：实时音频片段、偏移量、校验值。", "系统相机与照片访问权限。", "本地数据库：标记时间戳、类型、来源、文本、照片附件和照片说明。", "AI 图片识别：转写后结合照片与录音内容生成说明，接口待定义。", "同步队列：结束录音后的待补传片段。", "文件详情：转写记录锚点映射。"],
-    acceptance: ["计时、连接、电量、存储、标记和结束按钮清晰可见。", "点击暂停后按钮变为继续。", "未编辑时底部输入、拍照、标记三个按钮常驻可见；进入编辑后只展示原位置输入框和系统键盘，不出现输入/取消/完成操作栏。", "点击输入后时间轴末尾出现可实际输入的原位置输入框并展示系统键盘；收起键盘或按回车后自动保存，空白的新输入不新增。", "点击标记立即新增时间标记，并展示时间、来源 APP 和默认文本。", "录音卡标记展示来源录音卡；所有普通标记不显示右侧箭头，超长文本才出现展开/收起。", "点击输入标记和时间标记可在原位置编辑文本；时间标记可删除文本但保留时间与来源。", "点击拍照必须先表达唤起相机，拍照完成后插入带缩略图、时间和来源 APP 的照片标记。", "照片缩略图可打开大图，右上角删除图标可删除照片标记。", "照片说明默认空且可点击编辑；编辑时在照片说明原位置展示输入框和系统键盘，收起键盘或按回车自动保存；AI 说明只在转写完成且用户未编辑时生成，不覆盖用户内容。", "点击结束后必须回到文件首页并展示同步传送中状态，而不是直接静默生成文件。", "补传完成后首页文件列表必须新增本次录音。", "录音中的文字、时间和拍照标记必须能在文件详情转写记录中按时间戳定位展示。", "蓝牙断连时界面必须置灰波形、持续模拟计时并给出安全录音提示。"]
+    fields: [["record_duration", "录音时长", "BLE 状态包/本地计时"], ["record_state", "录音状态", "BLE 状态包"], ["record_state_confirmed_at", "设备状态最后确认时间", "BLE 状态包"], ["transfer_pause_reason", "传输暂停原因", "同步队列"], ["paused_acked_offset", "暂停时已确认偏移", "同步队列"], ["battery_level", "电量", "BLE 状态包"], ["storage_remaining", "存储", "BLE 状态包"], ["marker_list", "标记记录", "BLE 标记包/本地数据库"], ["marker_type", "标记类型", "输入/拍照/时间标记"], ["marker_source", "标记来源", "APP/录音卡"], ["marker_text", "标记文本", "用户输入/默认标记文本"], ["marker_assets", "标记附件", "系统相机/本地照片"], ["marker_photo_caption", "照片说明", "用户输入/AI 图片识别"], ["marker_caption_source", "照片说明来源", "empty/user/ai"], ["disconnect_timer_mode", "断连计时模式", "本地时钟"]],
+    rules: ["开始录音时先暂停 BLE、STA 或 SoftAP 音频传输并保留已确认 offset；仅在设备确认开始后进入计时录音态，确认前不切换到录音中页。", "录音期间不得传输音频，只同步控制、状态、标记和文件索引；该限制不以说明卡或提示文案打断用户。", "用户点击录音页顶部灰色区域或下滑顶部把手可最小化回文件首页；首页顶部出现可点击的录音中文件行，点击后返回录音页。", "录音期间首页隐藏同步状态条；原有未完成文件整体置灰并显示“等待传输”。用户点击这些文件或手动发起传输时，才提示：正在录音，请停止录音后再试。", "暂停后停留录音中页。", "点击结束后立即回到文件首页；结束确认和设备保存作为内部状态处理，不向用户展示 APP-REC-05 中间页面，也不恢复音频传输。", "设备确认文件保存成功后，不弹出保存文字提示；文件首页新增待传输项，设备已连接且当前未录音时立即开始传输，否则保持等待传输。", "未进入编辑状态时，录音面板底部常驻输入、拍照、标记三个核心辅助功能按钮；进入编辑后只保留原位置输入框和系统键盘，不再增加额外编辑操作栏。", "点击输入先在时间轴末尾插入原位置输入框并展示系统键盘；用户收起键盘或按回车后自动保存，空白的新输入不新增标记。", "点击标记立即新增时间标记，默认记录当前录音时间、来源 APP 与默认文本重点标记；录音卡短按标记记录来源录音卡。", "普通标记直接展示文本，不显示右侧箭头；仅文本超长时折叠并提供展开/收起。", "点击输入标记或时间标记文本进入原位置编辑；时间与来源为只读锚点，时间标记支持删除文本但保留时间锚点。", "点击拍照先唤起系统相机；拍照完成后新增照片标记，记录当前录音时间、来源 APP 和照片附件。", "照片标记展示可点击的小图预览，点击照片打开大图；右上角删除图标删除整条照片标记。", "照片下方说明默认空，点击后在原位置编辑并展示系统键盘；收起键盘或按回车后自动保存，转写完成后若说明仍为空且用户未编辑，AI 可结合图片和录音内容生成说明，用户编辑内容不得被 AI 自动覆盖。", "用户点击添加标记或拍照标记时，必须记录当前录音时间戳、标记类型、来源、备注或照片附件；标记先保存在设备侧并通过 BLE 状态同步，结束保存后随完整录音文件进入同步队列。", "录音标记必须在文件详情中形成锚点映射，例如在转写记录 05:12 对应文字右侧内嵌当时拍摄的照片或备注。", "蓝牙断连后只显示设备最后一次确认的录音状态和确认时间；App 本地计时仅作为估算，不得继续宣称设备仍安全录音。", "蓝牙恢复后根据硬件录音状态包校准录音状态、本地模拟计时和标记时间戳。"],
+    states: ["录音中", "暂停中", "最小化查看文件", "输入标记原位编辑态", "编辑标记原位编辑态", "系统键盘展示态", "系统相机态", "照片标记已插入", "照片大图预览", "照片说明为空", "AI 生成照片说明", "标记文本已删除", "连接中断状态待确认", "本地模拟计时", "蓝牙恢复后校准", "低电量", "存储不足"],
+    deps: ["BLE 命令包：开始、暂停、继续、结束、添加标记及命令响应。", "BLE 状态包：录音状态、状态版本、设备时间、电量、存储。", "系统相机与照片访问权限。", "本地数据库：标记时间戳、类型、来源、文本、照片附件和照片说明。", "AI 图片识别：转写后结合照片与录音内容生成说明，接口待定义。", "同步队列：录音开始时暂停并保存 offset，设备确认保存后恢复。", "文件详情：转写记录锚点映射。"],
+    acceptance: ["开始命令未确认时不得展示正常录音计时，也不得进入录音中页；只有设备确认开始成功后才进入录音中页。", "若开始录音前正在传输，传输立即停止且进度不回退；录音期间首页不显示同步状态条。", "录音期间不得增加任何音频 transferred bytes，也不得启动 STA 或 SoftAP。", "顶部灰色区域点击和顶部把手下滑均可最小化到文件首页；首页录音中文件行点击后返回录音页。", "最小化后原有未传输文件为置灰“等待传输”行，点击行或手动发起快传仅显示“正在录音，请停止录音后再试。”。", "计时、标记和结束按钮清晰可见，页面不展示传输暂停、传输策略或设备确认说明卡。", "点击暂停后按钮变为继续。", "未编辑时底部输入、拍照、标记三个按钮常驻可见；进入编辑后只展示原位置输入框和系统键盘，不出现输入/取消/完成操作栏。", "点击输入后时间轴末尾出现可实际输入的原位置输入框并展示系统键盘；收起键盘或按回车后自动保存，空白的新输入不新增。", "点击标记立即新增时间标记，并展示时间、来源 APP 和默认文本。", "录音卡标记展示来源录音卡；所有普通标记不显示右侧箭头，超长文本才出现展开/收起。", "点击输入标记和时间标记可在原位置编辑文本；时间标记可删除文本但保留时间与来源。", "点击拍照必须先表达唤起相机，拍照完成后插入带缩略图、时间和来源 APP 的照片标记。", "照片缩略图可打开大图，右上角删除图标可删除照片标记。", "照片说明默认空且可点击编辑；编辑时在照片说明原位置展示输入框和系统键盘，收起键盘或按回车自动保存；AI 说明只在转写完成且用户未编辑时生成，不覆盖用户内容。", "点击结束后立即回到文件首页；结束确认、设备保存和恢复传输均在后台完成，用户不进入 APP-REC-05 中间页面；保存确认成功后本次录音才加入同步队列。", "如果开始或结束确认失败，不进入或停留在录音中页；保留原有同步断点并提供可重试反馈。", "连接中断时不得把未确认状态表述为仍安全录音；重连后以设备状态校准。"]
+  },
+  {
+    id: "APP-REC-05",
+    group: "录音",
+    title: "设备保存中",
+    priority: "P0",
+    goal: "作为内部状态链路确认录音保存结果，并只在保存成功后恢复音频传输。",
+    entry: "录音中点击结束后的内部状态；实际用户直接回文件首页。",
+    prototypeActions: [["保存中", "set-record-save-state", "saving"], ["已保存", "set-record-save-state", "saved"], ["保存未确认", "set-record-save-state", "failed"]],
+    fields: [["record_save_state", "保存状态", "BLE 状态包/设备文件清单"], ["saved_file_id", "设备文件 ID", "BLE 文件清单"], ["saved_file_size", "文件大小", "BLE 文件清单"], ["saved_duration", "设备确认时长", "BLE 文件清单"], ["saved_checksum", "设备文件校验信息", "BLE 文件清单"], ["paused_acked_offset", "旧任务暂停偏移", "同步队列"]],
+    rules: ["APP-REC-05 仅作为内部保存状态链路；结束录音后用户立即回到文件首页，不进入本页。", "只有收到设备保存成功响应，并能从文件清单读取稳定 file_id、时长和大小后，才将结果记为内部已保存。", "保存成功后恢复录音前暂停的传输通道和已确认 offset；文件首页新增待传输项，设备已连接且当前未录音时立即开始传输，否则保持等待传输，不弹出保存文字提示。", "保存超时、断连或文件清单无法确认时保留内部上下文并允许重新确认；不得把未确认文件加入传输队列，也不得把内部状态直接展示为用户页面。"],
+    states: ["设备保存中", "录音已保存", "保存状态未确认", "重新确认中"],
+    deps: ["BLE 结束录音响应。", "BLE 文件清单：稳定 file_id、时长、大小和校验信息。", "同步队列：恢复旧任务并新增本次录音。"],
+    acceptance: ["结束录音后用户立即回到文件首页，设备保存期间不展示 APP-REC-05 中间页面，也不恢复音频传输。", "设备文件清单确认成功后，文件首页新增待传输项；设备已连接且当前未录音时立即开始传输，否则保持等待传输，且不弹出保存文字提示。", "旧任务从原 offset 继续，本次录音从 0% 开始，不丢失或重复已确认进度。", "保存未确认时不恢复传输、不创建本次任务，重新确认成功后才进入已保存内部状态。"]
   },
   {
     id: "APP-FILE-01",
@@ -739,11 +760,11 @@ const pages = [
     priority: "P0",
     goal: "展示 AI 笔记生成中的文件详情状态，告知用户可离开页面且不会影响生成进度。",
     entry: "转写与生成点击立即生成。",
-    fields: [["display_title", "展示标题", "文件名/云端同步数据"], ["audio_progress", "播放进度", "本地播放器"], ["marker_list", "录音标记列表", "本地数据库"], ["generation_marker_snapshot", "本次生成标记快照", "AI 生成任务"], ["generation_state", "生成状态", "AI 服务"], ["generation_hint", "生成提示", "本地文案"]],
-    rules: ["生成中页面保留同一文件详情顶部、播放器以及标记/总结两个页签。", "默认打开总结页签，显示骨架占位和生成中提示；切换标记仍可查看、定位并原位编辑已有标记，但不能新增。", "本次任务使用确认生成时冻结的标记快照；生成中修改的已有标记仅用于下次生成。", "生成完成后直接进入文件详情已转写状态。", "离开页面不影响生成进度。"],
-    states: ["总结生成中", "标记页签", "编辑标记", "生成完成", "生成失败"],
-    deps: ["AI 服务：生成状态轮询或推送。", "本地任务状态：离开页面后继续跟踪。", "本地标记数据库与生成快照。"],
-    acceptance: ["文件列表和文件详情为空点击生成都先进入转写与生成。", "生成中页结构与未生成页连续，默认打开总结并可切回标记维护。", "标记页明确说明本次生成已读取、后续修改用于下次生成。", "完成状态进入文件详情页，不再停留在生成确认页。"],
+    fields: [["display_title", "展示标题", "文件名/云端同步数据"], ["audio_progress", "播放进度", "本地播放器"], ["marker_list", "录音标记列表", "本地数据库"], ["generation_marker_snapshot", "本次生成标记快照", "AI 生成任务"], ["generation_state", "生成状态", "AI 服务"], ["generation_cancel_reason", "生成取消原因", "文件状态/AI 服务"], ["generation_hint", "生成提示", "本地文案"]],
+    rules: ["生成中页面保留同一文件详情顶部、播放器以及标记/总结两个页签。", "默认打开总结页签，显示骨架占位和生成中提示；切换标记仍可查看、定位并原位编辑已有标记，但不能新增。", "本次任务使用确认生成时冻结的标记快照；生成中修改的已有标记仅用于下次生成。", "生成完成后直接进入文件详情已转写状态。", "离开页面不影响生成进度。", "文件移入回收站或永久删除时，当前生成任务必须取消并停止；恢复文件不自动恢复已取消任务，用户可重新发起生成。"],
+    states: ["总结生成中", "标记页签", "编辑标记", "生成完成", "生成失败", "因移入回收站取消"],
+    deps: ["AI 服务：生成状态轮询、推送与取消接口。", "本地任务状态：离开页面后继续跟踪。", "本地标记数据库与生成快照。", "文件回收站状态。"],
+    acceptance: ["文件列表和文件详情为空点击生成都先进入转写与生成。", "生成中页结构与未生成页连续，默认打开总结并可切回标记维护。", "标记页明确说明本次生成已读取、后续修改用于下次生成。", "文件移入回收站后任务停止，恢复后不自动续跑。", "完成状态进入文件详情页，不再停留在生成确认页。"],
     prototypeLinks: [["生成完成", "APP-FILE-01"], ["文件详情为空", "APP-FILE-10"]]
   },
   {
@@ -857,11 +878,11 @@ const pages = [
     priority: "P0",
     goal: "在文件详情中提供移动、查找替换、重新转写、说话人命名和回收站操作。",
     entry: "文件详情右上角点击三个点。",
-    fields: [["folder_id", "目标文件夹", "本地数据库"], ["transcript_text", "转写文本", "转写服务"], ["speaker_map", "说话人命名", "本地数据库/AI"], ["trash_state", "回收站状态", "本地数据库"]],
-    rules: ["更多操作以右上角浮层展示，不占用内容区域。", "移至回收站使用红色危险操作样式。"],
+    fields: [["folder_id", "目标文件夹", "本地数据库"], ["transcript_text", "转写文本", "转写服务"], ["speaker_map", "说话人命名", "本地数据库/AI"], ["trash_state", "回收站状态", "本地数据库"], ["share_link_state", "分享链接状态", "云端分享服务"], ["generation_task_state", "生成任务状态", "AI 任务服务"]],
+    rules: ["更多操作以右上角浮层展示，不占用内容区域。", "移至回收站使用红色危险操作样式。", "确认移入回收站时同时撤销分享链接并取消当前生成任务；本端立即更新，其他终端在联网同步后应用相同结果。"],
     states: ["默认", "移动文件夹", "查找替换", "重新转写", "说话人命名", "移至回收站"],
     deps: ["本地文件夹。", "转写服务。", "本地数据库回收站。"],
-    acceptance: ["更多浮层包含五个操作，危险操作视觉明确。"]
+    acceptance: ["更多浮层包含五个操作，危险操作视觉明确。", "确认移入回收站后，分享访问与生成任务均不可继续。"]
   },
   {
     id: "APP-FILE-16",
@@ -922,8 +943,8 @@ const pages = [
     priority: "P0",
     goal: "生成文件分享链接，并选择链接中包含的内容与有效期。",
     entry: "分享弹窗点击分享链接。",
-    fields: [["share_scope", "包含内容", "用户选择"], ["link_expire_at", "链接有效期", "用户选择"], ["share_preview", "分享预览", "转写/总结"], ["share_url", "分享链接", "云端分享"]],
-    rules: ["默认包含全部内容。", "默认链接永久有效。", "点击包含内容进入查看权限弹窗。", "点击链接有效期进入有效期选择弹窗。", "点击分享链接按钮后进入已生成分享链接页面。"],
+    fields: [["share_scope", "包含内容", "用户选择"], ["link_expire_at", "链接有效期", "用户选择"], ["share_preview", "分享预览", "转写/总结"], ["share_url", "分享链接", "云端分享"], ["share_link_state", "链接可访问状态", "云端分享服务"]],
+    rules: ["默认包含全部内容。", "默认链接永久有效。", "点击包含内容进入查看权限弹窗。", "点击链接有效期进入有效期选择弹窗。", "点击分享链接按钮后进入已生成分享链接页面。", "文件移入回收站后链接立即撤销；恢复文件时，如链接未过期且未主动移除，原链接恢复访问。永久删除后链接不可恢复。"],
     states: ["默认", "选择内容", "生成中", "已生成"],
     deps: ["云端分享链接生成。", "内容权限配置。"],
     acceptance: ["分享链接页包含说明、包含内容入口、链接有效期入口、预览卡和分享链接主按钮。"]
@@ -948,11 +969,11 @@ const pages = [
     priority: "P0",
     goal: "展示已生成的分享链接，并允许继续调整包含内容和链接有效期。",
     entry: "分享链接页点击分享链接按钮生成成功后。",
-    fields: [["share_scope", "包含内容", "用户选择"], ["link_expire_at", "链接有效期", "用户选择"], ["share_url", "分享链接", "云端分享"]],
-    rules: ["生成后保留包含内容和有效期设置入口。", "点击选择包含内容进入查看权限弹窗。", "点击链接有效期进入有效期选择弹窗。", "移除链接后回到文件详情。"],
-    states: ["已生成", "复制链接", "移除链接", "更新权限", "更新有效期"],
-    deps: ["云端分享链接生成与更新。"],
-    acceptance: ["已生成分享链接页展示可复制链接、包含内容、有效期和移除链接入口。"]
+    fields: [["share_scope", "包含内容", "用户选择"], ["link_expire_at", "链接有效期", "用户选择"], ["share_url", "分享链接", "云端分享"], ["share_link_state", "链接可访问状态", "云端分享服务"]],
+    rules: ["生成后保留包含内容和有效期设置入口。", "点击选择包含内容进入查看权限弹窗。", "点击链接有效期进入有效期选择弹窗。", "移除链接后回到文件详情。", "文件移入回收站时立即撤销链接，公开访问返回文件不可用；恢复时仅恢复未过期且未主动移除的原链接，永久删除后任何历史链接均不可访问。"],
+    states: ["已生成", "复制链接", "链接已因回收站失效", "移除链接", "更新权限", "更新有效期"],
+    deps: ["云端分享链接生成、更新、撤销与恢复。"],
+    acceptance: ["已生成分享链接页展示可复制链接、包含内容、有效期和移除链接入口。", "文件移入回收站后原链接立即不可访问；恢复和永久删除遵循链接状态规则。"]
   },
   {
     id: "APP-FILE-21",
@@ -1352,10 +1373,10 @@ const pages = [
     goal: "开启和管理私有云同步、Wi-Fi 同步策略、云端存储空间与云端录音删除。",
     entry: "我的页点击私有云同步。",
     fields: [["cloud_sync_enabled", "私有云同步", "云端账号"], ["wifi_only_sync", "仅 Wi-Fi 同步", "本地设置"], ["cloud_storage_usage", "云端存储占用", "云端文件"], ["delete_cloud_recordings", "删除云端录音", "云端文件"]],
-    rules: ["开启私有云同步后自动备份数据，支持 App 与 Web 多端同步。", "仅 Wi-Fi 同步为从属开关，未开启云同步时不可用。", "管理存储空间进入本地缓存清理页。", "删除云端录音进入危险操作确认链路。"],
-    states: ["云同步开启", "Wi-Fi 同步关闭", "管理存储", "删除云端录音"],
+    rules: ["开启私有云同步后自动备份数据，支持 App 与 Web 多端同步。", "仅 Wi-Fi 同步为从属开关，未开启云同步时不可用。", "开启时，首页可显示等待同步云端或同步云端中；关闭后首页不显示任何云端上传状态。", "管理存储空间进入本地缓存清理页。", "删除云端录音进入危险操作确认链路。"],
+    states: ["云同步开启", "云同步关闭", "Wi-Fi 同步关闭", "管理存储", "删除云端录音"],
     deps: ["云端账号：同步开关与云端容量。", "本地缓存：已同步录音体积。"],
-    acceptance: ["私有云同步页样式参考截图。", "管理存储空间和删除云端录音入口可点击。"]
+    acceptance: ["私有云同步开关可点击并即时更新我的页与首页文件状态。", "关闭后首页不展示等待/上传云端状态，已落盘本地文件仍可打开。", "管理存储空间和删除云端录音入口可点击。"]
   },
   {
     id: "APP-ME-06",
@@ -1376,12 +1397,12 @@ const pages = [
     title: "清理 App 存储空间",
     priority: "P1",
     goal: "确认是否清理已同步录音的本地缓存。",
-    entry: "优化 App 储存空间页点击清理 App 存储空间。",
-    fields: [["clear_scope", "清理范围", "本地缓存"], ["confirm_action", "确认清理", "用户操作"]],
-    rules: ["只清理已同步到云端的本地录音。", "清理后用户可重新下载。", "取消返回管理存储空间页。"],
-    states: ["待确认", "取消", "确认清理"],
+    entry: "优化 App 储存空间页或首页手机空间不足弹窗点击清理 App 存储空间。",
+    fields: [["clear_scope", "清理范围", "本地缓存"], ["phone_storage_available", "手机可用空间", "系统存储检查"], ["confirm_action", "确认清理", "用户操作"]],
+    rules: ["只清理已同步到云端的本地录音。", "首页空间不足弹窗进入本页不代表已经释放足够空间，清理后仍需重新检测可用空间。", "清理后用户可重新下载。", "取消返回管理存储空间页。"],
+    states: ["待确认", "首页空间不足入口", "取消", "确认清理", "空间复检待续传"],
     deps: ["本地缓存。"],
-    acceptance: ["确认弹窗文案和按钮参考截图。"]
+    acceptance: ["首页空间不足弹窗点击清理入口可进入本页。", "确认弹窗文案和按钮参考截图。", "清理完成不得直接将暂停任务标记为已传到手机；空间复检通过后才允许续传。"]
   },
   {
     id: "APP-ME-13",
@@ -1911,7 +1932,14 @@ let askPlaudSourcePlayingIndex = null;
 let deviceSnTipOpen = false;
 let homeSyncStage = "finishing";
 let homeSyncTransport = new URLSearchParams(window.location.search).get("sync") === "hotspot" ? "hotspot" : "ble";
+let homeSyncTransportBeforeRecording = homeSyncTransport;
+let homeSyncPausedByRecording = false;
 let homeSyncBatchSerial = 1;
+let cloudSyncEnabled = true;
+let homeConnectionPhase = "connected";
+let homeConnectionTimer = null;
+let homeStorageShortagePromptOpen = false;
+let homeStorageShortagePromptDismissed = false;
 function createDefaultHomeSyncQueue() {
   return [
     { id: "sync-01", title: "Design workshop", size: 18, transferred: 18, status: "completed" },
@@ -1942,8 +1970,8 @@ let homePriorityNotice = "";
 let homePriorityNoticeTimer = null;
 let homePriorityLongPressTimer = null;
 const defaultHomeFileItems = [
-  { id: "home-file-board", name: "Board meeting", meta: "今天 14:20 · 01:12:17 · 3 个标记", source: "硬件录音", state: "未转写", tone: "amber", go: "APP-FILE-10", generationState: "untranscribed" },
-  { id: "home-file-interview", name: "Interview import", meta: "昨天 19:10 · 00:34:02", source: "导入文件", state: "AI 已生成", tone: "green", go: "APP-FILE-01", generationState: "generated" },
+  { id: "home-file-board", name: "Board meeting", meta: "今天 14:20 · 01:12:17 · 3 个标记", source: "硬件录音", state: "未转写", tone: "amber", go: "APP-FILE-10", generationState: "untranscribed", cloudState: "waiting" },
+  { id: "home-file-interview", name: "Interview import", meta: "昨天 19:10 · 00:34:02", source: "导入文件", state: "AI 已生成", tone: "green", go: "APP-FILE-01", generationState: "generated", cloudState: "uploading" },
   { id: "home-file-review", name: "Product review", meta: "07-04 · 00:26:44 · 2 个标记", source: "导入文件", state: "未转写", tone: "amber", go: "APP-FILE-10", generationState: "untranscribed" }
 ];
 let homeFileItems = defaultHomeFileItems.map((item) => ({ ...item }));
@@ -1970,6 +1998,11 @@ let firmwareJoinPromptOpen = false;
 let firmwareUpdateTimer = null;
 let firmwareRetryAtConnection = false;
 let syncPrototypeTimer = null;
+let recordingLifecycleState = currentPageId === "APP-REC-04" ? "recording" : "idle";
+let recordingSaveState = currentPageId === "APP-REC-05" ? "saving" : "idle";
+let recordingLifecycleTimer = null;
+let recordingTransferNotice = "";
+let recordingMinimizePointer = null;
 let deviceRecordingActive = currentPageId === "APP-REC-04";
 let deviceNameDraft = "";
 let deviceNameError = "";
@@ -2074,6 +2107,71 @@ function clearDeviceDangerState() {
 
 function getActiveHomeDevice() {
   return boundHomeDevices.find((device) => device.id === activeHomeDeviceId) || boundHomeDevices[0] || null;
+}
+
+function clearHomeConnectionTimer() {
+  if (!homeConnectionTimer) return;
+  window.clearTimeout(homeConnectionTimer);
+  homeConnectionTimer = null;
+}
+
+function pauseHomeSyncForConnectionLoss() {
+  homeSyncQueue.forEach((task) => {
+    if (task.status === "syncing") task.status = "paused_connection";
+  });
+}
+
+function resumeHomeSyncAfterConnection() {
+  const pausedTask = homeSyncQueue.find((task) => task.status === "paused_connection");
+  if (pausedTask) pausedTask.status = "syncing";
+  else {
+    const nextTask = homeSyncQueue.find((task) => task.status === "pending");
+    if (nextTask) nextTask.status = "syncing";
+  }
+  if (homeSyncQueue.some((task) => ["syncing", "pending"].includes(task.status))) homeSyncStage = "finishing";
+}
+
+function setHomeConnectionState(state) {
+  clearHomeConnectionTimer();
+  const activeDevice = getActiveHomeDevice();
+  if (!activeDevice) return;
+  if (state === "disconnected") {
+    activeDevice.connected = false;
+    activeDevice.status = "未连接";
+    activeDevice.detail = "等待重新连接";
+    activeDevice.sync = "等待连接";
+    homeConnectionPhase = "disconnected";
+    pauseHomeSyncForConnectionLoss();
+    return;
+  }
+  if (state === "connecting") {
+    activeDevice.connected = false;
+    activeDevice.status = "连接中";
+    activeDevice.detail = "正在重新连接";
+    activeDevice.sync = "等待连接";
+    homeConnectionPhase = "connecting";
+    pauseHomeSyncForConnectionLoss();
+    return;
+  }
+  activeDevice.connected = true;
+  activeDevice.status = "已连接";
+  activeDevice.detail = activeDevice.battery === "--" ? "电量 76% · 存储 10.2G" : `电量 ${activeDevice.battery} · 存储 ${activeDevice.storageText}`;
+  activeDevice.sync = "同步中";
+  activeDevice.lastSync = "刚刚";
+  homeConnectionPhase = "connected";
+  resumeHomeSyncAfterConnection();
+}
+
+function beginHomeConnectionRecovery() {
+  const activeDevice = getActiveHomeDevice();
+  if (!activeDevice || homeConnectionPhase === "connecting") return;
+  setHomeConnectionState("connecting");
+  render();
+  homeConnectionTimer = window.setTimeout(() => {
+    homeConnectionTimer = null;
+    setHomeConnectionState("connected");
+    if (currentPageId === "APP-HOME-01") render();
+  }, 900);
 }
 
 function openDeviceDangerAction(action) {
@@ -2210,7 +2308,10 @@ function go(id) {
     askPlaudSourceIndex = null;
     askPlaudSourcePlayingIndex = null;
   }
-  if (currentPageId === "APP-REC-04") deviceRecordingActive = true;
+  if (currentPageId === "APP-REC-04" && recordingLifecycleState === "idle") {
+    recordingLifecycleState = "recording";
+    deviceRecordingActive = true;
+  }
   if (currentPageId === "APP-DEV-11" && previousPageId !== "APP-DEV-11") {
     const activeDevice = boundHomeDevices.find((device) => device.id === activeHomeDeviceId) || boundHomeDevices[0];
     deviceNameDraft = activeDevice.name;
@@ -2226,6 +2327,9 @@ function go(id) {
   }
   if (currentPageId === "APP-REC-02" && previousPageId !== "APP-REC-02") {
     recordMode = "auto";
+  }
+  if (currentPageId === "APP-HOME-01" && isHomeStorageBlocked() && !homeStorageShortagePromptDismissed) {
+    homeStorageShortagePromptOpen = true;
   }
   if (currentPageId === "APP-ME-41" && previousPageId !== "APP-ME-41") {
     changePasswordCurrent = "";
@@ -2332,7 +2436,120 @@ function persistQuickRecordPreference() {
 
 function openRecordEntry({ longPress = false } = {}) {
   recordMode = "auto";
-  go(longPress || !quickRecordEnabled ? "APP-REC-02" : "APP-REC-04");
+  if (isHomeStorageBlocked()) {
+    openHomeStorageShortagePrompt();
+    return;
+  }
+  if (["recording", "paused"].includes(recordingLifecycleState)) {
+    go("APP-REC-04");
+    return;
+  }
+  if (["starting", "ending", "saving"].includes(recordingLifecycleState)) return;
+  if (longPress || !quickRecordEnabled) {
+    go("APP-REC-02");
+    return;
+  }
+  beginRecordingSession();
+}
+
+function clearRecordingLifecycleTimer() {
+  if (!recordingLifecycleTimer) return;
+  window.clearTimeout(recordingLifecycleTimer);
+  recordingLifecycleTimer = null;
+}
+
+function recordingBlocksAudioTransfer() {
+  return ["starting", "recording", "paused", "ending", "saving"].includes(recordingLifecycleState)
+    || recordingSaveState === "saving";
+}
+
+function pauseHomeSyncForRecording() {
+  if (homeSyncStage === "paused_recording") {
+    homeSyncPausedByRecording = true;
+    return true;
+  }
+  const activeTask = homeSyncQueue.find((task) => task.status === "syncing");
+  const hasUnfinishedTransfer = homeSyncStage === "finishing"
+    && homeSyncQueue.some((task) => task.status === "syncing" || task.status === "pending");
+  if (!hasUnfinishedTransfer) {
+    homeSyncPausedByRecording = false;
+    return false;
+  }
+  homeSyncTransportBeforeRecording = homeSyncTransport;
+  if (activeTask) activeTask.status = "paused_recording";
+  homeSyncStage = "paused_recording";
+  homeSyncPausedByRecording = true;
+  return true;
+}
+
+function beginRecordingSession() {
+  if (isHomeStorageBlocked()) {
+    openHomeStorageShortagePrompt();
+    return false;
+  }
+  clearRecordingLifecycleTimer();
+  pauseHomeSyncForRecording();
+  recordPaused = false;
+  recordingLifecycleState = "starting";
+  recordingSaveState = "idle";
+  deviceRecordingActive = false;
+  recordingTransferNotice = "";
+  render();
+  recordingLifecycleTimer = window.setTimeout(() => {
+    recordingLifecycleTimer = null;
+    if (recordingLifecycleState !== "starting") return;
+    recordingLifecycleState = "recording";
+    deviceRecordingActive = true;
+    go("APP-REC-04");
+  }, 650);
+  return true;
+}
+
+function beginRecordingSave() {
+  if (!["recording", "paused"].includes(recordingLifecycleState)) return;
+  completeRecordingEditor();
+  clearRecordingLifecycleTimer();
+  recordingEditor = null;
+  recordingCameraOpen = false;
+  recordingPhotoViewerId = "";
+  recordingLifecycleState = "ending";
+  recordingSaveState = "saving";
+  deviceRecordingActive = true;
+  go("APP-HOME-01");
+  recordingLifecycleTimer = window.setTimeout(() => {
+    recordingLifecycleTimer = null;
+    if (recordingLifecycleState !== "ending") return;
+    recordingLifecycleState = "saving";
+    recordingLifecycleTimer = window.setTimeout(() => {
+      recordingLifecycleTimer = null;
+      if (recordingSaveState !== "saving") return;
+      confirmRecordingSaved();
+    }, 900);
+  }, 650);
+}
+
+function confirmRecordingSaved() {
+  clearRecordingLifecycleTimer();
+  recordingLifecycleState = "saved";
+  recordingSaveState = "saved";
+  deviceRecordingActive = false;
+  if (showcasePreset) {
+    render();
+    return;
+  }
+  resumeHomeSyncAfterRecordingSave();
+}
+
+function retryRecordingSaveConfirmation() {
+  clearRecordingLifecycleTimer();
+  recordingLifecycleState = "saving";
+  recordingSaveState = "saving";
+  render();
+  recordingLifecycleTimer = window.setTimeout(() => {
+    recordingLifecycleTimer = null;
+    if (currentPageId !== "APP-REC-05" || recordingSaveState !== "saving") return;
+    confirmRecordingSaved();
+  }, 900);
 }
 
 function clearRecordFabLongPressTimer() {
@@ -2398,14 +2615,62 @@ function getHomeVisibleFileItems() {
   return [...saved, ...homeFileItems];
 }
 
+function isHomeStorageBlocked() {
+  return homeSyncQueue.some((task) => task.status === "storage_blocked");
+}
+
+function openHomeStorageShortagePrompt() {
+  if (!isHomeStorageBlocked()) return false;
+  closeHomePriorityMenu();
+  homeStorageShortagePromptOpen = true;
+  homeStorageShortagePromptDismissed = false;
+  if (currentPageId === "APP-HOME-01") render();
+  return true;
+}
+
+function closeHomeStorageShortagePrompt() {
+  homeStorageShortagePromptOpen = false;
+  homeStorageShortagePromptDismissed = true;
+  if (currentPageId === "APP-HOME-01") render();
+}
+
+function renderHomeStorageShortagePrompt() {
+  if (!homeStorageShortagePromptOpen) return "";
+  return `
+    <div class="scrim home-storage-shortage-scrim" data-action="close-home-storage-shortage"></div>
+    <section class="home-storage-shortage-sheet" role="dialog" aria-modal="true" aria-labelledby="homeStorageShortageTitle">
+      <div class="handle" aria-hidden="true"></div>
+      <h2 id="homeStorageShortageTitle">手机存储空间不足</h2>
+      <p>AI录音卡需要至少 700 MB 可用空间，才能继续录音或传输。</p>
+      <section class="home-storage-system-guidance" aria-label="清理手机存储空间提示">
+        <b>清理手机存储空间</b>
+        <small>可在「系统设置 ＞ 通用 ＞ iPhone 储存空间」清理</small>
+      </section>
+      <button class="home-storage-clean-row" data-action="open-home-storage-cleanup">
+        <span><b>清理 AI录音卡 App 存储空间</b><small>仅清理已同步至云端的本地录音，你可随时重新下载</small></span>
+        <i aria-hidden="true">›</i>
+      </button>
+    </section>
+  `;
+}
+
 function fileCard(file) {
-  const disabled = file.transferState === "syncing" || file.transferState === "pending";
+  const blockedByRecording = Boolean(file.blockedByRecording);
+  const blockedByConnection = Boolean(file.blockedByConnection);
+  const blockedByStorage = Boolean(file.blockedByStorage) || file.transferState === "storage_blocked";
+  const disabled = ["syncing", "pending", "paused", "paused_connection", "storage_blocked"].includes(file.transferState) || blockedByRecording || blockedByConnection || blockedByStorage;
   const fileId = file.homeFile ? (file.fileId || file.id || "") : "";
   const selectionActive = Boolean(fileId && homeFileSelectionMode);
   const selected = selectionActive && selectedHomeFileIds.has(fileId);
   const statusNode = disabled
-    ? file.transferState === "pending" && file.taskId
-      ? `<div class="file-transfer-status-wrap ${homePriorityMenuTaskId === file.taskId ? "menu-open" : ""}">
+    ? blockedByRecording
+      ? `<button class="file-transfer-status file-transfer-status-action recording-blocked-transfer" data-action="request-home-transfer-while-recording" aria-label="${h(file.name)}，等待传输，正在录音时不可传输"><span role="status">${h(file.statusText || "等待传输")}</span></button>`
+      : blockedByStorage
+        ? `<button class="file-transfer-status file-transfer-status-action storage-blocked-transfer" data-action="open-home-storage-shortage" aria-label="${h(file.name)}，${h(file.statusText || "等待释放空间")}，打开手机存储空间不足提示"><span role="status">${h(file.statusText || "等待释放空间")}</span></button>`
+      : blockedByConnection
+        ? `<div class="file-transfer-status"><span role="status">${h(file.statusText || "等待连接")}</span></div>`
+      : file.transferState === "pending" && file.taskId
+        ? `<div class="file-transfer-status-wrap ${homePriorityMenuTaskId === file.taskId ? "menu-open" : ""}">
           <button class="file-transfer-status file-transfer-status-action ${file.isPriority ? "prioritized" : ""}" data-action="open-home-priority-menu" data-task-id="${h(file.taskId)}" aria-haspopup="dialog" aria-expanded="${homePriorityMenuTaskId === file.taskId ? "true" : "false"}" aria-label="${h(file.name)}，${file.isPriority ? "已优先" : "等待传输"}，点击查看传输顺序操作">
             <span role="status" aria-live="polite">${h(file.isPriority ? "已优先" : file.statusText)}</span>
           </button>
@@ -2415,10 +2680,14 @@ function fileCard(file) {
     : file.errorText
       ? `<button class="file-card-recovery" ${file.actionKey ? `data-action="${h(file.actionKey)}"` : `data-go="${file.go}"`} aria-label="${h(file.errorText)}，${h(file.action)}"><span>${h(file.errorText)}</span><b aria-hidden="true">·</b><strong>${h(file.action)}</strong></button>`
       : "";
+  const cloudStatus = cloudSyncEnabled && ["waiting", "uploading"].includes(file.cloudState)
+    ? `<span class="file-cloud-state ${h(file.cloudState)}" role="status">${file.cloudState === "uploading" ? '<em class="sync-state-spinner" aria-hidden="true"></em>' : '<i aria-hidden="true">☁</i>'}<b>${file.cloudState === "uploading" ? "同步云端中" : "等待同步云端"}</b></span>`
+    : "";
   const copy = `
     <span class="home-file-copy">
       <p class="file-name">${h(file.name)}</p>
       <span class="file-meta">${h(file.meta)}</span>
+      ${cloudStatus}
       <span class="file-tags">${chip(file.source, file.source === "硬件录音" ? "blue" : "purple")}${file.state ? chip(file.state, file.tone) : ""}</span>
     </span>
   `;
@@ -2426,16 +2695,39 @@ function fileCard(file) {
   const main = selectionActive
     ? `<button class="file-card-main home-file-selection-target" data-action="toggle-home-file-selection" data-file-id="${h(fileId)}" aria-pressed="${selected ? "true" : "false"}" aria-label="${selected ? "取消选择" : "选择"}${h(file.name)}">${content}</button>`
     : `<button class="file-card-main" data-go="${h(file.go)}" data-file-id="${h(fileId)}" aria-label="打开${h(file.name)}详情">${content}</button>`;
+  const blockedContent = blockedByStorage
+    ? `<button class="file-card-main file-transfer-blocked-main" data-action="open-home-storage-shortage" aria-label="${h(file.name)}，手机存储空间不足，打开空间清理提示">${content}</button>`
+    : blockedByRecording
+    ? `<button class="file-card-main file-transfer-blocked-main" data-action="request-home-transfer-while-recording" aria-label="${h(file.name)}，等待传输，正在录音时不可传输">${content}</button>`
+    : content;
   return `
     <div class="file-card ${file.featured ? "featured" : ""} ${disabled ? `file-card-transfer-disabled ${file.transferState}` : ""} ${file.errorText ? "file-card-has-recovery" : ""} ${fileId ? "home-file-card" : ""}"${fileId ? ` data-file-id="${h(fileId)}"` : ""}${file.transferState === "syncing" ? ' aria-disabled="true"' : ""}>
-      ${disabled || file.errorText ? `${content}${statusNode}` : fileId && !selectionActive ? `<div class="home-file-swipe-shell">${main}</div>` : main}
+      ${disabled || file.errorText ? `${blockedContent}${statusNode}` : fileId && !selectionActive ? `<div class="home-file-swipe-shell">${main}</div>` : main}
     </div>
   `;
 }
 
+function renderHomeRecordingEntry() {
+  if (!recordingBlocksAudioTransfer() || !["recording", "paused"].includes(recordingLifecycleState)) return "";
+  const isPaused = recordingLifecycleState === "paused" || recordPaused;
+  const label = isPaused ? "录音已暂停" : "正在录音";
+  const duration = isPaused ? "00:00:38" : "00:00:37";
+  return `
+    <article class="home-recording-entry">
+      <button data-action="return-to-recording" aria-label="${h(label)}，返回录音页面">
+        <span class="home-recording-wave" aria-hidden="true">${waveHeights.slice(0, 8).map((height) => `<i style="height:${Math.max(5, Math.round(height * .55))}px"></i>`).join("")}</span>
+        <span><b>${h(label)}</b><small>${h(duration)}</small></span>
+      </button>
+    </article>
+  `;
+}
+
 function renderHomeTransferFileCards() {
-  if (homeSyncStage !== "finishing") return "";
-  const activeTask = homeSyncQueue.find((task) => task.status === "syncing");
+  if (!["finishing", "paused_recording"].includes(homeSyncStage)) return "";
+  const blockedByRecording = recordingBlocksAudioTransfer() && homeSyncStage === "paused_recording";
+  const connectionUnavailable = !getActiveHomeDevice()?.connected || homeConnectionPhase === "connecting";
+  const activeTask = homeSyncQueue.find((task) => ["syncing", "paused_recording", "paused_connection", "storage_blocked"].includes(task.status));
+  const blockedByStorage = activeTask?.status === "storage_blocked";
   const pendingTasks = homeSyncQueue.filter((task) => task.status === "pending");
   const pendingMeta = [
     "今天 09:20 · 00:28:14",
@@ -2452,8 +2744,11 @@ function renderHomeTransferFileCards() {
       name: activeTask.title,
       meta: "刚刚 · 00:43:52",
       source: "硬件录音",
-      transferState: "syncing",
-      statusText: `正在传输… ${homeSyncTaskPercent(activeTask)}%`
+      transferState: activeTask.status,
+      statusText: blockedByRecording ? "等待传输" : activeTask.status === "storage_blocked" ? "等待释放空间" : connectionUnavailable || activeTask.status === "paused_connection" ? "等待连接" : `正在传输… ${homeSyncTaskPercent(activeTask)}%`,
+      blockedByRecording,
+      blockedByStorage,
+      blockedByConnection: connectionUnavailable || activeTask.status === "paused_connection"
     }) : "",
     ...pendingTasks.slice(0, 3).map((task, index) => fileCard({
       name: task.title,
@@ -2462,7 +2757,10 @@ function renderHomeTransferFileCards() {
       transferState: "pending",
       statusText: "等待传输",
       taskId: task.id,
-      isPriority: Boolean(task.priority)
+      isPriority: Boolean(task.priority),
+      blockedByRecording,
+      blockedByStorage,
+      blockedByConnection: connectionUnavailable
     }))
   ].join("");
 }
@@ -2475,10 +2773,12 @@ function showHomeFileNotice(message) {
     homeFileNotice = "";
     if (currentPageId === "APP-HOME-01") render();
   }, 1800);
+  if (currentPageId === "APP-HOME-01") render();
 }
 
 function homeHasTransferRows() {
-  return homeSyncStage === "finishing" && homeSyncQueue.some((task) => ["syncing", "pending"].includes(task.status));
+  return ["finishing", "paused_recording"].includes(homeSyncStage)
+    && homeSyncQueue.some((task) => ["syncing", "paused_recording", "paused_connection", "storage_blocked", "pending"].includes(task.status));
 }
 
 function renderHomeEmptyState(filtered = false) {
@@ -2627,6 +2927,14 @@ function clearHomePriorityLongPressTimer() {
 }
 
 function openHomePriorityMenu(taskId, focusAction = false) {
+  if (isHomeStorageBlocked()) {
+    openHomeStorageShortagePrompt();
+    return;
+  }
+  if (recordingBlocksAudioTransfer()) {
+    showHomeFileNotice("正在录音，请停止录音后再试。");
+    return;
+  }
   const task = homeSyncQueue.find((item) => item.id === taskId && item.status === "pending");
   if (!task || currentPageId !== "APP-HOME-01") return;
   clearHomePriorityMenuTimer();
@@ -2716,7 +3024,11 @@ function homeSyncTaskPercent(task) {
 }
 
 function shouldShowHomeSyncStatus() {
-  return homeSyncStage === "finishing" && homeSyncQueue.length > 0;
+  return homeSyncStage === "finishing"
+    && !recordingBlocksAudioTransfer()
+    && Boolean(getActiveHomeDevice()?.connected)
+    && homeConnectionPhase === "connected"
+    && homeSyncQueue.length > 0;
 }
 
 function renderHomeSyncModule(stage = homeSyncStage) {
@@ -2741,7 +3053,7 @@ function renderHomeSyncModule(stage = homeSyncStage) {
       </div>
       ${homeSyncTransport === "hotspot"
         ? `<button class="sync-mini-switch end-fast" data-action="end-home-fast-transfer">结束快传</button>`
-        : `<button class="sync-mini-switch" data-go="APP-SYNC-01">快传</button>`}
+        : `<button class="sync-mini-switch" data-action="request-home-fast-transfer">快传</button>`}
       <div class="sync-mini-progress" aria-hidden="true"><b style="width:${stats.percent}%"></b></div>
       ${homeSyncTransport === "hotspot" ? `
         <div class="sync-mini-boost" role="status">
@@ -2755,8 +3067,17 @@ function renderHomeSyncModule(stage = homeSyncStage) {
 
 function startHomeFastTransfer() {
   homeDeviceAdded = true;
+  if (isHomeStorageBlocked()) {
+    openHomeStorageShortagePrompt();
+    return false;
+  }
+  if (recordingBlocksAudioTransfer()) {
+    showHomeFileNotice("正在录音，请停止录音后再试。");
+    return;
+  }
   if (homeSyncStage !== "finishing" || !homeSyncQueue.length) resetMultiHomeSyncBatch();
   homeSyncTransport = "hotspot";
+  return true;
 }
 
 function endHomeFastTransfer() {
@@ -2788,11 +3109,43 @@ function completeCurrentHomeSyncTask() {
   }
 }
 
+function resumeHomeSyncAfterRecordingSave() {
+  clearRecordingLifecycleTimer();
+  const canResumeTransfer = Boolean(getActiveHomeDevice()?.connected)
+    && recordingLifecycleState === "saved"
+    && recordingSaveState === "saved";
+  const pausedTask = homeSyncQueue.find((task) => task.status === "paused_recording");
+  if (pausedTask) pausedTask.status = canResumeTransfer ? "syncing" : "pending";
+  let activeTask = canResumeTransfer ? homeSyncQueue.find((task) => task.status === "syncing") : null;
+  homeSyncBatchSerial += 1;
+  const savedRecordingTask = {
+    id: `sync-recording-${homeSyncBatchSerial}`,
+    title: "刚刚的录音",
+    size: 22,
+    transferred: 0,
+    status: "pending"
+  };
+  const activeIndex = activeTask ? homeSyncQueue.indexOf(activeTask) : -1;
+  if (activeIndex >= 0) homeSyncQueue.splice(activeIndex + 1, 0, savedRecordingTask);
+  else homeSyncQueue.push(savedRecordingTask);
+  if (canResumeTransfer && !activeTask) {
+    activeTask = homeSyncQueue.find((task) => task.status === "pending");
+    if (activeTask) activeTask.status = "syncing";
+  }
+  homeSyncTransport = homeSyncPausedByRecording ? homeSyncTransportBeforeRecording : "ble";
+  homeSyncStage = "finishing";
+  recordingLifecycleState = "idle";
+  recordingSaveState = "idle";
+  recordingTransferNotice = "";
+  homeSyncPausedByRecording = false;
+  go("APP-HOME-01");
+}
+
 function startSingleHomeSyncBatch() {
   closeHomePriorityMenu();
   homeDeviceAdded = true;
   homeSyncBatchSerial += 1;
-  homeSyncQueue = [{ id: `sync-new-${homeSyncBatchSerial}`, title: "New field interview", size: 22, transferred: 7.6, status: "syncing" }];
+  homeSyncQueue = [{ id: `sync-new-${homeSyncBatchSerial}`, title: "New field interview", size: 22, transferred: 0, status: "syncing" }];
   homeSyncStage = "finishing";
 }
 
@@ -2811,6 +3164,34 @@ function showNoHomeSyncTasks() {
   homeSyncQueue = [];
   homeFailedFileState = "failed";
   homeSyncStage = "idle";
+}
+
+function setHomeCloudDemoState(state) {
+  homeDeviceAdded = true;
+  homeSyncQueue = [];
+  homeSyncStage = "idle";
+  homeFailedFileState = "idle";
+  cloudSyncEnabled = state !== "disabled";
+  homeFileItems = defaultHomeFileItems.map((file, index) => ({
+    ...file,
+    cloudState: state === "phone-ready" || state === "disabled"
+      ? undefined
+      : index === 0 ? state : undefined
+  }));
+}
+
+function setHomeSyncRecoveryState(state) {
+  const activeDevice = getActiveHomeDevice();
+  if (!activeDevice) return;
+  setHomeConnectionState("connected");
+  homeSyncQueue = createDefaultHomeSyncQueue();
+  homeFailedFileState = "idle";
+  homeSyncStage = "finishing";
+  const activeTask = homeSyncQueue.find((task) => task.status === "syncing");
+  if (!activeTask) return;
+  activeTask.status = state === "storage-blocked" ? "storage_blocked" : "syncing";
+  homeStorageShortagePromptOpen = state === "storage-blocked";
+  homeStorageShortagePromptDismissed = false;
 }
 
 function showNoHomeDevice() {
@@ -3318,15 +3699,19 @@ function renderDeviceUnbindHelp() {
 
 function renderHomeContent({ showSync = true } = {}) {
   const activeDevice = boundHomeDevices.find((device) => device.id === activeHomeDeviceId) || boundHomeDevices[0];
-  const canShowDeviceSync = homeDeviceAdded && showSync;
+  const connectionState = homeConnectionPhase === "connecting" && !activeDevice.connected
+    ? "connecting"
+    : activeDevice.connected ? "connected" : "disconnected";
+  const canShowDeviceSync = homeDeviceAdded && showSync && connectionState === "connected";
   const visibleFiles = getHomeVisibleFileItems();
   const hasFailedFile = homeFailedFileState === "failed" || homeFailedFileState === "retrying";
   const showEmpty = !visibleFiles.length && !homeHasTransferRows() && !hasFailedFile;
   return `
     ${homeDeviceAdded ? `<section class="home-device-switcher ${homeDeviceMenuOpen ? "open" : ""}" aria-label="设备状态">
-      <button class="home-device-button" data-go="APP-DEV-03" aria-label="进入 AI Recorder A1 设备详情">
-        <span class="home-device-online ${activeDevice.connected ? "connected" : "disconnected"}"></span>
+      <button class="home-device-button ${connectionState}" ${connectionState === "connected" ? 'data-go="APP-DEV-03"' : 'data-action="recover-home-device-connection"'} aria-label="${connectionState === "connected" ? `进入 ${h(activeDevice.name)} 设备详情` : connectionState === "connecting" ? `${h(activeDevice.name)} 正在连接` : `连接 ${h(activeDevice.name)}`}">
+        <span class="home-device-online ${connectionState}"></span>
         <span class="home-device-glyph"><i></i></span>
+        ${connectionState === "connecting" ? '<span class="home-device-connection-spinner" aria-hidden="true"></span>' : ""}
       </button>
       <button class="home-device-toggle" data-action="toggle-home-device-menu" aria-label="展开设备菜单" aria-expanded="${homeDeviceMenuOpen ? "true" : "false"}">
         <span class="home-device-current">
@@ -3366,6 +3751,7 @@ function renderHomeContent({ showSync = true } = {}) {
         <button class="list-title-filter" data-go="APP-FILE-03" aria-label="全部文件筛选和排序"><strong>全部文件</strong><span></span></button>
         <button class="import-btn" data-go="APP-FILE-13">+导入音频</button>
       </div>
+      ${homeDeviceAdded ? renderHomeRecordingEntry() : ""}
       ${homeDeviceAdded ? renderHomeTransferFileCards() : ""}
       ${homeFailedFileState === "failed"
         ? fileCard({ name: "产品讨论", meta: "昨天 16:40 · 00:58:20", source: "硬件录音", errorText: "同步失败", action: "重试", actionKey: "retry-home-failed-file" })
@@ -3396,7 +3782,7 @@ function renderHomePriorityToast() {
 
 function renderHome() {
   if (homeFileSelectionMode) return renderHomeSelectionScreen();
-  return `${screen(renderHomeContent(), { title: "文件", action: "search", active: "files" })}${homePriorityMenuTaskId ? '<button class="home-priority-dismiss" data-action="close-home-priority-menu" aria-label="关闭传输顺序操作"></button>' : ""}${homeQuickMenuFileId ? renderHomeQuickMenu() : ""}${homeFileRenameId ? renderHomeRenameSheet() : ""}${renderHomeFileRecycleConfirm()}${renderHomeMoveFolderSheet()}${homeHotspotSuccessNotice ? renderHotspotSuccessToast() : ""}${renderHomePriorityToast()}${homeFileNotice ? `<div class="toast-message home-file-toast" role="status">${h(homeFileNotice)}</div>` : ""}`;
+  return `${screen(renderHomeContent(), { title: "文件", action: "search", active: "files" })}${homePriorityMenuTaskId ? '<button class="home-priority-dismiss" data-action="close-home-priority-menu" aria-label="关闭传输顺序操作"></button>' : ""}${homeQuickMenuFileId ? renderHomeQuickMenu() : ""}${homeFileRenameId ? renderHomeRenameSheet() : ""}${renderHomeFileRecycleConfirm()}${renderHomeMoveFolderSheet()}${homeStorageShortagePromptOpen ? renderHomeStorageShortagePrompt() : ""}${homeHotspotSuccessNotice ? renderHotspotSuccessToast() : ""}${renderHomePriorityToast()}${homeFileNotice ? `<div class="toast-message home-file-toast" role="status">${h(homeFileNotice)}</div>` : ""}`;
 }
 
 function renderHomeTrashToast() {
@@ -3761,6 +4147,7 @@ const recordSceneOptions = [
 ];
 
 function renderRecordSheet() {
+  const isProcessing = recordingLifecycleState === "starting";
   return `
     ${renderHome()}
     <div class="scrim record-prepare-scrim" data-go="APP-HOME-01"></div>
@@ -3800,7 +4187,9 @@ function renderRecordSheet() {
         </section>
       ` : ""}
       <footer class="record-prepare-footer">
-        <button class="primary-btn record-start-btn" data-go="APP-REC-04">开始录音</button>
+        <button class="primary-btn record-start-btn ${isProcessing ? "is-loading" : ""}" data-action="start-recording" ${isProcessing ? 'disabled aria-busy="true"' : ""}>
+          ${isProcessing ? '<span class="record-start-loading-spinner" aria-label="处理中"></span>' : "开始录音"}
+        </button>
       </footer>
     </section>
   `;
@@ -4044,23 +4433,24 @@ function renderRecordingPhotoViewer() {
 }
 
 function renderRecording() {
+  if (showcasePreset === "rec04-starting") return renderRecordSheet();
+  const isStarting = recordingLifecycleState === "starting";
+  const isStartFailed = recordingLifecycleState === "start_failed";
+  const isEnding = recordingLifecycleState === "ending";
+  const isInteractive = ["recording", "paused"].includes(recordingLifecycleState);
+  const isPaused = recordingLifecycleState === "paused" || recordPaused;
   return `
     <section class="recording-stage">
       <div class="statusbar recording-status"><span>12:42</span><span>5G</span><span>78%</span></div>
-      <div class="recording-back-card"></div>
+      <button type="button" class="recording-back-card" data-action="minimize-recording" aria-label="最小化录音，返回文件"></button>
       <main class="recording-panel ${recordingEditor ? "is-editing" : ""}">
-        <div class="recording-handle"></div>
+        <button type="button" class="recording-handle" data-action="minimize-recording" aria-label="下滑最小化录音，返回文件"></button>
         <div class="recording-top">
-          <button data-action="toggle-pause">${recordPaused ? "继续" : "暂停"}</button>
-          <strong><i></i>${recordPaused ? "00:00:38" : "00:00:37"}</strong>
-          <button data-action="finish-recording-sync">结束</button>
+          <button data-action="toggle-pause" ${isInteractive ? "" : "disabled"}>${isStartFailed ? "未开始" : isPaused ? "继续" : isStarting ? "准备中" : "暂停"}</button>
+          <strong class="${isStarting || isEnding || isStartFailed ? "pending" : ""}"><i></i>${isStartFailed ? "--:--:--" : isStarting || isEnding ? "处理中" : isPaused ? "00:00:38" : "00:00:37"}${isStarting || isEnding ? '<span class="recording-processing-spinner" aria-label="处理中"></span>' : ""}</strong>
+          <button data-action="finish-recording-sync" ${isInteractive ? "" : "disabled"}>${isEnding ? "处理中" : "结束"}</button>
         </div>
-        <div class="recording-device-summary">
-          <i aria-hidden="true"></i>
-          <strong>AI Recorder A1</strong>
-          <span>已连接 · 76% · 11.8G</span>
-        </div>
-        <div class="recording-wave">${waveHeights.map((height) => `<i style="height:${Math.max(20, height + 18)}px"></i>`).join("")}</div>
+        <div class="recording-wave ${isStarting || isEnding || isPaused ? "muted" : ""}">${waveHeights.map((height) => `<i style="height:${Math.max(20, height + 18)}px"></i>`).join("")}</div>
         <section class="recording-mark-card">
           <h3>标记记录</h3>
           ${recordingCameraPrompt ? `<p class="recording-camera-toast">照片已插入，可点击查看或补充说明</p>` : ""}
@@ -4068,7 +4458,8 @@ function renderRecording() {
             ${renderRecordingMarks()}
           </div>
         </section>
-        ${recordingEditor ? "" : `<div class="recording-actions">
+        ${isStartFailed ? `<div class="recording-state-actions"><p>暂时无法开始录音</p><button class="primary-btn" data-action="retry-start-recording">重新开始</button><button data-go="APP-HOME-01">返回文件</button></div>` : ""}
+        ${recordingEditor || !isInteractive ? "" : `<div class="recording-actions">
           <button data-action="add-recording-mark" data-mark-type="input"><span class="record-action-icon input"></span><b>输入</b></button>
           <button data-action="add-recording-mark" data-mark-type="photo"><span class="record-action-icon photo"></span><b>拍照</b></button>
           <button data-action="add-recording-mark" data-mark-type="mark"><span class="record-action-icon mark"></span><b>标记</b></button>
@@ -4078,6 +4469,32 @@ function renderRecording() {
       ${renderRecordingEditorDock()}
       ${renderRecordingCamera()}
       ${renderRecordingPhotoViewer()}
+    </section>
+  `;
+}
+
+function renderRecordingSave() {
+  const isSaving = recordingSaveState === "saving" || recordingSaveState === "idle";
+  const isSaved = recordingSaveState === "saved";
+  const title = isSaving ? "正在保存录音" : isSaved ? "录音已保存" : "未能确认录音已保存";
+  const detail = isSaving
+    ? "请稍候"
+    : isSaved
+      ? ""
+      : "请重新确认后再继续";
+  return `
+    <section class="record-save-stage">
+      <div class="statusbar"><span>12:42</span><span>5G</span><span>78%</span></div>
+      <main class="record-save-card ${isSaved ? "saved" : isSaving ? "saving" : "failed"}">
+        <div class="record-save-icon" aria-hidden="true">${isSaved ? "✓" : isSaving ? "" : "!"}</div>
+        <h1>${h(title)}</h1>
+        ${detail ? `<p>${h(detail)}</p>` : ""}
+        ${isSaving
+          ? `<button class="primary-btn disabled" disabled>正在保存</button>`
+          : isSaved
+            ? ""
+            : `<button class="primary-btn" data-action="retry-recording-save">重新确认</button>`}
+      </main>
     </section>
   `;
 }
@@ -5429,7 +5846,7 @@ function togglePill(on = false, disabled = false) {
 }
 
 function meSettingRow(label, opts = {}) {
-  const attrs = opts.go ? ` data-go="${opts.go}"` : "";
+  const attrs = `${opts.go ? ` data-go="${opts.go}"` : ""}${opts.action ? ` data-action="${opts.action}"` : ""}`;
   const tail = opts.toggle !== undefined ? togglePill(opts.toggle, opts.disabled) : (opts.arrow === false ? "<span></span>" : "<i>›</i>");
   return `
     <button class="me-setting-row ${opts.danger ? "danger" : ""}"${attrs}>
@@ -5542,7 +5959,7 @@ function renderUsage() {
         <div class="me-line"></div>
         <div class="me-card-group">
           ${meRow("账号设置", { go: "APP-ME-16" })}
-          ${meRow("私有云同步", { value: "开启", go: "APP-ME-05" })}
+          ${meRow("私有云同步", { value: cloudSyncEnabled ? "开启" : "关闭", go: "APP-ME-05" })}
           ${meRow("购买转写时长")}
           ${meRow("兑换码", { go: "APP-ME-08" })}
         </div>
@@ -6221,8 +6638,8 @@ function renderPrivateCloudSync() {
         <h1>私有云同步</h1>
         <p>私有云同步是 AI录音卡 App 为用户提供的安全私有云服务，开启后可以：<br>1. 自动备份数据，防止丢失<br>2. 修改内容多端同步（App 与 Web），方便查看与管理</p>
         <div class="me-line"></div>
-        ${meSettingRow("开启私有云同步", { toggle: true })}
-        ${meSettingRow("仅在 Wi-Fi 下同步", { toggle: false, disabled: true, note: "开启后，仅通过 Wi-Fi 自动同步数据" })}
+        ${meSettingRow("开启私有云同步", { toggle: cloudSyncEnabled, action: "toggle-cloud-sync" })}
+        ${meSettingRow("仅在 Wi-Fi 下同步", { toggle: false, disabled: !cloudSyncEnabled, note: cloudSyncEnabled ? "开启后，仅通过 Wi-Fi 自动同步数据" : "请先开启私有云同步" })}
         <div class="me-line"></div>
         ${meSettingRow("管理存储空间", { value: "41.23 MB", go: "APP-ME-06" })}
         ${meSettingRow("删除云端的录音", { go: "APP-ME-13" })}
@@ -6948,6 +7365,7 @@ const renderers = {
   "APP-REC-02": renderRecordSheet,
   "APP-REC-03": renderScene,
   "APP-REC-04": renderRecording,
+  "APP-REC-05": renderRecordingSave,
   "APP-FILE-01": renderFileDetail,
   "APP-FILE-10": renderFileDetailEmpty,
   "APP-FILE-15": renderFileDetailGenerating,
@@ -7054,6 +7472,14 @@ const verifiedPageShowcases = {
   ],
   "APP-HOME-01": [
     ["未添加录音卡", "home01-no-device"],
+    ["已绑定未连接", "home01-device-disconnected"],
+    ["正在连接", "home01-device-connecting"],
+    ["连接成功", "home01-device-connected"],
+    ["已传到手机", "home01-phone-ready"],
+    ["等待同步云端", "home01-cloud-waiting"],
+    ["同步云端中", "home01-cloud-uploading"],
+    ["私有云同步关闭", "home01-cloud-disabled"],
+    ["手机空间不足暂停", "home01-storage-blocked"],
     ["当前无同步任务", "home01-no-sync"],
     ["全部文件空状态", "home01-empty-files"],
     ["全部文件选择模式", "home01-selection-mode"],
@@ -7064,6 +7490,8 @@ const verifiedPageShowcases = {
     ["移至回收站确认", "home01-recycle-confirm"],
     ["移动文件", "home01-move-folder"],
     ["调整等待传输顺序", "home01-priority-menu"],
+    ["录音中查看文件", "home01-transfer-paused"],
+    ["录音中点击同步提示", "home01-recording-transfer-toast"],
     ["操作成功提示", "home01-success-toast"]
   ],
   "APP-FILE-03": [
@@ -7078,10 +7506,18 @@ const verifiedPageShowcases = {
     ["恢复成功提示", "file23-restore-toast"]
   ],
   "APP-REC-04": [
+    ["开始录音处理中（内部）", "rec04-starting"],
+    ["录音中", "rec04-recording"],
+    ["结束录音处理中（内部）", "rec04-ending"],
     ["输入标记", "rec04-input-mark"],
     ["系统相机", "rec04-camera"],
     ["照片预览", "rec04-photo-viewer"],
     ["AI 照片说明完成", "rec04-ai-caption"]
+  ],
+  "APP-REC-05": [
+    ["设备保存中", "rec05-saving"],
+    ["录音已保存", "rec05-saved"],
+    ["保存状态未确认", "rec05-failed"]
   ],
   "APP-FILE-01": [
     ["文件提问", "file01-ask"],
@@ -7191,7 +7627,7 @@ function renderFlow() {
     return;
   }
   target.className = "flow-strip";
-  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-07", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-DEV-05", "APP-HOME-01", "APP-SYNC-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-REC-03", "APP-AI-02", "APP-AI-03", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-24", "APP-FILE-25", "APP-FILE-26", "APP-FILE-27", "APP-FILE-28", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-01", "APP-ME-16", "APP-ME-26", "APP-ME-27", "APP-ME-28", "APP-ME-29", "APP-ME-30", "APP-ME-31", "APP-ME-32", "APP-ME-33", "APP-ME-34", "APP-ME-35", "APP-ME-36", "APP-ME-37", "APP-ME-38", "APP-ME-40", "APP-ME-39", "APP-ME-17", "APP-ME-18", "APP-ME-41", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-23", "APP-ME-10", "APP-ME-11", "APP-ME-12", "APP-DEV-03", "APP-DEV-11", "APP-DEV-10", "APP-ME-04", "APP-ME-24", "APP-ME-25", "APP-DEV-06", "APP-DEV-07", "APP-DEV-08", "APP-DEV-09"];
+  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-07", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-DEV-05", "APP-HOME-01", "APP-SYNC-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-REC-03", "APP-AI-02", "APP-AI-03", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-24", "APP-FILE-25", "APP-FILE-26", "APP-FILE-27", "APP-FILE-28", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-REC-05", "APP-ME-01", "APP-ME-16", "APP-ME-26", "APP-ME-27", "APP-ME-28", "APP-ME-29", "APP-ME-30", "APP-ME-31", "APP-ME-32", "APP-ME-33", "APP-ME-34", "APP-ME-35", "APP-ME-36", "APP-ME-37", "APP-ME-38", "APP-ME-40", "APP-ME-39", "APP-ME-17", "APP-ME-18", "APP-ME-41", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-23", "APP-ME-10", "APP-ME-11", "APP-ME-12", "APP-DEV-03", "APP-DEV-11", "APP-DEV-10", "APP-ME-04", "APP-ME-24", "APP-ME-25", "APP-DEV-06", "APP-DEV-07", "APP-DEV-08", "APP-DEV-09"];
   flow.splice(flow.indexOf("APP-FILE-03") + 1, 0, "APP-FILE-23");
   target.innerHTML = flow.map((id, index) => {
     const page = pageById(id);
@@ -7207,13 +7643,26 @@ function renderPrototypeLinks(page) {
     <span>状态链路</span>
     ${links.map(([label, id]) => `<button data-go="${h(id)}">${h(label)}</button>`).join("")}
     ${actions.map(([label, action, value]) => {
+      const cloudStateActive = (value === "disabled" && !cloudSyncEnabled)
+        || (value === "phone-ready" && cloudSyncEnabled && homeFileItems.every((file) => !file.cloudState))
+        || (value === "waiting" && cloudSyncEnabled && homeFileItems[0]?.cloudState === "waiting")
+        || (value === "uploading" && cloudSyncEnabled && homeFileItems[0]?.cloudState === "uploading");
+      const recoveryStateActive = (value === "storage-blocked" && homeSyncQueue.some((task) => task.status === "storage_blocked"))
+        || (value === "storage-recovered" && homeSyncQueue.some((task) => task.status === "syncing"));
+      const askDemoActive = (value === "complete" && askPlaudMode === "answer")
+        || (value === "insight" && askPlaudMode === "thinking" && askPlaudSkill === "获取洞察")
+        || (value === "direct" && askPlaudMode === "thinking" && !askPlaudSkill)
+        || value === askPlaudThinkingStage;
       const active = (action === "set-sync-transport" && homeSyncStage !== "idle" && value === homeSyncTransport)
+        || (action === "home-set-connection-state" && value === homeConnectionPhase)
+        || (action === "home-set-cloud-state" && cloudStateActive)
+        || (action === "home-set-sync-recovery" && recoveryStateActive)
         || (action === "home-show-no-device" && !homeDeviceAdded)
         || (action === "home-show-no-sync-tasks" && homeDeviceAdded && homeSyncStage === "idle")
         || (action === "home-show-selection-mode" && homeFileSelectionMode)
         || (action === "set-hotspot-state" && value === (hotspotTransferState === "systemPrompt" ? "awaiting" : hotspotTransferState))
         || (action === "set-device-recording-state" && value === (deviceRecordingActive ? "recording" : "idle"))
-        || (action === "set-ask-demo-state" && ((value === "complete" && askPlaudMode === "answer") || (value === "insight" && askPlaudMode === "thinking" && askPlaudSkill === "获取洞察") || (value === "direct" && askPlaudMode === "thinking" && !askPlaudSkill) || (value === askPlaudThinkingStage)));
+        || (action === "set-ask-demo-state" && askDemoActive);
       return `<button class="${active ? "active" : ""}" data-action="${h(action)}"${value ? ` data-value="${h(value)}"` : ""}>${h(label)}</button>`;
     }).join("")}
   ` : "";
@@ -7407,6 +7856,11 @@ function handleSettingsAction(action, target) {
     render();
     return true;
   }
+  if (action === "toggle-cloud-sync") {
+    cloudSyncEnabled = !cloudSyncEnabled;
+    render();
+    return true;
+  }
   if (action === "toggle-app-lock") {
     if (settingsState.appLockEnabled) {
       settingsState.appLockEnabled = false;
@@ -7518,6 +7972,44 @@ document.addEventListener("click", (event) => {
   const action = event.target.closest("[data-action]");
   if (action && action.dataset.action === "open-record-entry") {
     openRecordEntry();
+    return;
+  }
+  if (action && action.dataset.action === "open-home-storage-shortage") {
+    openHomeStorageShortagePrompt();
+    return;
+  }
+  if (action && action.dataset.action === "close-home-storage-shortage") {
+    closeHomeStorageShortagePrompt();
+    return;
+  }
+  if (action && action.dataset.action === "open-home-storage-cleanup") {
+    homeStorageShortagePromptOpen = false;
+    go("APP-ME-07");
+    return;
+  }
+  if (action && action.dataset.action === "request-home-fast-transfer") {
+    if (!isHomeStorageBlocked()) go("APP-SYNC-01");
+    else openHomeStorageShortagePrompt();
+    return;
+  }
+  if (action && action.dataset.action === "start-recording") {
+    beginRecordingSession();
+    return;
+  }
+  if (action && action.dataset.action === "retry-start-recording") {
+    beginRecordingSession();
+    return;
+  }
+  if (action && action.dataset.action === "minimize-recording") {
+    if (recordingBlocksAudioTransfer()) go("APP-HOME-01");
+    return;
+  }
+  if (action && action.dataset.action === "return-to-recording") {
+    if (recordingBlocksAudioTransfer()) go("APP-REC-04");
+    return;
+  }
+  if (action && action.dataset.action === "request-home-transfer-while-recording") {
+    showHomeFileNotice("正在录音，请停止录音后再试。");
     return;
   }
   if (action && action.dataset.action === "open-account-avatar-actions") {
@@ -7642,6 +8134,8 @@ document.addEventListener("click", (event) => {
         device.sync = "空闲";
         device.lastSync = "刚刚";
       }
+      homeConnectionPhase = "connected";
+      resumeHomeSyncAfterConnection();
       deviceConnectionPendingId = "";
       showDeviceActionNotice(wasConnected ? "连接已刷新" : "设备已连接");
     }, 900);
@@ -8364,6 +8858,22 @@ document.addEventListener("click", (event) => {
     render();
     return;
   }
+  if (action && action.dataset.action === "home-set-connection-state") {
+    homeDeviceAdded = true;
+    setHomeConnectionState(action.dataset.value || "disconnected");
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "home-set-cloud-state") {
+    setHomeCloudDemoState(action.dataset.value || "phone-ready");
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "home-set-sync-recovery") {
+    setHomeSyncRecoveryState(action.dataset.value || "storage-blocked");
+    render();
+    return;
+  }
   if (action && action.dataset.action === "end-home-fast-transfer") {
     endHomeFastTransfer();
     render();
@@ -8643,13 +9153,25 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (action && action.dataset.action === "finish-recording-sync") {
-    recordingEditor = null;
-    recordingCameraOpen = false;
-    recordingPhotoViewerId = "";
-    deviceRecordingActive = false;
-    startSingleHomeSyncBatch();
-    homeSyncTransport = "ble";
-    go("APP-HOME-01");
+    beginRecordingSave();
+    return;
+  }
+  if (action && action.dataset.action === "retry-recording-save") {
+    retryRecordingSaveConfirmation();
+    return;
+  }
+  if (action && action.dataset.action === "resume-transfer-after-save") {
+    if (recordingSaveState === "saved") resumeHomeSyncAfterRecordingSave();
+    return;
+  }
+  if (action && action.dataset.action === "set-record-save-state") {
+    clearRecordingLifecycleTimer();
+    recordingSaveState = ["saving", "saved", "failed"].includes(action.dataset.value)
+      ? action.dataset.value
+      : "saving";
+    recordingLifecycleState = recordingSaveState === "saved" ? "saved" : "saving";
+    deviceRecordingActive = recordingSaveState !== "saved";
+    render();
     return;
   }
   if (action && action.dataset.action === "reset-recording-demo") {
@@ -8933,7 +9455,7 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (action && action.dataset.action === "home-reset-sync-demo") {
-    homeSyncStage = "recording";
+    resetMultiHomeSyncBatch();
     render();
     return;
   }
@@ -8958,6 +9480,10 @@ document.addEventListener("click", (event) => {
   if (action && action.dataset.action === "toggle-home-device-menu") {
     homeDeviceMenuOpen = !homeDeviceMenuOpen;
     render();
+    return;
+  }
+  if (action && action.dataset.action === "recover-home-device-connection") {
+    beginHomeConnectionRecovery();
     return;
   }
   if (action && action.dataset.action === "select-home-device") {
@@ -9275,7 +9801,9 @@ document.addEventListener("click", (event) => {
   }
   if (action && handleSettingsAction(action.dataset.action, action)) return;
   if (action && action.dataset.action === "toggle-pause") {
+    if (!["recording", "paused"].includes(recordingLifecycleState)) return;
     recordPaused = !recordPaused;
+    recordingLifecycleState = recordPaused ? "paused" : "recording";
     render();
     return;
   }
@@ -9289,6 +9817,11 @@ document.addEventListener("click", (event) => {
 });
 
 document.addEventListener("pointerdown", (event) => {
+  const recordingMinimizeTarget = event.target.closest(".recording-handle");
+  if (recordingMinimizeTarget && currentPageId === "APP-REC-04" && recordingBlocksAudioTransfer()) {
+    recordingMinimizePointer = { id: event.pointerId, startY: event.clientY };
+    return;
+  }
   const recordTrigger = event.target.closest("[data-action='open-record-entry']");
   if (recordTrigger) {
     clearRecordFabLongPressTimer();
@@ -9360,6 +9893,14 @@ document.addEventListener("pointermove", (event) => {
 });
 
 document.addEventListener("pointerup", (event) => {
+  if (recordingMinimizePointer?.id === event.pointerId) {
+    const deltaY = event.clientY - recordingMinimizePointer.startY;
+    recordingMinimizePointer = null;
+    if (deltaY >= 56 && currentPageId === "APP-REC-04" && recordingBlocksAudioTransfer()) {
+      go("APP-HOME-01");
+      return;
+    }
+  }
   if (!homeFilePointer) return;
   const pointer = homeFilePointer;
   homeFilePointer = null;
@@ -9374,6 +9915,7 @@ document.addEventListener("pointerup", (event) => {
 });
 
 document.addEventListener("pointercancel", () => {
+  recordingMinimizePointer = null;
   homeFilePointer = null;
   clearHomeFileLongPressTimer();
 });
@@ -10004,6 +10546,30 @@ function applyShowcasePreset(preset) {
     case "home01-no-device":
       showNoHomeDevice();
       break;
+    case "home01-device-disconnected":
+      setHomeConnectionState("disconnected");
+      break;
+    case "home01-device-connecting":
+      setHomeConnectionState("connecting");
+      break;
+    case "home01-device-connected":
+      setHomeConnectionState("connected");
+      break;
+    case "home01-phone-ready":
+      setHomeCloudDemoState("phone-ready");
+      break;
+    case "home01-cloud-waiting":
+      setHomeCloudDemoState("waiting");
+      break;
+    case "home01-cloud-uploading":
+      setHomeCloudDemoState("uploading");
+      break;
+    case "home01-cloud-disabled":
+      setHomeCloudDemoState("disabled");
+      break;
+    case "home01-storage-blocked":
+      setHomeSyncRecoveryState("storage-blocked");
+      break;
     case "home01-no-sync":
       showNoHomeSyncTasks();
       break;
@@ -10012,6 +10578,17 @@ function applyShowcasePreset(preset) {
       break;
     case "home01-selection-mode":
       showHomeSelectionModeDemo();
+      break;
+    case "home01-transfer-paused":
+      pauseHomeSyncForRecording();
+      recordingLifecycleState = "recording";
+      deviceRecordingActive = true;
+      break;
+    case "home01-recording-transfer-toast":
+      pauseHomeSyncForRecording();
+      recordingLifecycleState = "recording";
+      deviceRecordingActive = true;
+      homeFileNotice = "正在录音，请停止录音后再试。";
       break;
     case "home01-device-menu":
       homeDeviceMenuOpen = true;
@@ -10071,7 +10648,36 @@ function applyShowcasePreset(preset) {
       recycleBinItems = recycleBinItems.filter((item) => item.id === "recycle-3");
       recycleNotice = "已恢复 2 个文件";
       break;
+    case "rec04-starting":
+      recordingLifecycleState = "starting";
+      deviceRecordingActive = false;
+      pauseHomeSyncForRecording();
+      recordingTransferNotice = `已暂停文件传输并保留 ${homeSyncStats().percent}% 进度，录音保存后继续`;
+      break;
+    case "rec04-start-failed":
+      recordingLifecycleState = "start_failed";
+      deviceRecordingActive = false;
+      homeSyncStage = "finishing";
+      homeSyncPausedByRecording = false;
+      homeSyncQueue.forEach((task) => {
+        if (task.status === "paused_recording") task.status = "syncing";
+      });
+      recordingTransferNotice = "";
+      break;
+    case "rec04-recording":
+      recordingLifecycleState = "recording";
+      deviceRecordingActive = true;
+      pauseHomeSyncForRecording();
+      recordingTransferNotice = `已暂停文件传输并保留 ${homeSyncStats().percent}% 进度，录音保存后继续`;
+      break;
+    case "rec04-ending":
+      recordingLifecycleState = "ending";
+      deviceRecordingActive = true;
+      pauseHomeSyncForRecording();
+      recordingTransferNotice = `已暂停文件传输并保留 ${homeSyncStats().percent}% 进度，录音保存后继续`;
+      break;
     case "rec04-input-mark":
+      recordingLifecycleState = "recording";
       recordingEditor = { mode: "new-input", markId: "", draft: "", time: "00:31:04" };
       break;
     case "rec04-camera":
@@ -10085,6 +10691,24 @@ function applyShowcasePreset(preset) {
         ? { ...mark, caption: "会议笔记记录了项目进展、待办事项和下一步计划。", captionSource: "ai" }
         : mark);
       recordingNotice = "AI 已生成照片说明";
+      break;
+    case "rec05-saving":
+      recordingLifecycleState = "saving";
+      recordingSaveState = "saving";
+      deviceRecordingActive = true;
+      pauseHomeSyncForRecording();
+      break;
+    case "rec05-saved":
+      recordingLifecycleState = "saved";
+      recordingSaveState = "saved";
+      deviceRecordingActive = false;
+      pauseHomeSyncForRecording();
+      break;
+    case "rec05-failed":
+      recordingLifecycleState = "saving";
+      recordingSaveState = "failed";
+      deviceRecordingActive = true;
+      pauseHomeSyncForRecording();
       break;
     case "file01-ask":
       askPlaudMode = "intro";

@@ -1777,6 +1777,37 @@ button {
   background: #b8b8b8;
 }
 
+.home-device-online.connecting {
+  background: #d4d4d1;
+}
+
+.home-device-button.connecting .home-device-glyph,
+.home-device-button.disconnected .home-device-glyph {
+  border-color: #a8a8a5;
+}
+
+.home-device-button.connecting .home-device-glyph::before,
+.home-device-button.connecting .home-device-glyph::after,
+.home-device-button.connecting .home-device-glyph i,
+.home-device-button.disconnected .home-device-glyph::before,
+.home-device-button.disconnected .home-device-glyph::after,
+.home-device-button.disconnected .home-device-glyph i {
+  opacity: .45;
+}
+
+.home-device-connection-spinner {
+  position: absolute;
+  right: 3px;
+  bottom: 6px;
+  width: 13px;
+  height: 13px;
+  border: 2px solid #dededb;
+  border-top-color: #8f8f8b;
+  border-radius: 50%;
+  background: #fff;
+  animation: sync-state-spin .75s linear infinite;
+}
+
 .home-device-glyph {
   width: 29px;
   height: 37px;
@@ -2180,6 +2211,20 @@ button {
   background: #31aa61;
 }
 
+.sync-mini.paused-recording {
+  border-color: #f0d7aa;
+  background: #fffaf1;
+}
+
+.sync-mini.paused-recording .sync-mini-progress b {
+  background: #d38a16;
+}
+
+.sync-transport-badge.paused {
+  background: #fff0d1;
+  color: #9a6200;
+}
+
 .card-title {
   display: flex;
   justify-content: space-between;
@@ -2296,6 +2341,70 @@ button {
 .file-card-main:focus-visible {
   outline: 2px solid #1778e6;
   outline-offset: 2px;
+}
+
+.file-transfer-blocked-main {
+  color: inherit;
+  cursor: pointer;
+}
+
+.file-transfer-blocked-main:active,
+.recording-blocked-transfer:active {
+  background: #f4f3f0;
+}
+
+.home-recording-entry {
+  border-bottom: 1px solid #f1eee8;
+}
+
+.home-recording-entry > button {
+  width: 100%;
+  min-height: 66px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border: 0;
+  background: transparent;
+  color: #171717;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.home-recording-entry > button:active {
+  background: #f7f6f3;
+}
+
+.home-recording-wave {
+  width: 38px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.home-recording-wave i {
+  width: 3px;
+  display: block;
+  border-radius: 99px;
+  background: #111;
+}
+
+.home-recording-entry b,
+.home-recording-entry small {
+  display: block;
+}
+
+.home-recording-entry b {
+  font-size: 14px;
+}
+
+.home-recording-entry small {
+  margin-top: 3px;
+  color: #8f8b85;
+  font-size: 12px;
 }
 
 .home-file-card {
@@ -2662,6 +2771,84 @@ button {
 
 .home-file-toast { bottom: 104px; z-index: 8; }
 
+.home-storage-shortage-scrim { z-index: 18; }
+
+.home-storage-shortage-sheet {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 19;
+  min-height: 248px;
+  box-sizing: border-box;
+  padding: 10px 20px calc(28px + env(safe-area-inset-bottom));
+  border-radius: 24px 24px 0 0;
+  background: #fff;
+  box-shadow: 0 -18px 48px rgba(0, 0, 0, .18);
+}
+
+.home-storage-shortage-sheet .handle {
+  width: 38px;
+  height: 4px;
+  margin: 0 auto 26px;
+  border-radius: 999px;
+  background: #d7d7d7;
+}
+
+.home-storage-shortage-sheet h2 {
+  margin: 0;
+  color: #111;
+  font-size: 24px;
+  line-height: 1.28;
+  letter-spacing: -.35px;
+}
+
+.home-storage-shortage-sheet > p {
+  margin: 10px 0 22px;
+  color: #595959;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.home-storage-system-guidance {
+  min-height: 82px;
+  box-sizing: border-box;
+  margin-bottom: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #f5f5f5;
+}
+
+.home-storage-system-guidance b,
+.home-storage-system-guidance small { display: block; }
+.home-storage-system-guidance b { color: #171717; font-size: 16px; line-height: 1.3; }
+.home-storage-system-guidance small { margin-top: 5px; color: #858585; font-size: 13px; line-height: 1.42; }
+
+.home-storage-clean-row {
+  width: 100%;
+  min-height: 84px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  padding: 16px;
+  border: 0;
+  border-radius: 12px;
+  background: #f5f5f5;
+  color: #171717;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.home-storage-clean-row b,
+.home-storage-clean-row small { display: block; }
+.home-storage-clean-row b { font-size: 16px; line-height: 1.3; }
+.home-storage-clean-row small { margin-top: 5px; color: #858585; font-size: 13px; line-height: 1.42; }
+.home-storage-clean-row i { color: #8c8c8c; font-size: 28px; font-style: normal; line-height: 1; }
+.storage-blocked-transfer { color: #757575; }
+
 .file-card.featured {
   margin: 4px -8px 4px;
   padding: 0 8px;
@@ -2863,6 +3050,32 @@ button {
 .file-meta {
   color: #888;
   font-size: 12px;
+}
+
+.file-cloud-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  color: #1778e6;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.file-cloud-state > i {
+  font-size: 15px;
+  line-height: 12px;
+  font-style: normal;
+}
+
+.file-cloud-state b {
+  font-weight: 650;
+}
+
+.file-cloud-state .sync-state-spinner {
+  width: 13px;
+  height: 13px;
+  border-width: 1.5px;
 }
 
 .file-tags {
@@ -5044,6 +5257,21 @@ button {
   font-size: 17px;
 }
 
+.record-start-btn.is-loading {
+  display: grid;
+  place-items: center;
+}
+
+.record-start-loading-spinner {
+  width: 19px;
+  height: 19px;
+  display: block;
+  border: 2px solid rgba(255, 255, 255, .45);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .85s linear infinite;
+}
+
 .generate-sheet {
   z-index: 41;
   padding: 10px 20px 22px;
@@ -6699,7 +6927,9 @@ button {
 }
 
 .account-avatar-cancel {
+  width: auto;
   bottom: 18px;
+  background: #fff;
   font-weight: 700;
 }
 
@@ -11618,8 +11848,11 @@ button {
   left: 24px;
   right: 24px;
   height: 52px;
+  padding: 0;
+  border: 0;
   border-radius: 18px 18px 0 0;
   background: #d9d9d9;
+  cursor: pointer;
 }
 
 .recording-panel {
@@ -11635,9 +11868,14 @@ button {
 .recording-handle {
   width: 42px;
   height: 6px;
+  display: block;
   margin: 14px auto 18px;
+  padding: 0;
+  border: 0;
   border-radius: 999px;
   background: #d9d9d9;
+  cursor: grab;
+  touch-action: none;
 }
 
 .recording-top {
@@ -11664,12 +11902,120 @@ button {
   justify-self: end;
 }
 
+.recording-top button:disabled {
+  color: #9d9b97;
+  cursor: default;
+}
+
 .recording-top strong {
   display: flex;
   align-items: center;
   gap: 9px;
   font-size: 21px;
   font-weight: 800;
+}
+
+.recording-top strong.pending {
+  color: #6f6c67;
+  font-size: 17px;
+}
+
+.recording-processing-spinner {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  border: 2px solid #d7d4ce;
+  border-top-color: #111;
+  border-radius: 50%;
+  animation: spin .85s linear infinite;
+}
+
+.recording-trust-state,
+.recording-transfer-policy {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border: 1px solid #dedbd5;
+  border-radius: 12px;
+  background: #faf9f7;
+}
+
+.recording-trust-state b,
+.recording-transfer-policy b {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #171717;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.recording-trust-state b i {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #20a861;
+}
+
+.recording-trust-state.pending b i {
+  border: 2px solid #c9c5bd;
+  border-top-color: #111;
+  background: transparent;
+  animation: spin .85s linear infinite;
+}
+
+.recording-trust-state.failed {
+  border-color: #f1c2bd;
+  background: #fff7f6;
+}
+
+.recording-trust-state.failed b,
+.recording-trust-state.failed span {
+  color: #a63b32;
+}
+
+.recording-state-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.recording-state-actions p {
+  margin: 0;
+  color: #a63b32;
+  font-size: 13px;
+  text-align: center;
+}
+
+.recording-state-actions > button:last-child {
+  min-height: 42px;
+  border: 0;
+  border-radius: 12px;
+  background: #eceae6;
+  color: #2d2b29;
+  font-weight: 700;
+}
+
+.recording-trust-state span,
+.recording-transfer-policy span {
+  display: block;
+  margin-top: 4px;
+  color: #74716c;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.recording-transfer-policy.paused {
+  border-color: #f0d39d;
+  background: #fff8e9;
+}
+
+.recording-transfer-policy.paused b {
+  color: #9a6200;
+}
+
+.recording-wave.muted {
+  opacity: .28;
 }
 
 .recording-top i,
@@ -12204,6 +12550,109 @@ button {
 
 .recording-stage:has(.recording-editor-dock):has(.recording-keyboard) .recording-notice {
   bottom: 352px;
+}
+
+.record-save-stage {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  background: #f5f4f1;
+}
+
+.record-save-card {
+  min-height: calc(100% - 44px);
+  padding: 78px 24px 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  text-align: center;
+}
+
+.record-save-icon {
+  width: 68px;
+  height: 68px;
+  margin: 0 auto 24px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #111;
+  border-radius: 50%;
+  color: #111;
+  font-size: 30px;
+  font-weight: 850;
+}
+
+.record-save-card.saving .record-save-icon {
+  width: 52px;
+  height: 52px;
+  border-color: #d0cdc6;
+  border-top-color: #111;
+  animation: spin .9s linear infinite;
+}
+
+.record-save-card.saved .record-save-icon {
+  border-color: #24a861;
+  background: #24a861;
+  color: #fff;
+}
+
+.record-save-card.failed .record-save-icon {
+  border-color: #d64135;
+  color: #d64135;
+}
+
+.record-save-card h1 {
+  margin: 0;
+  color: #111;
+  font-size: 25px;
+}
+
+.record-save-card > p {
+  margin: 8px 0 26px;
+  color: #77736d;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.record-save-proof,
+.record-save-transfer {
+  margin-bottom: 12px;
+  padding: 15px 16px;
+  border-radius: 14px;
+  background: #fff;
+  text-align: left;
+}
+
+.record-save-proof span,
+.record-save-proof b,
+.record-save-proof small,
+.record-save-transfer b,
+.record-save-transfer p {
+  display: block;
+}
+
+.record-save-proof span,
+.record-save-transfer b {
+  color: #77736d;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.record-save-proof b {
+  margin-top: 6px;
+  color: #111;
+  font-size: 16px;
+}
+
+.record-save-proof small,
+.record-save-transfer p {
+  margin: 5px 0 0;
+  color: #77736d;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.record-save-card > .primary-btn {
+  margin-top: auto;
 }
 
 .recording-camera,

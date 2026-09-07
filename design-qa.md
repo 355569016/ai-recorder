@@ -36,6 +36,156 @@ scope: 连接设备开启高速传输成功后，文件首页同步摘要的传�
 
 final result: passed with browser visual verification pending
 
+## APP-HOME-01 传输完成、云端状态与恢复连接（2026-09-07）
+
+### Interaction requirements
+
+- 设备到手机传输完成并通过完整校验后，文件恢复为正常黑色可点击行；不额外标记“已传到手机”或“已上传云端”。
+- 私有云同步开启时，文件已在手机但未上传显示“等待同步云端”，上传进行中显示“同步云端中”及轻量转圈；上传完成后恢复正常文件状态。
+- 私有云同步关闭时，首页不显示任何等待或上传云端状态，本地文件保持可打开。
+- 锁屏、系统终止 App 或断联后，首页按已绑定未连接、连接中、连接成功呈现紧凑设备图标；连接成功后复核任务、手机空间和已确认 offset，再恢复任务。
+- 手机空间不足时，任务显示“等待释放空间”；空间恢复并通过复检后从原 offset 续传。
+- 原型说明文档已用红字标注：首版不实现统一 STA 同局域网验证和失败降级页面路径；PRD 保留完整 STA/SoftAP 流程。
+
+### Code and build checks
+
+- `node --check app.js`、`node --check scripts/build-inline.js`、`node --check scripts/build-prd-preview.js`、`node scripts/build-inline.js`、`node scripts/build-prd-preview.js` 与 `git diff --check` 通过。
+- 静态断言确认云同步开关、云端状态显示条件、手机空间恢复、恢复连接状态链、状态反馈快照及生成的 `index.html` 均已同步。
+
+### Residual checks
+
+- 浏览器实际视觉与点击链路待复测；当前本地预览地址仍受浏览器安全审查限制，未取得本轮运行态截图或控制台结果。
+
+## APP-HOME-01 手机空间不足清理链路（2026-09-07）
+
+### Interaction requirements
+
+- 本地空间检查发现不足时，App 打开首页即显示底部空间清理弹窗；任务保持 `storage_blocked`，已确认 `acked_offset` 不变。
+- 点击灰色遮罩只关闭弹窗。后续点击底部录音、快传、等待释放空间或等待传输行时，必须重新唤起弹窗，不进入录音或快传流程。
+- 弹窗展示不可点击的“清理手机存储空间”说明和「系统设置 ＞ 通用 ＞ iPhone 储存空间」路径，由用户自行操作系统清理；不提供系统设置快捷入口。
+- 弹窗的“清理 AI录音卡 App 存储空间”进入 APP-ME-07；该页只清理已同步云端的本地缓存。清理动作本身不代表续传成功，仍需完成手机空间复检。
+
+### Verification
+
+- 静态检查覆盖：空间不足状态、弹窗的遮罩关闭、四类再次唤起入口、APP-ME-07 跳转以及空间恢复后从原 offset 续传的状态链。
+- 浏览器运行时验证待本地预览安全限制解除后完成。
+
+## APP-FILE 回收站、分享链接与生成任务一致性（2026-09-07）
+
+### Interaction requirements
+
+- 确认移入回收站后，文件在本端立即不可访问，原分享链接由服务端立即撤销，公开访问显示文件不可用；排队、上传、转写和 AI 生成任务统一取消。
+- 从回收站恢复时，音频、转写、AI 笔记和标记恢复。原分享链接仅在未过期且未被主动移除时恢复；已取消生成任务不自动续跑。
+- 彻底删除或回收站到期后，文件和历史分享链接均不可恢复。其他终端联网时按云端文件版本清理本地列表、访问状态和生成任务，离线缓存不得反向恢复文件。
+
+### Verification
+
+- 原型页面说明已覆盖 APP-FILE-07、APP-FILE-08、APP-FILE-15、APP-FILE-20 和 APP-FILE-23；两版 PRD 均已移除这条链路的待确认描述。
+- 运行态需要服务端分享链接撤销、任务取消和跨端同步接口联调后再验证。
+
+## 录音状态反馈与保存后传输（2026-09-06）
+
+### Interaction requirements
+
+- APP-HOME-01 当前页面状态与反馈新增“录音中点击同步提示”快照，保留 Toast：「正在录音，请停止录音后再试。」以及置灰等待传输文件行。
+- APP-REC-04 当前页面状态与反馈补充“开始录音处理中（内部）”和“结束录音处理中（内部）”快照：开始处理中使用 APP-REC-02 准备录音弹层，仅显示开始按钮的旋转加载圈，不显示录音页内容；结束处理中保留 APP-REC-04 录音页上下文，仅将结束操作置为处理中并显示旋转加载圈。真实交互仍在确认完成后直接进入录音页，结束后直接回文件首页。
+- 保存确认成功后不展示“录音已保存”文字提示，文件首页直接新增待传输项；设备已连接且当前未录音时开始传输，否则保持等待传输。
+
+### Code and build checks
+
+- `node --check app.js`、`node scripts/build-inline.js`、`node scripts/build-prd-preview.js` 和 `git diff --check` 通过。
+- `index.html`、`prd-preview.html`、页面效果说明、PRD v3.0 与 PRD v3.0.1 已同步更新。
+
+### Residual checks
+
+- 浏览器运行态尚未复测；本地 HTTP 预览与 `file://` 页面仍受自动安全策略拦截。
+
+final result: static checks passed; browser interaction verification pending
+
+## APP-HOME-01 / APP-REC-04 录音期间静默暂停与最小化（2026-09-06）
+
+scope: 同步中开启录音、录音页最小化回文件首页、旧任务置灰、保存后自动续传。
+
+### Interaction requirements
+
+- 开始录音前存在 BLE、STA 或 SoftAP 音频传输时，系统保存当前任务顺序、通道和已确认 offset 后静默停止传输；用户的录音开始、暂停、结束操作保持正常。
+- 录音页点击顶部灰色区域，或从顶部把手向下滑动，可最小化回文件首页；首页顶部展示可点击的“正在录音”文件行，点击后回到录音页。
+- 录音期间首页隐藏同步摘要；原有未完成文件置灰并显示“等待传输”。用户点击旧文件或手动尝试传输时，才显示 Toast：「正在录音，请停止录音后再试。」
+- 录音页不展示“传输已暂停”“录音期间不传输音频”“设备已确认正在录音”等常驻说明；结束后直接回文件首页，保存确认成功时直接新增待传输文件，不弹出保存文字提示。
+
+### Static checks
+
+- `node --check app.js`、`node scripts/build-inline.js`、`node scripts/build-prd-preview.js` 和 `git diff --check` 通过。
+- `index.html`、`prd-preview.html` 已由当前源文件重新构建；原型、页面效果说明和两份 PRD 均已同步更新。
+
+### Residual checks
+
+- 浏览器运行态验证未执行：本地 HTTP 预览服务与 `file://` 页面均被自动安全策略拦截；未尝试绕过策略。
+
+final result: static checks passed; browser interaction verification pending
+
+## APP-REC-02 / APP-REC-04 / APP-REC-05 中间状态收敛（2026-09-06）
+
+### Interaction requirements
+
+- 录音进行中点击底部录音按钮直接回到 APP-REC-04，不再打开准备录音弹层。
+- 开始确认未完成前不进入 APP-REC-04；开始失败不进入录音中页面并恢复原同步任务。
+- 录音结束后立即回 APP-HOME-01；结束确认、设备保存和恢复传输只在内部状态机完成，不展示 APP-REC-05 中间页面。
+- 保存确认成功后恢复旧任务的已确认 offset，并把本次录音加入同步队列。
+
+### Static checks
+
+- `node --check app.js`、`node scripts/build-inline.js`、`node scripts/build-prd-preview.js` 和 `git diff --check` 通过。
+- APP-REC-04 状态链路预览已移除开始确认、开始失败和结束确认的用户展示卡，仅保留录音中、标记和相机等用户可见状态。
+
+final result: static checks passed; browser interaction verification pending
+
+## 录音优先、可信录音与保存状态（2026-09-06）
+
+reference visual: `/Users/andyma/Downloads/IMG_6278.PNG`
+scope: 同步中开始录音、录音期间禁止音频传输、设备确认录音、设备确认保存、保存后续传
+
+### Interaction requirements
+
+- BLE、STA 或 SoftAP 正在传输时开始录音，先暂停音频传输并保留任务顺序、原通道和已确认 offset；录音期间只保留控制、状态、标记和文件索引。
+- 开始确认、结束确认和设备保存均为内部状态；用户只在确认成功后看到录音中页面，开始失败不进入录音中页面。
+- 点击结束后立即回文件首页；文件清单未确认前不恢复旧任务、不创建本次任务，也不展示 APP-REC-05 中间页面。
+- 设备确认文件 ID、时长、大小和校验信息后，在文件首页新增待传输文件；设备已连接且当前未录音时立即开始传输，否则保持等待传输，不弹出保存文字提示。
+
+### Expected state checks
+
+- 默认首页同步进度为 35%；开始录音确认期间不展示确认文案，原活动文件保持已确认进度，录音期间不增加。
+- 设备确认后才进入录音中页面；开始失败不进入录音中页面，并恢复原文件传输。
+- 点击结束后立即回文件首页；结束确认和设备保存期间不展示中间页面，也不恢复音频传输。
+- 保存成功后文件首页新增“刚刚的录音”待传输项；设备已连接且当前未录音时开始传输，否则保持等待传输。
+- 保存状态未确认时不创建任务、不恢复传输，保留后台重试能力。
+- 浏览器运行态验证仍待完成；本轮本地 HTTP 预览和 `file://` 直达均受自动安全策略拦截。
+
+### Code and build checks
+
+- `node scripts/build-inline.js`、`node scripts/build-prd-preview.js` 已通过，`index.html` 与 `prd-preview.html` 已同步重建。
+- `node --check app.js`、`node --check scripts/build-inline.js`、`node --check scripts/build-prd-preview.js` 和 `git diff --check` 通过。
+- PRD v3.0、PRD v3.0.1、页面效果说明和原型页面均已移除“录音中持续同步”冲突描述。
+
+final result: passed
+
+## APP-ME-16 头像操作面板取消按钮视觉修复（2026-09-04）
+
+scope: 更换头像操作面板的取消按钮
+
+### Visual check
+
+- 取消按钮保留独立卡片结构，与“拍照”“从照片中选择”分组区分。
+- 修复 CSS 层叠导致的透明背景，取消按钮现在使用白色背景，不再透出灰色蒙层。
+- 修正取消按钮的绝对定位宽度，避免同时使用 `width: 100%` 与左右定位造成右侧溢出；现在与上方操作面板左右对齐。
+- 原有关闭操作、按钮尺寸、圆角和间距保持不变。
+
+### Code checks
+
+- `node --check app.js`、`node --check scripts/build-inline.js`、`node --check scripts/build-prd-preview.js` 和 `git diff --check` 通过。
+
+final result: passed with browser visual verification pending
+
 ## APP-DEV-10 危险按钮基础样式与 APP-FILE-06 复制操作（2026-09-04）
 
 scope: 验证身份页危险按钮、分享页转写/标记/总结三个复制入口
