@@ -267,6 +267,21 @@ scope: 验证身份页危险按钮、分享页转写/标记/总结三个复制�
 
 final result: passed with browser visual verification pending
 
+# APP-ONB-01 登录中状态快照补充（2026-09-08）
+
+scope: 补齐“当前页面状态与反馈”中已存在的邮箱密码登录提交中状态
+
+## Evidence
+
+- 新增“登录中”静态快照，复用 APP-ONB-01 的真实 `loginSubmitting` 状态。
+- 快照保留已填写的邮箱和密码、已选中的协议项；登录按钮禁用并显示“登录中…”。
+- 不改动实际登录的防重复提交及完成后进入 APP-ONB-04 的既有链路。
+
+## Checks
+
+- `app.js` 与生成的 `index.html` 均包含 `onb01-submitting` 预设及“登录中”反馈卡。
+- 本地浏览器直达 APP-ONB-01 已确认状态区新增“登录中”卡；其登录按钮显示“登录中…”且 disabled，Google / Apple 入口也被禁用，输入与协议选中状态保留。
+
 # APP-ONB-01 内容上限与自动堆叠校准（2026-09-03）
 
 reference visual: `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-05fff3f0-ba59-4792-9973-8a166a1c1ed8.png`

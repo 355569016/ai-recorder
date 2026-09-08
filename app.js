@@ -7505,6 +7505,7 @@ const verifiedPageShowcases = {
     ["邮箱格式错误", "onb01-invalid-email"],
     ["账号未找到", "onb01-account-missing"],
     ["邮箱或密码错误", "onb01-wrong-password"],
+    ["登录中", "onb01-submitting"],
     ["协议确认弹窗", "onb01-agreement"]
   ],
   "APP-ONB-02": [
@@ -10479,6 +10480,13 @@ function applyShowcasePreset(preset) {
       loginPassword = "wrong-password";
       loginNotice = loginFeedbackCopy.wrongCredentials;
       loginNoticeTone = "error";
+      break;
+    case "onb01-submitting":
+      loginEmail = currentAccountEmail;
+      loginPassword = prototypeLoginPassword;
+      loginAgreementAccepted = true;
+      loginAgreementPendingAction = "password";
+      loginSubmitting = true;
       break;
     case "onb01-agreement":
       loginEmail = currentAccountEmail;
