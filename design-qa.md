@@ -1,3 +1,22 @@
+## APP-FILE-18 重新转写进入配置页（2026-09-08）
+
+scope: 重新转写确认后先允许用户调整生成配置，再显式提交新转写任务
+
+### Interaction changes
+
+- APP-FILE-18 的“重新转写”确认按钮由直接进入 APP-FILE-15 改为进入 APP-AI-01。
+- APP-AI-01 默认保持自动生成；用户可切换到自定义生成，并重新选择模板、自动标注说话人、音频语言和 AI 模型。
+- 只有在 APP-AI-01 点击“立即生成”后才进入 APP-FILE-15；在此之前不创建新任务，取消或关闭配置页时原转写和 AI 笔记保持不变。
+- 已同步 `app.js`、页面效果需求文档、App PRD，以及生成的 `index.html` 和 `prd-preview.html`。
+
+### Checks
+
+- `node scripts/build-inline.js`、`node scripts/build-prd-preview.js`、`node --check app.js`、`node --check scripts/build-inline.js`、`node --check scripts/build-prd-preview.js` 与 `git diff --check` 通过。
+- 源文件和生成的 `index.html` 均通过映射断言：`APP-FILE-18 确认 → APP-AI-01 → 提交后 APP-FILE-15`。
+- 本轮未取得浏览器运行态截图；静态验证不能替代实际点击验收。
+
+final result: passed with browser interaction verification pending
+
 # APP-HOME-01 文件首页状态快照补充（2026-09-04）
 
 preview URL: `http://127.0.0.1:4174/index.html?page=APP-HOME-01`
@@ -35,6 +54,46 @@ scope: 连接设备开启高速传输成功后，文件首页同步摘要的传�
 - 本轮浏览器直达本地成功快照被安全审查阻断，未将该项视觉结果标记为运行态已通过；此前真实成功链路仍由 `confirm-hotspot-join` / `retry-hotspot-connecting` 统一调用 `startHomeFastTransfer()`。
 
 final result: passed with browser visual verification pending
+
+## 转写状态增加“生成中”与 APP-FILE-15 自动续跑规则（2026-09-08）
+
+scope: 统一转写状态定义，并让首页默认文件示例实际呈现“生成中”标签；不新增页面控件、不呈现转写失败或手动重试
+
+### Requirement changes
+
+- 用户可见转写状态统一为“未转写 / 生成中 / AI已生成”。上传、转写和 AI 生成阶段保留为内部任务阶段，不直接作为文件列表状态。
+- 文件已提交生成但尚未完成时显示“生成中”，点击文件进入 APP-FILE-15 文件详情生成中。
+- 任一生成阶段暂时失败、没有网络或转写条件不满足时，保持 APP-FILE-15 和“生成中”，保留任务标识、已完成阶段与生成快照；恢复条件后从未完成阶段自动续跑。
+- 本期不在文件列表、APP-FILE-15 或异常页呈现“转写失败”，也不提供转写手动重试；额度扣减/返还和错误原因仍由服务端及用量账本内部记录。
+
+### Checks
+
+- 已同步 `AI录音卡App需求文档_v3.0.md`、`AI录音卡App页面效果设计需求文档_v3.0.md` 与 `prd-preview.html`。
+- `app.js` 已将首页默认示例 `Product review` 设为 `生成中`，整行进入 APP-FILE-15；未新增手机画板控件或失败/重试页面；`index.html` 与 `prd-preview.html` 已由源文件重建。
+- `node scripts/build-inline.js`、`node scripts/build-prd-preview.js`、`node --check app.js`、`node --check scripts/build-inline.js`、`node --check scripts/build-prd-preview.js` 和 `git diff --check` 通过。
+- 已通过源数据与生成文件确认首页示例的“生成中”标签可见且整行指向 APP-FILE-15；本轮未新增生成恢复逻辑，因此未声称恢复链路已完成浏览器运行态验收。
+
+final result: passed with browser visual verification pending
+
+## 页面映射、状态表与首版优先级统一（2026-09-07）
+
+scope: 统一现有原型、页面效果需求与产品需求中的页面含义、状态描述和 P0/P1；不新增任务、账本明细、异常处理或其他交互链路
+
+### 文档与元数据核对
+
+- 保留现有页面编号和产品交互；文件详情统一为“标记 / 总结 / 转写记录”一级内容切换，仅“总结”内部使用连续滚动和二级锚点。
+- 将旧 `APP-AI-06`、旧 `APP-ME-02` 等历史编号明确标注为映射关系；`APP-AI-03` 统一为 AI 模型选择，`APP-ME-12` 统一为 P0 用量账本承载页。
+- 修正首页同步、搜索、文件详情、录音编辑、设备状态、模型选择和名称编辑等模板化状态；每条状态明确触发条件、页面表现与反馈结果，不再虚构保存按钮、取消回滚或通用成功 Toast。
+- 统一优先级：OTA 完整链路、用量透明、账号与云端删除、本地空间清理、基础设置和设备热点快传为 P0；链接分享、支付升级、PDF 导出和可信同网 STA 自动同步为 P1；基础导出为 P0。
+- `APP-ME-12` 当前仍只有日期与消耗时长，扣减/返还类型、关联文件、失败原因和任务明细明确记录为后续交互补齐项。
+
+### Verification
+
+- `app.js` 页面注册表的优先级和名称与页面效果需求中的统一规则一致。
+- `index.html` 由 `app.js` 重建，`prd-preview.html` 由产品需求文档重建。
+- 本次没有改变产品操作链路，因此以源文件、生成物和结构静态检查作为验收依据；未将静态检查记录为浏览器运行态验收。
+
+final result: passed
 
 ## APP-HOME-01 传输完成、云端状态与恢复连接（2026-09-07）
 
