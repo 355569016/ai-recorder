@@ -224,21 +224,22 @@ const pages = [
     goal: "完成账号登录，作为绑定设备、硬件录音、云端生成和我的页用量服务的前置条件。",
     entry: "首次打开 App、会话失效、点击绑定/录音/生成时未登录。",
     fields: [["auth_state", "登录状态", "云端账号"], ["login_method", "登录方式", "Google / Apple / Email / 验证码"], ["agreement_version", "协议版本", "云端账号/本地缓存"]],
-    rules: ["账号提交统一按：输入完整性 → 输入格式 → 输入一致性 → 协议确认 → 防重复提交 → 账号/凭证认证 → 账号状态 → 安全风控 → 登录后初始化；页面没有的环节直接跳过。", "邮箱密码登录先校验邮箱与密码是否完整、邮箱格式是否有效，再判断协议；格式错误时不得弹出协议确认弹窗。", "登录页法律协议项默认未选中，用户可主动勾选。", "未勾选用户协议、隐私政策和 AI 数据处理说明时，点击通过客户端输入校验的邮箱登录，或点击 Google / Apple 登录，弹出条款确认提示；点击“同意并继续”后自动选中并继续原登录动作。", "Google / Apple 授权登录没有本地输入校验，直接进入协议确认；授权登录可能为未注册用户自动创建账号，因此授权登录前必须完成协议确认。", "第三方登录、邮箱密码登录、验证码登录共用同一协议确认状态。", "提交中禁用登录入口，防止重复提交。", "未登录不可绑定设备、不可开始硬件录音、不可提交转写与 AI 生成。", "登录后检查协议与隐私版本，版本更新需重新确认。"],
+    rules: ["账号提交统一按：输入完整性 → 输入格式 → 输入一致性 → 协议确认 → 防重复提交 → 账号/凭证认证 → 账号状态 → 安全风控 → 登录后初始化；页面没有的环节直接跳过。", "邮箱密码登录先校验邮箱与密码是否完整、邮箱格式是否有效，再判断协议；格式错误时不得弹出协议确认弹窗。", "登录页法律协议项默认未选中，用户可主动勾选。", "未勾选用户协议、隐私政策和 AI 数据处理说明时，点击通过客户端输入校验的邮箱登录，或点击 Google / Apple 登录，弹出条款确认提示；点击“同意并继续”后自动选中并继续原登录动作。", "Google / Apple 没有本地输入校验；协议确认后先防止重复触发并拉起第三方授权页。用户在第三方授权页操作期间，App 不展示“Google 登录中”或“Apple 登录中”页面。", "第三方授权回调返回 App 后，才向自身服务端换取并校验登录态；该阶段可短暂显示通用 Loading。校验成功进入原触发动作或 APP-ONB-04，失败提示对应授权、登录态或网络异常。", "第三方登录、邮箱密码登录、验证码登录共用同一协议确认状态。", "邮箱密码提交中禁用登录入口，防止重复提交。", "未登录不可绑定设备、不可开始硬件录音、不可提交转写与 AI 生成。", "登录后检查协议与隐私版本，版本更新需重新确认。"],
     walkthroughNote: "流程走通必填：邮箱使用 355569016@qq.com 或 mhy_1126@qq.com，所有登录密码统一使用 A88888888。重置密码仅做原型演示，不会改变登录密码。",
-    states: ["默认", "输入校验失败", "协议未确认", "协议确认弹窗", "提交中", "登录失败", "账号未找到", "登录成功"],
+    states: ["默认", "输入校验失败", "协议未确认", "协议确认弹窗", "邮箱密码提交中", "第三方授权回调校验中", "登录失败", "账号未找到", "登录成功"],
     stateDetails: [
       ["默认", "展示登录 / 注册主界面，保留第三方登录、邮箱密码登录、验证码登录和注册入口", "无"],
       ["输入校验失败", "保留邮箱和密码；输入不完整时登录按钮不可提交，邮箱格式错误时停留本页", `页内错误：「${loginFeedbackCopy.invalidEmail}」；不得先弹协议确认弹窗`],
       ["协议未确认", "客户端输入校验已通过，协议项仍未选中，保持当前登录页", "点击邮箱、Google 或 Apple 登录：弹出条款确认提示"],
       ["协议确认弹窗", "背景变暗，底部弹窗展示条款说明和同意 / 不同意操作", `弹窗：「${agreementPromptCopy.title}」；按钮：「${agreementPromptCopy.accept}」「${agreementPromptCopy.decline}」`],
-      ["提交中", "登录按钮禁用，文案切换为“登录中…”，不显示额外 Loading 图标", "阻止重复提交"],
+      ["邮箱密码提交中", "邮箱密码登录按钮禁用，文案切换为“登录中…”，不显示额外 Loading 图标", "阻止重复提交"],
+      ["第三方授权回调校验中", "第三方授权页已完成并返回 App；App 向自身服务端换取并校验登录态，可短暂显示通用 Loading", "第三方授权页操作期间不展示 Google / Apple 登录中页面；校验成功进入原触发动作或 APP-ONB-04，失败提示对应异常"],
       ["登录失败", "保留当前已输入的邮箱和密码，不跳转", `页内错误：「${loginFeedbackCopy.wrongCredentials}」`],
       ["账号未找到", "保留已输入邮箱，密码内容不清空", `页内错误：「${loginFeedbackCopy.accountMissing}」`],
       ["登录成功", "账号与协议状态写入当前会话，开始登录后初始化", "进入原触发动作或 APP-ONB-04 绑定你的设备"]
     ],
     deps: ["云端账号：Google / Apple / Email / 验证码登录与刷新 token，接口待后端定义。", "合规：用户协议、隐私政策、AI 数据处理说明。"],
-    acceptance: ["页面结构包含第三方登录、邮箱密码、忘记密码、验证码登录、注册和协议勾选。", "邮箱密码登录必须先完成输入完整性和邮箱格式校验；错误邮箱不得弹出协议确认弹窗。", "客户端输入校验通过但未勾选协议时，点击邮箱登录必须弹出条款确认；Google / Apple 因无本地输入项，直接进入协议确认。", "点击“同意并继续”后自动勾选协议，再继续原登录或第三方授权登录链路；点击“不同意”不发起授权。", "提交中不可重复点击登录。", "未登录点击录音主按钮时必须进入登录拦截。", "登录成功后可回到原触发动作或进入绑定你的设备页。"]
+    acceptance: ["页面结构包含第三方登录、邮箱密码、忘记密码、验证码登录、注册和协议勾选。", "邮箱密码登录必须先完成输入完整性和邮箱格式校验；错误邮箱不得弹出协议确认弹窗。", "客户端输入校验通过但未勾选协议时，点击邮箱登录必须弹出条款确认；Google / Apple 因无本地输入项，直接进入协议确认。", "点击“同意并继续”后自动勾选协议，再继续原登录或第三方授权登录链路；点击“不同意”不发起授权。", "Google / Apple 点击后仅防重复触发并拉起第三方授权页；授权页期间不展示 App 内登录中页面，回调后才换取并校验登录态。", "邮箱密码提交中不可重复点击登录。", "未登录点击录音主按钮时必须进入登录拦截。", "登录成功后可回到原触发动作或进入绑定你的设备页。"]
   },
   {
     id: "APP-ONB-02",
@@ -3509,8 +3510,8 @@ function renderLogin() {
   const loginScreen = screen(`
     <div class="login-brand">AI RECORDER</div>
     <h1 class="login-title">开始使用</h1>
-    <button class="auth-option" data-action="login-with-provider" data-provider="google" ${loginSubmitting ? "disabled" : ""}><span class="google-mark">G</span><strong>${loginSubmitting && loginAgreementPendingAction === "google" ? "Google 登录中…" : "Google 账号登录"}</strong></button>
-    <button class="auth-option" data-action="login-with-provider" data-provider="apple" ${loginSubmitting ? "disabled" : ""}><span class="apple-mark">●</span><strong>${loginSubmitting && loginAgreementPendingAction === "apple" ? "Apple 登录中…" : "Apple 账号登录"}</strong></button>
+    <button class="auth-option" data-action="login-with-provider" data-provider="google" ${loginSubmitting ? "disabled" : ""}><span class="google-mark">G</span><strong>Google 账号登录</strong></button>
+    <button class="auth-option" data-action="login-with-provider" data-provider="apple" ${loginSubmitting ? "disabled" : ""}><span class="apple-mark">●</span><strong>Apple 账号登录</strong></button>
     <div class="login-divider"><span></span><b>或</b><span></span></div>
     <label class="input-box auth-login-input"><input id="loginEmail" type="email" value="${h(loginEmail)}" placeholder="邮箱地址" autocomplete="email"></label>
     <label class="input-box auth-login-input"><input id="loginPassword" type="password" value="${h(loginPassword)}" placeholder="密码" autocomplete="current-password"></label>
@@ -7506,8 +7507,6 @@ const verifiedPageShowcases = {
     ["账号未找到", "onb01-account-missing"],
     ["邮箱或密码错误", "onb01-wrong-password"],
     ["邮箱密码登录中", "onb01-submitting"],
-    ["Google 登录中", "onb01-google-submitting"],
-    ["Apple 登录中", "onb01-apple-submitting"],
     ["协议确认弹窗", "onb01-agreement"]
   ],
   "APP-ONB-02": [
@@ -8436,12 +8435,8 @@ document.addEventListener("click", (event) => {
       return;
     }
     loginAgreementPromptOpen = false;
-    loginSubmitting = true;
-    render();
-    window.setTimeout(() => {
-      loginSubmitting = false;
-      if (currentPageId === "APP-ONB-01") go("APP-ONB-04");
-    }, 650);
+    // 生产环境此处离开 App 拉起 Google / Apple 授权页；原型不伪造授权页内的登录中状态。
+    go("APP-ONB-04");
     return;
   }
   if (action && action.dataset.action === "close-login-agreement-prompt") {
@@ -10494,16 +10489,6 @@ function applyShowcasePreset(preset) {
       loginPassword = prototypeLoginPassword;
       loginAgreementAccepted = true;
       loginAgreementPendingAction = "password";
-      loginSubmitting = true;
-      break;
-    case "onb01-google-submitting":
-      loginAgreementAccepted = true;
-      loginAgreementPendingAction = "google";
-      loginSubmitting = true;
-      break;
-    case "onb01-apple-submitting":
-      loginAgreementAccepted = true;
-      loginAgreementPendingAction = "apple";
       loginSubmitting = true;
       break;
     case "onb01-agreement":
