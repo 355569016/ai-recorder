@@ -7569,33 +7569,41 @@ const verifiedPageShowcases = {
     ["邮箱格式错误", "onb01-invalid-email"],
     ["账号未找到", "onb01-account-missing"],
     ["邮箱或密码错误", "onb01-wrong-password"],
-    ["登录中", "onb01-submitting"],
+    ["邮箱密码登录中", "onb01-submitting"],
+    ["Google 登录中", "onb01-google-submitting"],
+    ["Apple 登录中", "onb01-apple-submitting"],
     ["协议确认弹窗", "onb01-agreement"]
   ],
   "APP-ONB-02": [
     ["邮箱格式错误", "onb02-invalid-email"],
     ["密码长度不足", "onb02-short-password"],
+    ["发送验证码中", "onb02-submitting"],
     ["协议确认弹窗", "onb02-agreement"]
   ],
   "APP-ONB-03": [
+    ["验证中", "onb03-verifying"],
     ["验证码错误", "onb03-wrong-code"],
     ["验证码已重新发送", "onb03-code-resent"]
   ],
   "APP-ONB-05": [
     ["邮箱格式错误", "onb05-invalid-email"],
     ["新密码长度不足", "onb05-short-password"],
+    ["发送验证码中", "onb05-submitting"],
     ["账号未找到", "onb05-account-missing"]
   ],
   "APP-ONB-07": [
     ["验证码已发送，倒计时中", "onb07-countdown"],
+    ["验证中", "onb07-verifying"],
     ["验证码错误", "onb07-wrong-code"],
     ["倒计时结束，可重新发送", "onb07-resend-ready"]
   ],
   "APP-ONB-06": [
     ["邮箱格式错误", "onb06-invalid-email"],
+    ["发送验证码中", "onb06-sending"],
     ["账号未注册", "onb06-account-missing"],
     ["验证码已发送", "onb06-code-sent"],
     ["协议确认弹窗", "onb06-agreement"],
+    ["登录中", "onb06-submitting"],
     ["验证码错误", "onb06-wrong-code"],
     ["请先发送验证码", "onb06-send-first"]
   ],
@@ -10552,6 +10560,16 @@ function applyShowcasePreset(preset) {
       loginAgreementPendingAction = "password";
       loginSubmitting = true;
       break;
+    case "onb01-google-submitting":
+      loginAgreementAccepted = true;
+      loginAgreementPendingAction = "google";
+      loginSubmitting = true;
+      break;
+    case "onb01-apple-submitting":
+      loginAgreementAccepted = true;
+      loginAgreementPendingAction = "apple";
+      loginSubmitting = true;
+      break;
     case "onb01-agreement":
       loginEmail = currentAccountEmail;
       loginPassword = prototypeLoginPassword;
@@ -10570,11 +10588,23 @@ function applyShowcasePreset(preset) {
       registerNotice = "密码至少需要 8 位。";
       registerNoticeTone = "error";
       break;
+    case "onb02-submitting":
+      registerEmail = "12365432@qq.com";
+      registerPassword = prototypeLoginPassword;
+      registerAgreementAccepted = true;
+      registerSubmitting = true;
+      break;
     case "onb02-agreement":
       registerEmail = "demo@example.com";
       registerPassword = prototypeLoginPassword;
       registerAgreementAccepted = false;
       registerAgreementPromptOpen = true;
+      break;
+    case "onb03-verifying":
+      registerEmail = "demo@example.com";
+      registerCode = prototypeVerificationCode;
+      registerCodeCountdown = 38;
+      registerCodeVerifying = true;
       break;
     case "onb03-wrong-code":
       registerEmail = "demo@example.com";
@@ -10600,6 +10630,11 @@ function applyShowcasePreset(preset) {
       resetPasswordNotice = "新密码至少需要 8 位。";
       resetPasswordNoticeTone = "error";
       break;
+    case "onb05-submitting":
+      resetPasswordEmail = currentAccountEmail;
+      resetPasswordValue = prototypeLoginPassword;
+      resetPasswordSubmitting = true;
+      break;
     case "onb05-account-missing":
       resetPasswordEmail = "demo@example.com";
       resetPasswordValue = prototypeLoginPassword;
@@ -10614,6 +10649,14 @@ function applyShowcasePreset(preset) {
       resetPasswordCountdown = 60;
       resetPasswordNotice = "";
       resetPasswordNoticeTone = "";
+      break;
+    case "onb07-verifying":
+      resetPasswordEmail = currentAccountEmail;
+      resetPasswordValue = prototypeLoginPassword;
+      resetPasswordCode = prototypeVerificationCode;
+      resetPasswordCodeSent = true;
+      resetPasswordCountdown = 38;
+      resetPasswordVerifying = true;
       break;
     case "onb07-wrong-code":
       resetPasswordEmail = currentAccountEmail;
@@ -10638,6 +10681,12 @@ function applyShowcasePreset(preset) {
       codeLoginNotice = "请输入有效的邮箱地址。";
       codeLoginNoticeTone = "error";
       break;
+    case "onb06-sending":
+      codeLoginEmail = currentAccountEmail;
+      codeLoginCode = "";
+      codeLoginCodeSent = false;
+      codeLoginSending = true;
+      break;
     case "onb06-account-missing":
       codeLoginEmail = "demo@example.com";
       codeLoginNotice = "该邮箱尚未注册，请先注册账号。";
@@ -10655,6 +10704,13 @@ function applyShowcasePreset(preset) {
       codeLoginCodeSent = true;
       codeLoginAgreementAccepted = false;
       codeLoginAgreementPromptOpen = true;
+      break;
+    case "onb06-submitting":
+      codeLoginEmail = currentAccountEmail;
+      codeLoginCode = prototypeVerificationCode;
+      codeLoginCodeSent = true;
+      codeLoginAgreementAccepted = true;
+      codeLoginSubmitting = true;
       break;
     case "onb06-wrong-code":
       codeLoginEmail = currentAccountEmail;
