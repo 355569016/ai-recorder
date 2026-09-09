@@ -395,10 +395,10 @@ const pages = [
     goal: "引导用户将设备靠近手机，并在绑定过程中开启蓝牙和定位权限。",
     entry: "登录并确认协议后、绑定设备前、导入文件前。",
     fields: [["bluetooth_permission", "蓝牙权限", "系统权限"], ["location_permission", "定位权限", "系统权限"], ["bind_step", "绑定步骤", "本地状态"], ["estimated_time", "预计耗时", "产品配置"], ["purchase_link", "购买设备链接", "线上商场渠道"]],
-    rules: ["点击开始后进入搜索设备状态。", "蓝牙和定位权限是扫描和连接设备的必需条件。", "如未授权，点击开始时申请获取对应的蓝牙权限和定位权限（如需）。", "用户拒绝权限时停留本页并提示必须授权后才能扫描和连接设备。", "点击“还没有 AI Recorder 设备?”跳转购买页面，线上商场渠道链接待补充。", "绑定页只说明靠近手机、预计耗时和开始操作，不展示复杂权限清单。"],
-    states: ["待开始", "权限待开启", "权限申请中", "权限拒绝", "购买入口"],
+    rules: ["点击开始时按蓝牙、定位的固定顺序检查权限。", "蓝牙和定位权限是扫描和连接设备的必需条件；已开启的权限直接跳过。", "缺少蓝牙权限时先展示蓝牙系统风格提示；用户在原型中点击“设置”视为完成授权并继续检查定位，点击“关闭”停留本页。", "蓝牙已开启但缺少定位权限时展示定位系统风格提示；点击“设置”后进入搜索设备，点击“关闭”停留本页。", "用户关闭任一提示后，必须明确反馈尚未开启的权限；再次点击开始重新检查。", "点击“还没有 AI Recorder 设备?”跳转购买页面，线上商场渠道链接待补充。", "绑定页只说明靠近手机、预计耗时和开始操作，不展示复杂权限清单。"],
+    states: ["待开始", "权限检查中", "蓝牙权限提示", "蓝牙未开启", "定位权限提示", "定位未开启", "权限已齐备并进入搜索", "购买入口"],
     deps: ["iOS CoreBluetooth 权限文案。", "Android Nearby Devices / 定位权限文案。", "设备广播和绑定状态协议待固件定义。"],
-    acceptance: ["页面名显示为绑定你的设备。", "说明文案为请将设备靠近手机，绑定过程中需要开启蓝牙和定位权限。", "点击开始前如缺少蓝牙或定位权限，必须先触发系统权限申请。", "权限授权后进入正在搜索设备页。", "“还没有 AI Recorder 设备?”有购买链路占位。"]
+    acceptance: ["页面名显示为绑定你的设备。", "说明文案为请将设备靠近手机，绑定过程中需要开启蓝牙和定位权限。", "点击开始时先检查蓝牙、再检查定位；已开启项直接跳过。", "蓝牙未开启时必须先展示蓝牙提示；点击设置后继续定位检查。", "定位未开启时必须展示定位提示；点击设置后进入正在搜索设备页。", "关闭任一提示后停留绑定页，明确提示对应权限未开启；再次点击开始可重试。", "两项权限均已开启时直接进入正在搜索设备页。", "“还没有 AI Recorder 设备?”有购买链路占位。"]
   },
   {
     id: "APP-DEV-01",
@@ -768,21 +768,22 @@ const pages = [
     priority: "P0",
     goal: "以简洁计时和录音入口呈现录音状态，并支持最小化、标记、暂停、继续和结束。",
     entry: "硬件开始录音成功后。",
-    prototypeActions: [["默认", "reset-recording-demo"], ["输入态", "start-recording-input"], ["相机", "open-recording-camera"], ["AI 照片说明", "simulate-recording-photo-ai"]],
+    prototypeActions: [["默认", "reset-recording-demo"], ["暂无标记", "set-recording-marks-empty"], ["输入态", "start-recording-input"], ["相机", "open-recording-camera"], ["AI 照片说明", "simulate-recording-photo-ai"]],
     fields: [["record_duration", "录音时长", "BLE 状态包/本地计时"], ["record_state", "录音状态", "BLE 状态包"], ["record_state_confirmed_at", "设备状态最后确认时间", "BLE 状态包"], ["transfer_pause_reason", "传输暂停原因", "同步队列"], ["paused_acked_offset", "暂停时已确认偏移", "同步队列"], ["battery_level", "电量", "BLE 状态包"], ["storage_remaining", "存储", "BLE 状态包"], ["marker_list", "标记记录", "BLE 标记包/本地数据库"], ["marker_type", "标记类型", "输入/拍照/时间标记"], ["marker_source", "标记来源", "APP/录音卡"], ["marker_text", "标记文本", "用户输入/默认标记文本"], ["marker_assets", "标记附件", "系统相机/本地照片"], ["marker_photo_caption", "照片说明", "用户输入/AI 图片识别"], ["marker_caption_source", "照片说明来源", "empty/user/ai"], ["disconnect_timer_mode", "断连计时模式", "本地时钟"]],
     rules: ["开始录音时先暂停 BLE、STA 或 SoftAP 音频传输并保留已确认 offset；仅在设备确认开始后进入计时录音态，确认前不切换到录音中页。", "录音期间不得传输音频，只同步控制、状态、标记和文件索引；该限制不以说明卡或提示文案打断用户。", "用户点击录音页顶部灰色区域或下滑顶部把手可最小化回文件首页；首页顶部出现可点击的录音中文件行，点击后返回录音页。", "录音期间首页隐藏同步状态条；原有未完成文件整体置灰并显示“等待传输”。用户点击这些文件或手动发起传输时，才提示：正在录音，请停止录音后再试。", "暂停后停留录音中页。", "点击结束后立即回到文件首页；结束确认和设备保存作为内部状态处理，不向用户展示 APP-REC-05 中间页面，也不恢复音频传输。", "设备确认文件保存成功后，不弹出保存文字提示；文件首页新增待传输项，设备已连接且当前未录音时立即开始传输，否则保持等待传输。", "未进入编辑状态时，录音面板底部常驻输入、拍照、标记三个核心辅助功能按钮；进入编辑后只保留原位置输入框和系统键盘，不再增加额外编辑操作栏。", "点击输入先在时间轴末尾插入原位置输入框并展示系统键盘；用户收起键盘或按回车后自动保存，空白的新输入不新增标记。", "点击标记立即新增时间标记，默认记录当前录音时间、来源 APP 与默认文本重点标记；录音卡短按标记记录来源录音卡。", "普通标记直接展示文本，不显示右侧箭头；仅文本超长时折叠并提供展开/收起。", "点击输入标记或时间标记文本进入原位置编辑；时间与来源为只读锚点，时间标记支持删除文本但保留时间锚点。", "点击拍照先唤起系统相机；拍照完成后新增照片标记，记录当前录音时间、来源 APP 和照片附件。", "照片标记展示可点击的小图预览，点击照片打开大图；右上角删除图标删除整条照片标记。", "照片下方说明默认空，点击后在原位置编辑并展示系统键盘；收起键盘或按回车后自动保存，转写完成后若说明仍为空且用户未编辑，AI 可结合图片和录音内容生成说明，用户编辑内容不得被 AI 自动覆盖。", "用户点击添加标记或拍照标记时，必须记录当前录音时间戳、标记类型、来源、备注或照片附件；标记先保存在设备侧并通过 BLE 状态同步，结束保存后随完整录音文件进入同步队列。", "录音标记必须在文件详情中形成锚点映射，例如在转写记录 05:12 对应文字右侧内嵌当时拍摄的照片或备注。", "蓝牙断连后只显示设备最后一次确认的录音状态和确认时间；App 本地计时仅作为估算，不得继续宣称设备仍安全录音。", "蓝牙恢复后根据硬件录音状态包校准录音状态、本地模拟计时和标记时间戳。"],
-    states: ["录音中", "暂停中", "最小化查看文件", "输入标记原位编辑态", "编辑标记原位编辑态", "系统键盘展示态", "系统相机态", "照片标记已插入", "照片大图预览", "照片说明为空", "AI 生成照片说明", "标记文本已删除", "连接中断状态待确认", "本地模拟计时", "蓝牙恢复后校准", "低电量", "存储不足"],
+    states: ["录音中", "录音中·暂无标记", "暂停中", "最小化查看文件", "输入标记原位编辑态", "编辑标记原位编辑态", "系统键盘展示态", "系统相机态", "照片标记已插入", "照片大图预览", "照片说明为空", "AI 生成照片说明", "标记文本已删除", "连接中断状态待确认", "本地模拟计时", "蓝牙恢复后校准", "低电量", "存储不足"],
     deps: ["BLE 命令包：开始、暂停、继续、结束、添加标记及命令响应。", "BLE 状态包：录音状态、状态版本、设备时间、电量、存储。", "系统相机与照片访问权限。", "本地数据库：标记时间戳、类型、来源、文本、照片附件和照片说明。", "AI 图片识别：转写后结合照片与录音内容生成说明，接口待定义。", "同步队列：录音开始时暂停并保存 offset，设备确认保存后恢复。", "文件详情：转写记录锚点映射。"],
     acceptance: ["开始命令未确认时不得展示正常录音计时，也不得进入录音中页；只有设备确认开始成功后才进入录音中页。", "若开始录音前正在传输，传输立即停止且进度不回退；录音期间首页不显示同步状态条。", "录音期间不得增加任何音频 transferred bytes，也不得启动 STA 或 SoftAP。", "顶部灰色区域点击和顶部把手下滑均可最小化到文件首页；首页录音中文件行点击后返回录音页。", "最小化后原有未传输文件为置灰“等待传输”行，点击行或手动发起快传仅显示“正在录音，请停止录音后再试。”。", "计时、标记和结束按钮清晰可见，页面不展示传输暂停、传输策略或设备确认说明卡。", "点击暂停后按钮变为继续。", "未编辑时底部输入、拍照、标记三个按钮常驻可见；进入编辑后只展示原位置输入框和系统键盘，不出现输入/取消/完成操作栏。", "点击输入后时间轴末尾出现可实际输入的原位置输入框并展示系统键盘；收起键盘或按回车后自动保存，空白的新输入不新增。", "点击标记立即新增时间标记，并展示时间、来源 APP 和默认文本。", "录音卡标记展示来源录音卡；所有普通标记不显示右侧箭头，超长文本才出现展开/收起。", "点击输入标记和时间标记可在原位置编辑文本；时间标记可删除文本但保留时间与来源。", "点击拍照必须先表达唤起相机，拍照完成后插入带缩略图、时间和来源 APP 的照片标记。", "照片缩略图可打开大图，右上角删除图标可删除照片标记。", "照片说明默认空且可点击编辑；编辑时在照片说明原位置展示输入框和系统键盘，收起键盘或按回车自动保存；AI 说明只在转写完成且用户未编辑时生成，不覆盖用户内容。", "点击结束后立即回到文件首页；结束确认、设备保存和恢复传输均在后台完成，用户不进入 APP-REC-05 中间页面；保存确认成功后本次录音才加入同步队列。", "如果开始或结束确认失败，不进入或停留在录音中页；保留原有同步断点并提供可重试反馈。", "连接中断时不得把未确认状态表述为仍安全录音；重连后以设备状态校准。"]
   },
   {
     id: "APP-REC-05",
     group: "录音",
-    title: "设备保存中",
+    title: "设备保存（内部状态）",
+    internal: true,
     priority: "P0",
     goal: "作为内部状态链路确认录音保存结果，并只在保存成功后恢复音频传输。",
     entry: "录音中点击结束后的内部状态；实际用户直接回文件首页。",
-    prototypeActions: [["保存中", "set-record-save-state", "saving"], ["已保存", "set-record-save-state", "saved"], ["保存未确认", "set-record-save-state", "failed"]],
+    prototypeActions: [],
     fields: [["record_save_state", "保存状态", "BLE 状态包/设备文件清单"], ["saved_file_id", "设备文件 ID", "BLE 文件清单"], ["saved_file_size", "文件大小", "BLE 文件清单"], ["saved_duration", "设备确认时长", "BLE 文件清单"], ["saved_checksum", "设备文件校验信息", "BLE 文件清单"], ["paused_acked_offset", "旧任务暂停偏移", "同步队列"]],
     rules: ["APP-REC-05 仅作为内部保存状态链路；结束录音后用户立即回到文件首页，不进入本页。", "只有收到设备保存成功响应，并能从文件清单读取稳定 file_id、时长和大小后，才将结果记为内部已保存。", "保存成功后恢复录音前暂停的传输通道和已确认 offset；文件首页新增待传输项，设备已连接且当前未录音时立即开始传输，否则保持等待传输，不弹出保存文字提示。", "保存超时、断连或文件清单无法确认时保留内部上下文并允许重新确认；不得把未确认文件加入传输队列，也不得把内部状态直接展示为用户页面。"],
     states: ["设备保存中", "录音已保存", "保存状态未确认", "重新确认中"],
@@ -1624,14 +1625,15 @@ const pages = [
     group: "设置",
     title: "断开连接或解绑设备",
     priority: "P0",
-    goal: "在用户从设备详情点击移除设备后，明确选择断开连接、还原设置或解除并清除数据。",
+    goal: "在用户从设备详情点击移除设备后，根据设备是否可连接，提供可执行的断开、还原或解除并清除数据操作。",
     entry: "设备详情页点击“移除设备”。",
-    fields: [["unbind_mode", "解绑处理方式", "用户选择"], ["device_data_policy", "设备端数据处理策略", "BLE/云端设备"]],
-    rules: ["设备在线时提供断开连接、还原所有设置、解除并清除数据三种选择。", "设备离线时仍提供还原所有设置、解除并清除数据；App 先写入云端待执行策略，设备端在下次绑定、联网或 BLE 握手时按策略执行。", "还原所有设置先展示二次确认，确认后直接执行，不要求密码验证；保留录音数据和账号绑定关系。", "解除并清除数据先展示二次确认，再进入身份验证；支持当前账号密码或邮箱验证码，验证通过后才执行清除。", "解除并清除数据会立即从当前账号和空间移除绑定关系；之后可重新绑定至其他账号和空间。", "未连接设备解除并清除数据时，页面必须说明本地数据不会被远程即时清除；新账号绑定设备时需要读取云端策略，若存在清除标记，则先清除设备本地数据再完成绑定。", "每个选择必须有说明文字，明确是否保留绑定关系、是否清除录音数据、是否重置设备设置，避免误操作。", "顶部返回设备详情，不改变绑定关系。", "断开连接和还原所有设置后仍停留当前设备关系；解除绑定或解除并清除数据后进入未绑定/重新搜索设备状态。", "具体 BLE 断连、还原设置、解绑清除命令和云端待执行策略需由固件协议与设备云服务定义。"],
-    states: ["断开连接", "还原所有设置二次确认", "解除并清除数据二次确认", "密码验证", "邮箱验证码验证", "密码错误", "验证码错误", "还原成功", "清除成功", "离线待执行策略"],
+    fields: [["device_connection_state", "设备连接状态", "手机蓝牙/BLE 状态"], ["unbind_mode", "解绑处理方式", "用户选择"], ["device_data_policy", "设备端数据处理策略", "BLE/云端设备"]],
+    rules: ["设备在线时提供断开连接、还原所有设置、解除并清除数据三种选择。", "手机蓝牙关闭导致设备未连接时，无法下发断开或还原命令；页面只展示解除并清除数据，不展示断开连接和还原所有设置。", "设备未连接时解除并清除数据只立即解除账号侧绑定并写入云端清除策略；设备端数据不会远程即时清除，须在下次联网、重新绑定或 BLE 握手时先执行清除。", "还原所有设置先展示二次确认，确认后直接执行，不要求密码验证；保留录音数据和账号绑定关系。", "解除并清除数据先展示二次确认，再进入身份验证；支持当前账号密码或邮箱验证码，验证通过后才执行清除。", "解除并清除数据会立即从当前账号和空间移除绑定关系；之后可重新绑定至其他账号和空间。", "每个可用选择必须有说明文字，明确是否保留绑定关系、是否清除录音数据、是否重置设备设置，避免误操作。", "顶部返回设备详情，不改变绑定关系。", "断开连接和还原所有设置后仍停留当前设备关系；解除绑定或解除并清除数据后进入未绑定/重新搜索设备状态。", "具体 BLE 断连、还原设置、解绑清除命令和云端待执行策略需由固件协议与设备云服务定义。"],
+    states: ["在线", "设备未连接", "断开连接", "还原所有设置二次确认", "解除并清除数据二次确认", "密码验证", "邮箱验证码验证", "密码错误", "验证码错误", "还原成功", "清除成功", "离线待执行策略"],
     deps: ["BLE 解绑/清除/重置命令、云端设备解绑接口待定义。"],
-    acceptance: ["点击设备详情的移除设备后展示断开连接或解绑设备页面。", "在线设备页面内三项操作均可点击，且每项都有说明文字。", "还原所有设置点击后先出现二次确认；取消不改变设备状态，确认后不要求密码并返回设备详情。", "解除并清除数据点击后先出现二次确认；继续后进入身份验证，密码或邮箱验证码错误均停留当前页并提示。", "验证通过后从已绑定设备列表移除当前设备并进入设备扫描页；在线提示已解除绑定并清除，离线提示已记录待执行策略。", "离线设备仅断开连接不可用；还原所有设置、解除并清除数据均可选择，并说明设备端处理会在下次绑定或联网时根据云端策略执行。"],
-    prototypeLinks: [["断开连接", "APP-DEV-03"], ["还原所有设置", "APP-DEV-03"], ["解除并清除数据", "APP-DEV-01"]]
+    acceptance: ["点击设备详情的移除设备后展示断开连接或解绑设备页面。", "在线设备页面内三项操作均可点击，且每项都有说明文字。", "设备未连接时页面状态标识为“设备未连接”，只展示解除并清除数据，不展示断开连接和还原所有设置。", "设备未连接时解除并清除数据必须说明：账号侧立即解绑，设备端数据在下次联网、重新绑定或 BLE 握手时执行清除。", "还原所有设置点击后先出现二次确认；取消不改变设备状态，确认后不要求密码并返回设备详情。", "解除并清除数据点击后先出现二次确认；继续后进入身份验证，密码或邮箱验证码错误均停留当前页并提示。", "验证通过后从已绑定设备列表移除当前设备并进入设备扫描页；在线提示已解除绑定并清除，未连接时提示已记录待执行清除策略。"],
+    prototypeLinks: [["断开连接", "APP-DEV-03"], ["还原所有设置", "APP-DEV-03"], ["解除并清除数据", "APP-DEV-01"]],
+    prototypeActions: [["在线", "set-device-remove-connection", "online"], ["设备未连接", "set-device-remove-connection", "offline"]]
   },
   {
     id: "APP-ME-04",
@@ -1750,9 +1752,12 @@ const stateDetailOverrides = {
   },
   "APP-ONB-04": {
     "待开始": ["展示绑定说明、预计耗时、设备靠近提示和开始按钮", "无"],
-    "权限待开启": ["保留绑定页，开始按钮可触发系统权限申请", "点击开始：依次申请蓝牙和定位权限"],
-    "权限申请中": ["页面暂不推进搜索，等待系统权限结果", "系统权限弹窗；等待用户选择"],
-    "权限拒绝": ["停留绑定页，说明授权后才能扫描和连接设备", "Toast：「请开启蓝牙和定位权限后重试」"],
+    "权限检查中": ["点击开始后按蓝牙、定位顺序检查当前系统权限，不显示扫描页", "已开启项直接跳过"],
+    "蓝牙权限提示": ["绑定页置于蒙版下，展示蓝牙系统风格提示", "弹窗：「AI Recorder 想要使用蓝牙进行新连接」；按钮：「设置」「关闭」"],
+    "蓝牙未开启": ["关闭蓝牙提示后停留绑定页，保留原有内容和开始入口", "Toast：「蓝牙未开启，请在设置中允许蓝牙连接后重试」"],
+    "定位权限提示": ["蓝牙已开启、定位未开启时，绑定页置于蒙版下展示定位系统风格提示", "弹窗：「AI Recorder 想要使用定位」；按钮：「设置」「关闭」"],
+    "定位未开启": ["关闭定位提示后停留绑定页，保留原有内容和开始入口", "Toast：「定位未开启，请在设置中允许定位后重试」"],
+    "权限已齐备并进入搜索": ["蓝牙和定位均已开启，结束权限检查", "自动进入 APP-DEV-01 正在搜索设备"],
     "购买入口": ["展示还没有 AI Recorder 设备的购买入口，不影响绑定主流程", "点击入口：进入购买页面占位或提示链接待补充"]
   },
   "APP-DEV-01": {
@@ -1928,6 +1933,8 @@ const stateDetailOverrides = {
     "恢复策略待设备联网执行": ["说明账号侧已记录待执行策略，设备端尚未实际完成恢复", "提示设备下次联网或握手时执行；不得显示为已完成"]
   },
   "APP-DEV-10": {
+    "在线": ["展示断开连接、还原所有设置和解除并清除数据三项操作", "三项操作均可用"],
+    "设备未连接": ["手机蓝牙关闭或设备无法连接时，页面仅展示解除并清除数据", "状态标识：「设备未连接」；说明设备端清除在下次连接时执行"],
     "断开连接": ["展示断开连接操作及影响说明，断开后仍保留绑定关系", "Toast：「设备已断开连接」"],
     "还原所有设置二次确认": ["底部确认弹窗说明会重置设备设置但保留录音和绑定关系", "按钮：「确认还原」「取消」"],
     "解除并清除数据二次确认": ["底部确认弹窗说明会解除绑定并清除数据，继续后进入身份验证", "按钮：「继续」「取消」"],
@@ -2041,6 +2048,7 @@ const showcasePreset = prototypeUrlParams.get("showcase") || "";
 document.body.classList.toggle("showcase-mode", Boolean(showcasePreset));
 if (currentPageId === "APP-HOME-02") currentPageId = "APP-HOME-01";
 if (currentPageId === "APP-SYNC-02") currentPageId = "APP-SYNC-01";
+if (currentPageId === "APP-REC-05") currentPageId = "APP-HOME-01";
 let previousPageId = null;
 let fileDetailTab = "transcript";
 let recordPaused = false;
@@ -2137,7 +2145,7 @@ let firmwareUpdateTimer = null;
 let firmwareRetryAtConnection = false;
 let syncPrototypeTimer = null;
 let recordingLifecycleState = currentPageId === "APP-REC-04" ? "recording" : "idle";
-let recordingSaveState = currentPageId === "APP-REC-05" ? "saving" : "idle";
+let recordingSaveState = "idle";
 let recordingLifecycleTimer = null;
 let recordingTransferNotice = "";
 let recordingMinimizePointer = null;
@@ -2146,6 +2154,10 @@ let deviceNameDraft = "";
 let deviceNameError = "";
 let deviceActionNotice = "";
 let deviceActionNoticeTimer = null;
+let bindBluetoothGranted = false;
+let bindLocationGranted = false;
+let bindPermissionPrompt = "";
+let bindPermissionFeedback = "";
 let deviceConnectionPendingId = "";
 let deviceConnectionTimer = null;
 let deviceDangerAction = "";
@@ -2157,6 +2169,7 @@ let deviceDangerCode = "";
 let deviceDangerCodeSent = false;
 let deviceDangerNotice = "";
 let deviceDangerNoticeTone = "";
+let deviceRemoveConnectionState = "online";
 const boundHomeDevices = [
   { id: "a1", name: "AI Recorder A1", status: "已连接", detail: "电量 82% · 存储 12.4G", connected: true, sn: "SN-8F2A-2026", firmware: "v0.9.3", battery: "82%", storage: "68%", storageText: "12.4G", sync: "空闲", lastSync: "今天 14:22" },
   { id: "a1-pro", name: "AI Recorder A1 Pro", status: "已连接", detail: "电量 67% · 存储 8.1G", connected: true, sn: "SN-PRO-6C21", firmware: "v1.0.1", battery: "67%", storage: "44%", storageText: "8.1G", sync: "待机", lastSync: "今天 13:08" },
@@ -2247,6 +2260,10 @@ function getActiveHomeDevice() {
   return boundHomeDevices.find((device) => device.id === activeHomeDeviceId) || boundHomeDevices[0] || null;
 }
 
+function isDeviceRemoveOffline(activeDevice = getActiveHomeDevice()) {
+  return deviceRemoveConnectionState === "offline" || !activeDevice?.connected;
+}
+
 function clearHomeConnectionTimer() {
   if (!homeConnectionTimer) return;
   window.clearTimeout(homeConnectionTimer);
@@ -2328,7 +2345,7 @@ function openDeviceDangerAction(action) {
 function completeDeviceSettingsReset() {
   const activeDevice = getActiveHomeDevice();
   if (!activeDevice) return;
-  const wasConnected = activeDevice.connected;
+  const wasConnected = !isDeviceRemoveOffline(activeDevice);
   const notice = wasConnected
     ? "设备设置已还原，录音数据和绑定关系保留"
     : "已记录还原策略，设备下次联网时执行";
@@ -2342,7 +2359,7 @@ function completeDeviceDataClear() {
   const activeDevice = getActiveHomeDevice();
   if (!activeDevice) return;
   const removedIndex = boundHomeDevices.findIndex((device) => device.id === activeDevice.id);
-  const wasConnected = activeDevice.connected;
+  const wasConnected = !isDeviceRemoveOffline(activeDevice);
   const removedName = activeDevice.name;
   boundHomeDevices.splice(removedIndex, 1);
   activeHomeDeviceId = boundHomeDevices[0]?.id || "";
@@ -2438,7 +2455,7 @@ function go(id) {
   }
   clearFirmwareUpdateTimer();
   previousPageId = currentPageId;
-  currentPageId = id === "APP-HOME-02" ? "APP-HOME-01" : id === "APP-SYNC-02" ? "APP-SYNC-01" : id;
+  currentPageId = id === "APP-HOME-02" ? "APP-HOME-01" : id === "APP-SYNC-02" ? "APP-SYNC-01" : id === "APP-REC-05" ? "APP-HOME-01" : id;
   if (currentPageId !== "APP-FILE-01") {
     clearAskPlaudThinkingTimer();
     askPlaudMode = "closed";
@@ -2685,7 +2702,7 @@ function retryRecordingSaveConfirmation() {
   render();
   recordingLifecycleTimer = window.setTimeout(() => {
     recordingLifecycleTimer = null;
-    if (currentPageId !== "APP-REC-05" || recordingSaveState !== "saving") return;
+    if (recordingSaveState !== "saving") return;
     confirmRecordingSaved();
   }, 900);
 }
@@ -3707,6 +3724,24 @@ function renderCodeLogin() {
   return `${codeLoginScreen}${renderCodeLoginAgreementPrompt()}`;
 }
 
+function renderBindPermissionPrompt() {
+  if (!bindPermissionPrompt) return "";
+  const isBluetooth = bindPermissionPrompt === "bluetooth";
+  const title = isBluetooth ? "“AI Recorder”想要使用蓝牙进行新连接" : "“AI Recorder”想要使用定位";
+  const copy = isBluetooth ? "你可以在“设置”中允许新连接。" : "定位权限用于搜索和连接附近的设备。你可以在“设置”中允许定位。";
+  return `
+    <div class="bind-permission-scrim" aria-hidden="true"></div>
+    <section class="bind-permission-dialog" role="dialog" aria-modal="true" aria-label="${isBluetooth ? "蓝牙" : "定位"}权限提示">
+      <h2>${title}</h2>
+      <p>${copy}</p>
+      <div class="bind-permission-actions">
+        <button data-action="grant-bind-permission">设置</button>
+        <button class="primary" data-action="dismiss-bind-permission">关闭</button>
+      </div>
+    </section>
+  `;
+}
+
 function renderPermissions() {
   return screen(`
     <div class="bind-progress"><b></b><span></span><span></span></div>
@@ -3717,8 +3752,10 @@ function renderPermissions() {
     </section>
     <div class="bind-bottom">
       <button class="link-btn center" data-url="TODO_STORE_URL">还没有 AI Recorder 设备?</button>
-      <button class="primary-btn" data-go="APP-DEV-01">开始</button>
+      ${bindPermissionFeedback ? `<p class="bind-permission-feedback" role="status" aria-live="polite">${h(bindPermissionFeedback)}</p>` : ""}
+      <button class="primary-btn" data-action="start-device-bind">开始</button>
     </div>
+    ${renderBindPermissionPrompt()}
   `, { title: "绑定你的设备", back: "APP-ONB-01", bottom: false, compact: true });
 }
 
@@ -4577,6 +4614,7 @@ function renderRecording() {
   const isEnding = recordingLifecycleState === "ending";
   const isInteractive = ["recording", "paused"].includes(recordingLifecycleState);
   const isPaused = recordingLifecycleState === "paused" || recordPaused;
+  const hasRecordingMarks = recordingMarks.length > 0;
   return `
     <section class="recording-stage">
       <div class="statusbar recording-status"><span>12:42</span><span>5G</span><span>78%</span></div>
@@ -4588,13 +4626,15 @@ function renderRecording() {
           <strong class="${isStarting || isEnding || isStartFailed ? "pending" : ""}"><i></i>${isStartFailed ? "--:--:--" : isStarting || isEnding ? "处理中" : isPaused ? "00:00:38" : "00:00:37"}${isStarting || isEnding ? '<span class="recording-processing-spinner" aria-label="处理中"></span>' : ""}</strong>
           <button data-action="finish-recording-sync" ${isInteractive ? "" : "disabled"}>${isEnding ? "处理中" : "结束"}</button>
         </div>
-        <div class="recording-wave ${isStarting || isEnding || isPaused ? "muted" : ""}">${waveHeights.map((height) => `<i style="height:${Math.max(20, height + 18)}px"></i>`).join("")}</div>
-        <section class="recording-mark-card">
-          <h3>标记记录</h3>
+        <section class="recording-mark-card ${hasRecordingMarks ? "" : "is-empty"}">
+          <h3>录音标记</h3>
           ${recordingCameraPrompt ? `<p class="recording-camera-toast">照片已插入，可点击查看或补充说明</p>` : ""}
-          <div class="timeline" role="list">
-            ${renderRecordingMarks()}
-          </div>
+          ${hasRecordingMarks
+            ? `<div class="timeline" role="list">${renderRecordingMarks()}</div>`
+            : `<div class="recording-empty-marks" aria-label="暂无录音标记">
+                <button type="button" data-action="add-recording-mark" data-mark-type="photo"><span class="recording-empty-icon photo" aria-hidden="true"></span><span><b>添加照片</b><small>把重要画面拍下来，丰富你的记录</small></span></button>
+                <button type="button" data-action="add-recording-mark" data-mark-type="input"><span class="recording-empty-icon input" aria-hidden="true"></span><span><b>添加文字</b><small>随手记下你的灵感和重点</small></span></button>
+              </div>`}
         </section>
         ${isStartFailed ? `<div class="recording-state-actions"><p>暂时无法开始录音</p><button class="primary-btn" data-action="retry-start-recording">重新开始</button><button data-go="APP-HOME-01">返回文件</button></div>` : ""}
         ${recordingEditor || !isInteractive ? "" : `<div class="recording-actions">
@@ -7041,18 +7081,19 @@ function renderDeviceDangerConfirmSheet() {
   const activeDevice = getActiveHomeDevice();
   if (!activeDevice) return "";
   const isClear = deviceDangerAction === "clear";
+  const isOffline = isDeviceRemoveOffline(activeDevice);
   return `
     <div class="device-danger-scrim" data-action="cancel-device-danger" aria-hidden="true"></div>
     <section class="device-danger-sheet ${isClear ? "danger" : "reset"}" role="dialog" aria-modal="true" aria-labelledby="deviceDangerTitle">
       <div class="device-danger-sheet-handle" aria-hidden="true"></div>
       <h1 id="deviceDangerTitle">${isClear ? "确认解除并清除数据？" : "还原所有设置？"}</h1>
       <p class="device-danger-lead">${isClear
-        ? `此操作将解除 ${h(activeDevice.name)} 与当前账号的绑定，并清除设备内数据。`
+        ? (isOffline ? `此操作将立即解除 ${h(activeDevice.name)} 与当前账号的绑定，并记录设备端清除策略。` : `此操作将解除 ${h(activeDevice.name)} 与当前账号的绑定，并清除设备内数据。`)
         : `将 ${h(activeDevice.name)} 的设备参数恢复为出厂默认设置。`}</p>
       <ul class="device-danger-impact-list">
         ${isClear ? `
           <li><b>设备将从当前账号和空间移除</b></li>
-          <li><b>设备内录音及本地数据将永久清除，无法恢复</b></li>
+          <li><b>${isOffline ? "设备端数据将在下次联网、重新绑定或 BLE 握手时清除" : "设备内录音及本地数据将永久清除，无法恢复"}</b></li>
           <li><b>之后可重新绑定至其他账号或空间</b></li>
         ` : `
           <li><b>设备参数恢复默认</b></li>
@@ -7060,7 +7101,7 @@ function renderDeviceDangerConfirmSheet() {
           <li><b>恢复后需重新设置个性化参数</b></li>
         `}
       </ul>
-      <p class="device-danger-warning ${isClear ? "danger" : "reset"}">${isClear ? "操作不可撤销，请确认已完成数据备份。" : "确认后将直接执行还原设置。"}</p>
+      <p class="device-danger-warning ${isClear ? "danger" : "reset"}">${isClear ? (isOffline ? "设备未连接，账号解绑立即生效；设备端清除将在下次连接时执行。" : "操作不可撤销，请确认已完成数据备份。") : "确认后将直接执行还原设置。"}</p>
       <div class="device-danger-sheet-actions">
         <button class="outline-btn" data-action="cancel-device-danger">取消</button>
         ${isClear
@@ -7114,6 +7155,7 @@ function renderDeviceRemoveConfirmSheet() {
   const activeDevice = getActiveHomeDevice();
   if (!activeDevice) return renderDeviceScan();
   if (deviceDangerStep === "verify") return renderDeviceDangerVerify();
+  const isOffline = isDeviceRemoveOffline(activeDevice);
   const onlineActions = `
         <button class="device-remove-action" data-go="APP-DEV-03">
           <b>断开连接</b>
@@ -7129,17 +7171,9 @@ function renderDeviceRemoveConfirmSheet() {
         </button>
   `;
   const offlineActions = `
-        <button class="device-remove-action disabled" disabled aria-disabled="true">
-          <b>断开连接</b>
-          <span>${h(activeDevice.name)} 当前已离线，无需断开连接。</span>
-        </button>
-        <button class="device-remove-action" data-action="open-device-danger-confirm" data-device-danger="reset">
-          <b>还原所有设置</b>
-          <span>记录还原策略，设备下次联网时执行；不清除录音数据，二次确认后直接执行。</span>
-        </button>
         <button class="device-remove-action danger" data-action="open-device-danger-confirm" data-device-danger="clear">
           <b>解除并清除数据</b>
-          <span>立即解除当前账号绑定并记录清除策略，设备下次联网或绑定时执行；二次确认后需密码或验证码验证。</span>
+          <span>立即解除当前账号绑定并记录清除策略；设备下次联网、重新绑定或 BLE 握手时执行清除，二次确认后需密码或验证码验证。</span>
         </button>
   `;
   return `
@@ -7147,11 +7181,11 @@ function renderDeviceRemoveConfirmSheet() {
       ${meTop("断开连接或解绑设备", { back: "APP-DEV-03" })}
       <section class="device-remove-context">
         <b>${h(activeDevice.name)}</b>
-        <span>${h(activeDevice.status)} · ${h(activeDevice.detail)}</span>
-        ${activeDevice.connected ? "" : "<small>未连接设备的还原和清除不会远程即时生效，需在设备再次绑定或联网时由云端策略触发。</small>"}
+        <span>${isOffline ? "设备未连接" : h(activeDevice.status)} · ${h(activeDevice.detail)}</span>
+        ${isOffline ? "<small>手机蓝牙关闭或设备无法连接，无法下发断开和还原命令。解除并清除数据会立即解绑；设备端清除将在下次连接时由云端策略触发。</small>" : ""}
       </section>
       <section class="device-remove-list" aria-label="设备移除方式">
-        ${activeDevice.connected ? onlineActions : offlineActions}
+        ${isOffline ? offlineActions : onlineActions}
       </section>
       ${deviceDangerStep === "confirm" ? renderDeviceDangerConfirmSheet() : ""}
     </main>
@@ -7554,7 +7588,7 @@ const renderers = {
 };
 
 function renderNav() {
-  const grouped = pages.reduce((acc, page) => {
+  const grouped = pages.filter((page) => !page.internal).reduce((acc, page) => {
     acc[page.group] = acc[page.group] || [];
     acc[page.group].push(page);
     return acc;
@@ -7606,6 +7640,10 @@ const verifiedPageShowcases = {
     ["验证码错误", "onb06-wrong-code"],
     ["请先发送验证码", "onb06-send-first"]
   ],
+  "APP-ONB-04": [
+    ["蓝牙权限弹窗", "onb04-bluetooth-permission"],
+    ["定位权限弹窗", "onb04-location-permission"]
+  ],
   "APP-DEV-02": [
     ["SN 位置说明弹窗", "dev02-sn-dialog"]
   ],
@@ -7653,16 +7691,12 @@ const verifiedPageShowcases = {
   "APP-REC-04": [
     ["开始录音处理中（内部）", "rec04-starting"],
     ["录音中", "rec04-recording"],
+    ["录音中·暂无标记", "rec04-empty-marks"],
     ["结束录音处理中（内部）", "rec04-ending"],
     ["输入标记", "rec04-input-mark"],
     ["系统相机", "rec04-camera"],
     ["照片预览", "rec04-photo-viewer"],
     ["AI 照片说明完成", "rec04-ai-caption"]
-  ],
-  "APP-REC-05": [
-    ["设备保存中", "rec05-saving"],
-    ["录音已保存", "rec05-saved"],
-    ["保存状态未确认", "rec05-failed"]
   ],
   "APP-FILE-01": [
     ["文件提问", "file01-ask"],
@@ -7708,7 +7742,11 @@ const verifiedPageShowcases = {
     ["录音中禁止设备操作", "dev03-recording-blocked"],
     ["刷新连接中", "dev03-connection-pending"]
   ],
+  "APP-DEV-11": [
+    ["录音中保存受限", "dev11-recording-save-blocked"]
+  ],
   "APP-DEV-10": [
+    ["设备未连接，仅解除并清除数据", "dev10-device-disconnected"],
     ["还原所有设置确认", "dev10-reset-confirm"],
     ["解除并清除数据确认", "dev10-clear-confirm"],
     ["密码身份验证", "dev10-password-verify"],
@@ -7772,7 +7810,7 @@ function renderFlow() {
     return;
   }
   target.className = "flow-strip";
-  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-07", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-DEV-05", "APP-HOME-01", "APP-SYNC-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-REC-03", "APP-AI-02", "APP-AI-03", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-24", "APP-FILE-25", "APP-FILE-26", "APP-FILE-27", "APP-FILE-28", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-REC-05", "APP-ME-01", "APP-ME-16", "APP-ME-26", "APP-ME-27", "APP-ME-28", "APP-ME-29", "APP-ME-30", "APP-ME-31", "APP-ME-32", "APP-ME-33", "APP-ME-34", "APP-ME-35", "APP-ME-36", "APP-ME-37", "APP-ME-38", "APP-ME-40", "APP-ME-39", "APP-ME-17", "APP-ME-18", "APP-ME-41", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-23", "APP-ME-10", "APP-ME-11", "APP-ME-12", "APP-DEV-03", "APP-DEV-11", "APP-DEV-10", "APP-ME-04", "APP-ME-24", "APP-ME-25", "APP-DEV-06", "APP-DEV-07", "APP-DEV-08", "APP-DEV-09"];
+  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-07", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-DEV-05", "APP-HOME-01", "APP-SYNC-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-REC-03", "APP-AI-02", "APP-AI-03", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-24", "APP-FILE-25", "APP-FILE-26", "APP-FILE-27", "APP-FILE-28", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-01", "APP-ME-16", "APP-ME-26", "APP-ME-27", "APP-ME-28", "APP-ME-29", "APP-ME-30", "APP-ME-31", "APP-ME-32", "APP-ME-33", "APP-ME-34", "APP-ME-35", "APP-ME-36", "APP-ME-37", "APP-ME-38", "APP-ME-40", "APP-ME-39", "APP-ME-17", "APP-ME-18", "APP-ME-41", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-23", "APP-ME-10", "APP-ME-11", "APP-ME-12", "APP-DEV-03", "APP-DEV-11", "APP-DEV-10", "APP-ME-04", "APP-ME-24", "APP-ME-25", "APP-DEV-06", "APP-DEV-07", "APP-DEV-08", "APP-DEV-09"];
   flow.splice(flow.indexOf("APP-FILE-03") + 1, 0, "APP-FILE-23");
   target.innerHTML = flow.map((id, index) => {
     const page = pageById(id);
@@ -7807,6 +7845,7 @@ function renderPrototypeLinks(page) {
         || (action === "home-show-selection-mode" && homeFileSelectionMode)
         || (action === "set-hotspot-state" && value === (hotspotTransferState === "systemPrompt" ? "awaiting" : hotspotTransferState))
         || (action === "set-device-recording-state" && value === (deviceRecordingActive ? "recording" : "idle"))
+        || (action === "set-device-remove-connection" && value === deviceRemoveConnectionState)
         || (action === "set-ask-demo-state" && askDemoActive);
       return `<button class="${active ? "active" : ""}" data-action="${h(action)}"${value ? ` data-value="${h(value)}"` : ""}>${h(label)}</button>`;
     }).join("")}
@@ -8115,6 +8154,41 @@ document.addEventListener("click", (event) => {
     return;
   }
   const action = event.target.closest("[data-action]");
+  if (action && action.dataset.action === "start-device-bind") {
+    bindPermissionFeedback = "";
+    if (!bindBluetoothGranted) {
+      bindPermissionPrompt = "bluetooth";
+      render();
+      return;
+    }
+    if (!bindLocationGranted) {
+      bindPermissionPrompt = "location";
+      render();
+      return;
+    }
+    go("APP-DEV-01");
+    return;
+  }
+  if (action && action.dataset.action === "grant-bind-permission") {
+    if (bindPermissionPrompt === "bluetooth") bindBluetoothGranted = true;
+    if (bindPermissionPrompt === "location") bindLocationGranted = true;
+    bindPermissionPrompt = "";
+    if (!bindLocationGranted) {
+      bindPermissionPrompt = "location";
+      render();
+    } else {
+      go("APP-DEV-01");
+    }
+    return;
+  }
+  if (action && action.dataset.action === "dismiss-bind-permission") {
+    bindPermissionFeedback = bindPermissionPrompt === "bluetooth"
+      ? "蓝牙未开启，请在设置中允许蓝牙连接后重试"
+      : "定位未开启，请在设置中允许定位后重试";
+    bindPermissionPrompt = "";
+    render();
+    return;
+  }
   if (action && action.dataset.action === "open-record-entry") {
     openRecordEntry();
     return;
@@ -8223,6 +8297,12 @@ document.addEventListener("click", (event) => {
   if (action && action.dataset.action === "set-device-recording-state") {
     deviceRecordingActive = action.dataset.value === "recording";
     deviceActionNotice = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "set-device-remove-connection") {
+    deviceRemoveConnectionState = action.dataset.value === "offline" ? "offline" : "online";
+    clearDeviceDangerState();
     render();
     return;
   }
@@ -9323,6 +9403,15 @@ document.addEventListener("click", (event) => {
     recordingCameraPrompt = false;
     recordingExpandedMarkIds = new Set();
     recordingNotice = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "set-recording-marks-empty") {
+    recordingMarks = [];
+    recordingEditor = null;
+    recordingCameraOpen = false;
+    recordingPhotoViewerId = "";
+    recordingCameraPrompt = false;
     render();
     return;
   }
@@ -10530,6 +10619,21 @@ document.addEventListener("submit", (event) => {
 
 function applyShowcasePreset(preset) {
   switch (preset) {
+    case "dev10-device-disconnected":
+      deviceRemoveConnectionState = "offline";
+      break;
+    case "dev11-recording-save-blocked":
+      deviceNameDraft = "AI Recorder A1";
+      deviceRecordingActive = true;
+      deviceActionNotice = "正在录音中，请结束录音后再试。";
+      break;
+    case "onb04-bluetooth-permission":
+      bindPermissionPrompt = "bluetooth";
+      break;
+    case "onb04-location-permission":
+      bindBluetoothGranted = true;
+      bindPermissionPrompt = "location";
+      break;
     case "onb01-invalid-email":
       loginEmail = "invalid-email";
       loginPassword = prototypeLoginPassword;
@@ -10853,6 +10957,13 @@ function applyShowcasePreset(preset) {
     case "rec04-recording":
       recordingLifecycleState = "recording";
       deviceRecordingActive = true;
+      pauseHomeSyncForRecording();
+      recordingTransferNotice = `已暂停文件传输并保留 ${homeSyncStats().percent}% 进度，录音保存后继续`;
+      break;
+    case "rec04-empty-marks":
+      recordingLifecycleState = "recording";
+      deviceRecordingActive = true;
+      recordingMarks = [];
       pauseHomeSyncForRecording();
       recordingTransferNotice = `已暂停文件传输并保留 ${homeSyncStats().percent}% 进度，录音保存后继续`;
       break;

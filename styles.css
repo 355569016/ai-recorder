@@ -1238,6 +1238,74 @@ button {
   font-size: 18px;
 }
 
+.bind-permission-feedback {
+  margin: 0 0 12px;
+  color: #d64040;
+  font-size: 14px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.bind-permission-scrim {
+  position: absolute;
+  z-index: 40;
+  inset: 0;
+  background: rgba(0, 0, 0, .24);
+}
+
+.bind-permission-dialog {
+  position: absolute;
+  z-index: 41;
+  left: 50%;
+  bottom: 132px;
+  width: min(84%, 360px);
+  box-sizing: border-box;
+  padding: 28px 26px 24px;
+  border: 1px solid rgba(255, 255, 255, .86);
+  border-radius: 34px;
+  background: rgba(250, 250, 252, .97);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, .18);
+  transform: translateX(-50%);
+}
+
+.bind-permission-dialog h2 {
+  margin: 0 0 12px;
+  color: #111;
+  font-size: 23px;
+  line-height: 1.28;
+  text-align: center;
+}
+
+.bind-permission-dialog p {
+  margin: 0;
+  color: #777;
+  font-size: 16px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.bind-permission-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.bind-permission-actions button {
+  min-height: 54px;
+  border: 0;
+  border-radius: 28px;
+  background: #dedede;
+  color: #111;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.bind-permission-actions button.primary {
+  background: #0a84ff;
+  color: #fff;
+}
+
 .device-search-copy {
   margin-top: 96px;
 }
@@ -11858,6 +11926,8 @@ button {
 .recording-panel {
   position: absolute;
   inset: 132px 0 0;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   padding: 0 36px 28px;
   border-radius: 18px 18px 0 0;
@@ -12014,10 +12084,6 @@ button {
   color: #9a6200;
 }
 
-.recording-wave.muted {
-  opacity: .28;
-}
-
 .recording-top i,
 .recording-top i::before,
 .recording-top i::after {
@@ -12110,26 +12176,8 @@ button {
   white-space: nowrap;
 }
 
-.recording-wave {
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 5px;
-  padding: 0 10px;
-  border-radius: 12px;
-  background: #f0efed;
-}
-
-.recording-wave i {
-  width: 11px;
-  max-height: 46px;
-  border-radius: 999px;
-  background: #bbb7b0;
-}
-
 .recording-mark-card {
-  height: 350px;
+  flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   margin-top: 14px;
@@ -12148,6 +12196,105 @@ button {
 .recording-mark-card h3 {
   margin: 0 0 14px;
   font-size: 18px;
+}
+
+.recording-mark-card.is-empty {
+  overflow: hidden;
+  padding: 16px 0;
+  border-color: transparent;
+  background: transparent;
+}
+
+.recording-mark-card.is-empty h3 {
+  color: #aaa6a0;
+  font-size: 34px;
+  font-weight: 500;
+  letter-spacing: .02em;
+}
+
+.recording-empty-marks {
+  display: grid;
+  gap: 34px;
+  margin: 94px 24px 0;
+}
+
+.recording-empty-marks button {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+  align-items: center;
+  gap: 20px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #aaa6a0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.recording-empty-marks button:active {
+  opacity: .65;
+}
+
+.recording-empty-marks b,
+.recording-empty-marks small {
+  display: block;
+}
+
+.recording-empty-marks b {
+  margin-bottom: 7px;
+  font-size: 22px;
+  font-weight: 500;
+}
+
+.recording-empty-marks small {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.recording-empty-icon {
+  width: 68px;
+  height: 68px;
+  display: grid;
+  place-items: center;
+  position: relative;
+  border: 1px solid #e7e3de;
+  border-radius: 50%;
+}
+
+.recording-empty-icon.photo::before {
+  content: "";
+  width: 28px;
+  height: 21px;
+  border: 3px solid #aaa6a0;
+  border-radius: 3px;
+}
+
+.recording-empty-icon.photo::after {
+  content: "";
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border: 3px solid #aaa6a0;
+  border-radius: 50%;
+}
+
+.recording-empty-icon.input::before {
+  content: "";
+  width: 30px;
+  height: 4px;
+  border-radius: 3px;
+  background: #aaa6a0;
+  transform: rotate(-62deg);
+}
+
+.recording-empty-icon.input::after {
+  content: "";
+  position: absolute;
+  left: 29px;
+  bottom: 25px;
+  width: 26px;
+  height: 2px;
+  background: #aaa6a0;
 }
 
 .recording-camera-toast {

@@ -25,6 +25,28 @@ scope: 对照真实渲染状态与“当前页面状态与反馈”，补齐所�
 
 final result: passed
 
+## APP-DEV-10 设备未连接时仅解除并清除数据（2026-09-09）
+
+scope: 手机蓝牙关闭、设备未连接状态、仅保留解除并清除数据、离线待执行清除策略
+
+### Interaction requirements
+
+- 状态链路可切换“在线”与“设备未连接”。
+- 设备未连接时，APP-DEV-10 仅展示“解除并清除数据”，不展示断开连接或还原所有设置。
+- 未连接清除须经过二次确认和身份验证；确认文案说明账号侧立即解绑，设备端在下次联网、重新绑定或 BLE 握手时执行清除。
+
+### Runtime evidence
+
+- `?page=APP-DEV-10&showcase=dev10-device-disconnected` 显示状态「设备未连接」，设备移除方式区域仅保留“解除并清除数据”。
+- 点击该操作后的二次确认明确显示：账号解绑立即生效，设备端数据将在下次联网、重新绑定或 BLE 握手时清除；未出现断开连接或还原所有设置。
+
+### Code and build checks
+
+- `node scripts/build-inline.js`、`node --check app.js`、`node --check scripts/build-inline.js`、`node --check scripts/build-prd-preview.js` 与 `git diff --check` 通过。
+
+final result: passed
+
+
 ## APP-FILE-18 重新转写进入配置页（2026-09-08）
 
 scope: 重新转写确认后先允许用户调整生成配置，再显式提交新转写任务
@@ -81,6 +103,41 @@ scope: 连接设备开启高速传输成功后，文件首页同步摘要的传�
 - 本轮浏览器直达本地成功快照被安全审查阻断，未将该项视觉结果标记为运行态已通过；此前真实成功链路仍由 `confirm-hotspot-join` / `retry-hotspot-connecting` 统一调用 `startHomeFastTransfer()`。
 
 final result: passed with browser visual verification pending
+
+## APP-DEV-11 录音中保存设备名称受限（2026-09-09）
+
+scope: 编辑设备名称期间设备开始录音、保存拦截、名称草稿保留
+
+### Interaction requirements
+
+- 设备开始录音后，APP-DEV-11 保留当前名称草稿与编辑页。
+- 点击保存不写入设备名称、不返回设备详情，显示 Toast：「正在录音中，请结束录音后再试。」
+- 页面底部“当前页面状态与反馈”展示不可交互的“录音中保存受限”快照。
+
+## APP-ONB-04 绑定设备蓝牙与定位权限链路（2026-09-09）
+
+preview URL: `http://127.0.0.1:8765/index.html?page=APP-ONB-04`
+scope: 蓝牙优先检查、定位第二检查、系统风格权限提示、设置模拟授权、关闭反馈与重试
+
+### Runtime evidence
+
+- 初始点击“开始”先展示“AI Recorder 想要使用蓝牙进行新连接”提示，未直接进入搜索页。
+- 点击蓝牙提示“关闭”后停留绑定页，显示“蓝牙未开启，请在设置中允许蓝牙连接后重试”。
+- 从蓝牙提示点击“设置”后，原型模拟蓝牙已开启并自动展示定位权限提示；从定位提示点击“设置”后进入 APP-DEV-01“正在搜索设备”。
+- 点击定位提示“关闭”后显示“定位未开启，请在设置中允许定位后重试”；再次点击“开始”直接回到定位提示，已开启的蓝牙不会重复提示。
+- 浏览器运行态控制台 error/warn：空。
+- APP-ONB-04 页面底部“当前页面状态与反馈”新增两张不可交互快照：蓝牙权限弹窗、定位权限弹窗；两张快照分别复用真实原型状态，不影响上方主画布的可操作链路。
+
+### Code and build checks
+
+- `node scripts/build-inline.js`、`node scripts/build-prd-preview.js`、`node --check app.js`、`node --check scripts/build-inline.js`、`node --check scripts/build-prd-preview.js` 与 `git diff --check` 通过。
+- `index.html` 已由 `app.js` 重建；页面效果需求文档已同步 APP-ONB-04 的权限顺序、关闭反馈、状态表现与交互跳转。
+
+### Residual checks
+
+- 这是前端交互原型：“设置”只模拟系统授权结果，未调用 iOS/Android 实际权限 API；生产实现仍需按平台接入权限状态读取、系统设置跳转和系统授权回调。
+
+final result: passed
 
 ## 转写状态增加“生成中”与 APP-FILE-15 自动续跑规则（2026-09-08）
 
@@ -237,6 +294,23 @@ scope: 同步中开始录音、录音期间禁止音频传输、设备确认录�
 - 开始确认、结束确认和设备保存均为内部状态；用户只在确认成功后看到录音中页面，开始失败不进入录音中页面。
 - 点击结束后立即回文件首页；文件清单未确认前不恢复旧任务、不创建本次任务，也不展示 APP-REC-05 中间页面。
 - 设备确认文件 ID、时长、大小和校验信息后，在文件首页新增待传输文件；设备已连接且当前未录音时立即开始传输，否则保持等待传输，不弹出保存文字提示。
+
+### APP-REC-05 不显示（2026-09-09）
+
+- APP-REC-05 标记为内部状态，不在左侧页面导航、流程链路或“当前页面状态与反馈”快照中展示。
+- 即使沿用旧入口尝试进入 APP-REC-05，也回到 APP-HOME-01；录音结束后的保存确认继续在后台状态机中完成。
+
+### APP-REC-04 录音波形移除（2026-09-09）
+
+- 录音中页面移除顶部录音波形，仅保留录音计时、暂停/继续、结束与标记操作。
+- 首页最小化录音入口的小型波形图标不受影响，用于识别录音中的文件入口。
+- 静态检查已确认 `recording-wave` 渲染与样式均不存在；浏览器直达本地 `file://` 页面受浏览器安全策略拦截，未声明视觉运行态验证通过。
+
+### APP-REC-04 标记区扩展与暂无标记状态（2026-09-09）
+
+- 标记区改为填满底部输入、拍照、标记操作上方的可用空间；有多条标记时在区内滚动，不再保留大块无用途空白。
+- 新增“录音中·暂无标记”状态快照。该状态展示添加照片、添加文字引导；点击引导或底部操作可创建相应标记。
+- `node scripts/build-inline.js`、`node --check app.js`、`node --check scripts/build-inline.js` 与 `git diff --check` 已通过；浏览器运行态仍受本地 `file://` 安全策略限制。
 
 ### Expected state checks
 
