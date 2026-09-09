@@ -312,6 +312,31 @@ scope: 同步中开始录音、录音期间禁止音频传输、设备确认录�
 - 新增“录音中·暂无标记”状态快照。该状态展示添加照片、添加文字引导；点击引导或底部操作可创建相应标记。
 - `node scripts/build-inline.js`、`node --check app.js`、`node --check scripts/build-inline.js` 与 `git diff --check` 已通过；浏览器运行态仍受本地 `file://` 安全策略限制。
 
+### APP-FILE-10 无标记状态（2026-09-09）
+
+- 新增“标记空状态”快照：文件详情为空页的标记页签在无录音标记时显示“0 条标记”和“本次录音没有标记。”，不展示标记列表或新增入口。
+- APP-FILE-10 的“当前页面状态与反馈”快照包含有标记、暂无标记、未转写总结三种状态。
+- 底部「生成」入口与总结空状态保持可用；生成后仍以本次的空标记快照进入生成中链路。
+- `node scripts/build-inline.js`、`node --check app.js`、`node --check scripts/build-inline.js` 与 `git diff --check` 已通过；浏览器运行态仍受本地 `file://` 安全策略限制。
+
+### APP-FILE-01 内容页签状态快照（2026-09-09）
+
+- “当前页面状态与反馈”新增标记·有标记、标记·暂无标记、总结、转写记录四张截图，分别展示对应一级页签的实际内容。
+- `node scripts/build-inline.js`、`node --check app.js`、`node --check scripts/build-inline.js` 与 `git diff --check` 已通过；浏览器运行态仍受本地 `file://` 安全策略限制。
+
+### APP-FILE-12 搜索结果空状态（2026-09-09）
+
+- 新增有结果、无结果、加载中三张状态快照；无结果状态使用“动物”作为示例搜索词，展示空结果图标、未找到结果文案和更换关键词提示。
+- `node scripts/build-inline.js`、`node --check app.js`、`node --check scripts/build-inline.js` 与 `git diff --check` 已通过；浏览器运行态仍受本地 `file://` 安全策略限制。
+
+### APP-FILE-02 搜索入口与筛选状态（2026-09-09）
+
+- 新增最近搜索、暂无搜索记录、私有云已开启、筛选条件展开、文件位置筛选弹窗五张“当前页面状态与反馈”快照。
+- 移除搜索空状态中的竞品“向 Plaud 提问”及星标内容；私有云未开启时才展示开启提示，已开启时不展示该入口。
+- 搜索框右侧筛选按钮改为无杂线的漏斗线性图标；展开后展示创建时间和文件位置，文件位置弹窗包含 AI Recorder A1·对话模式、AI Recorder A1·通话模式和导入，未选择时应用按钮置灰。
+- 清除最近搜索后进入暂无搜索记录状态；需求文档已补充私有云开关、筛选图标、空状态文案、状态链路和反馈规则。
+- `node scripts/build-inline.js`、`node --check app.js`、`node --check scripts/build-inline.js` 与 `git diff --check` 已通过；浏览器运行态仍受本地 `file://` 安全策略限制。
+
 ### Expected state checks
 
 - 默认首页同步进度为 35%；开始录音确认期间不展示确认文案，原活动文件保持已确认进度，录音期间不增加。

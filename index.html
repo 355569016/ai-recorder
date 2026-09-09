@@ -90,6 +90,11 @@ let fileDetailActiveTab = "summary";
 let fileDetailSummaryTab = "summary";
 let searchDraft = "";
 let activeSearchQuery = "";
+let searchResultState = "results";
+let searchHasHistory = true;
+let searchFiltersVisible = false;
+let searchLocationSheetOpen = false;
+let searchLocationFilter = "";
 let activeSearchResult = null;
 let fileDetailAudioSeconds = 0;
 let fileDetailAudioPlaying = false;
@@ -647,11 +652,12 @@ const pages = [
     priority: "P0",
     goal: "在文件列表中搜索录音、导入音频和 AI 内容，并展示最近搜索与结果。",
     entry: "文件首页右上角搜索按钮。",
-    fields: [["search_query", "搜索词", "用户输入/最近搜索"], ["created_time_filter", "创建时间", "本地筛选"], ["recent_searches", "最近搜索", "本地缓存"], ["search_results", "搜索结果", "本地数据库/云端索引"]],
-    rules: ["搜索页归属于文件模块。", "顶部仅包含返回和搜索输入框，不展示提问右侧筛选按钮。", "筛选区只保留创建时间入口，点击打开创建时间弹层。", "无输入时直接展示最近搜索和最近 30 天结果。", "最近搜索右侧使用镂空垃圾桶图标清空。"],
-    states: ["默认", "输入中", "有结果", "无结果", "清空最近搜索"],
+    fields: [["search_query", "搜索词", "用户输入/最近搜索"], ["created_time_filter", "创建时间", "本地筛选"], ["file_location_filter", "文件位置", "本地筛选"], ["recent_searches", "最近搜索", "本地缓存"], ["cloud_sync_enabled", "私有云同步开关", "本地设置/云端账号"], ["search_results", "搜索结果", "本地数据库/云端索引"]],
+    rules: ["搜索页归属于文件模块。", "顶部包含返回、搜索输入框和右侧筛选按钮。", "点击筛选按钮展开创建时间和文件位置条件；再次点击收起条件。", "文件位置筛选弹层包含 AI Recorder A1·对话模式、AI Recorder A1·通话模式和导入。", "无输入且存在历史时展示最近搜索和最近 30 天内容；无历史时展示暂无搜索记录空状态。", "私有云同步已开启时不展示“开启私有云同步”入口；未开启时才展示开启提示。", "搜索页不展示竞品提问入口、星标图标或相关文案。", "最近搜索右侧使用镂空垃圾桶图标清空。"],
+    states: ["默认有最近搜索", "无搜索记录", "无搜索记录·私有云已开启", "输入中", "筛选条件展开", "创建时间筛选弹窗", "文件位置筛选弹窗", "有结果", "无结果", "清空最近搜索"],
     deps: ["本地数据库：文件名、转写文本、AI 笔记索引。", "本地缓存：最近搜索。"],
-    acceptance: ["文件首页右上角进入搜索页。", "搜索页点击创建时间进入创建时间弹层。", "搜索页输入或点击搜索词后进入搜索结果页。", "搜索页与文件首页、文件详情同属文件列表模块。"]
+    acceptance: ["文件首页右上角进入搜索页。", "点击搜索框右侧筛选按钮后展示创建时间和文件位置两个条件。", "点击文件位置后打开底部弹层，展示 AI Recorder A1·对话模式、AI Recorder A1·通话模式和导入，未选择时应用按钮置灰。", "搜索页点击创建时间进入创建时间弹层。", "无搜索记录且私有云未开启时展示开启私有云同步提示；私有云已开启时不展示该入口。", "搜索页不出现向 Plaud 提问、星标或其他竞品内容。", "搜索页输入或点击搜索词后进入搜索结果页。", "搜索页与文件首页、文件详情同属文件列表模块。"],
+    prototypeActions: [["最近搜索", "set-search-history-state", "history"], ["暂无搜索记录", "set-search-history-state", "empty"], ["私有云已开启", "set-search-cloud-state", "enabled"], ["筛选条件展开", "set-search-filter-state", "expanded"], ["文件位置筛选弹窗", "set-search-filter-state", "location"]]
   },
   {
     id: "APP-FILE-03",
@@ -715,10 +721,11 @@ const pages = [
     goal: "展示搜索词命中的转写、文件和 AI 笔记内容。",
     entry: "搜索页输入关键词或点击最近搜索。",
     fields: [["search_query", "搜索词", "用户输入"], ["matched_results", "相关结果", "本地数据库/云端索引"], ["highlight_text", "命中文本", "转写/AI 笔记索引"]],
-    rules: ["搜索结果页归属于文件模块。", "顶部仅保留返回和搜索框。", "结果页不展示 AI 提问入口，相关结果整体上移。", "命中的关键词以蓝色高亮。"],
+    rules: ["搜索结果页归属于文件模块。", "顶部仅保留返回和搜索框。", "结果页不展示 AI 提问入口，相关结果整体上移。", "命中的关键词以蓝色高亮。", "无结果时保留搜索词和返回入口，展示未找到结果与更换关键词提示，不展示空白结果列表。"],
     states: ["有结果", "无结果", "加载中"],
     deps: ["本地数据库：文件名、时间、转写文本。", "AI 索引：笔记内容。"],
-    acceptance: ["搜索结果页面样式参考搜索结果图。", "搜索词和命中片段清晰可见。"]
+    acceptance: ["搜索结果页面样式参考搜索结果图。", "搜索词和命中片段清晰可见。", "无结果时显示空结果图标、未找到结果文案和继续搜索提示。"],
+    prototypeActions: [["有结果", "set-search-result-state", "results"], ["无结果", "set-search-result-state", "empty"], ["加载中", "set-search-result-state", "loading"]]
   },
   {
     id: "APP-FILE-14",
@@ -799,7 +806,7 @@ const pages = [
     entry: "文件列表点击文件、同步完成通知、任务完成通知。",
     fields: [["display_title", "展示标题", "文件名/云端同步数据/AI 摘要"], ["title_source", "标题来源", "本地数据库/云端/AI"], ["ai_tags", "AI 标签", "AI 会议总结"], ["audio_progress", "播放进度", "本地播放器"], ["skip_silence_enabled", "跳过空白片段", "播放器设置"], ["playback_rate", "播放倍速", "播放器设置"], ["transcript_segments", "对话转写片段", "转写服务"], ["transcript_start_time", "录音相对时间 HH:MM:SS", "转写片段索引"], ["speaker_label", "说话人编号或名称", "说话人分离/本地命名"], ["transcript_text", "转写正文", "转写服务/用户编辑"], ["ai_sections", "AI 内容结构", "AI 模板"], ["marker_list", "文件标记列表", "录音标记/本地数据库"], ["marker_anchor_map", "标记锚点映射", "录音标记/播放时间戳"], ["marker_generation_role", "标记生成作用", "AI 生成任务快照"], ["note_question", "文件提问", "用户输入/AI 问答"], ["answer_source_refs", "回答引用来源", "转写片段索引"], ["share_state", "分享状态", "云端分享"]],
     rules: ["开启同步云端时，标题优先根据云端同步数据提炼。", "未开启同步云端时，标题默认使用文件名称。", "生成 AI 会议摘要后，标题根据 AI 会议内容重新提炼总结。", "生成 AI 会议总结后，根据会议内容提取关键标签。", "播放器进度条支持点击和拖动调整音频进度。", "播放器控制区包含音频设置、快退 15 秒、播放、快进 15 秒、倍速，不展示额外方向箭头。", "已转写文件的一级标签统一为标记、总结和转写记录，一级标签按内容宽度左对齐排列，负责切换内容类型；标记和转写记录内容区不再重复显示同名标题。", "转写记录按对话片段展示；每段先显示录音相对时间和说话人，正文另起一行。时间统一为 HH:MM:SS，不足一小时也补齐小时位。", "默认说话人按分离结果显示为说话人 1、说话人 2，并继续递增；同一说话人在不同时间片段保持相同编号，保存自定义名称后同步更新对应片段。", "转写时间和说话人只读，只有正文进入原位编辑。", "点击总结后展示智能总结、章节大纲、待办事项和思维导图四个二级标签；四块内容在同一长页面中按此顺序连续展示，二级标签只负责快速定位，页面滚动时同步更新选中态。", "未转写和生成中状态仅保留标记、总结两个一级标签，不提前展示转写记录或总结二级标签。", "录音中产生的文字、时间和照片标记在录音结束后完整继承到文件详情，不能依赖转写或 AI 生成状态。", "录音结束后不再允许新增标记，只能维护录音过程中已经产生的标记。", "点击标记时间或播放图标定位到对应音频时间并开始播放。", "点击标记文本、照片说明、转写记录或智能总结时，原文字直接出现光标并唤起系统键盘；不打开弹窗、新页面，不增加边框、下划线、取消或保存按钮。", "智能总结和转写记录使用系统键盘上方的轻量格式工具栏，至少包含标题/正文、列表、对齐、引用、撤销和重做；普通标记与照片说明保持纯文本键盘，不展示格式工具栏。", "编辑内容实时记录，输入框失焦、收起键盘或切换其他标签时自动保存。", "照片可打开和删除；标记时间与来源保持只读。", "生成 AI 内容时读取当时的标记快照作为辅助笔记；生成后继续编辑标记不会静默改写既有 AI 内容，重新生成时再读取最新标记。", "页面底部固定展示“对此文件提问”输入框；普通输入不显示快捷能力标签，只有点击当前模型和模板提供的快速入口后才显示对应标签并直接开始分析。", "普通提问与快捷分析都自动经历 2 秒思考中、2 秒思考过程，再显示思考完成后的答案；手机内不放阶段推进或暂停按钮，不同阶段仅由右侧状态链路预览。", "回答中的来源仅显示可点击的圈号数字；点击后打开标题为“来源”的完整转写对话流，相关片段高亮，面板内可下拉、加载更多并点击任一片段播放，播放片段的说话人右侧显示小喇叭。", "回答操作区暂不提供加入笔记图标入口。", "右上角分享按钮打开分享弹窗，三个点打开更多操作浮层。"],
-    states: ["标记一级标签", "总结一级标签", "转写记录一级标签", "智能总结二级标签", "章节大纲二级标签", "待办事项二级标签", "思维导图二级标签", "文件提问默认", "普通提问思考中", "普通提问思考过程", "快捷入口分析中", "思考暂停", "思考完成并显示答案", "打开来源完整转写", "来源片段播放", "标记原位编辑", "转写原位编辑", "总结原位编辑", "照片预览", "未生成 AI 摘要", "AI 已生成", "音频设置", "倍速选择", "分享", "更多操作", "文件损坏", "删除确认"],
+    states: ["标记一级标签", "标记一级标签·暂无标记", "总结一级标签", "转写记录一级标签", "智能总结二级标签", "章节大纲二级标签", "待办事项二级标签", "思维导图二级标签", "文件提问默认", "普通提问思考中", "普通提问思考过程", "快捷入口分析中", "思考暂停", "思考完成并显示答案", "打开来源完整转写", "来源片段播放", "标记原位编辑", "转写原位编辑", "总结原位编辑", "照片预览", "未生成 AI 摘要", "AI 已生成", "音频设置", "倍速选择", "分享", "更多操作", "文件损坏", "删除确认"],
     deps: ["本地播放器：进度、跳转、快退快进、倍速。", "音频分析：静音/无声片段识别。", "转写服务：转写记录和时间戳。", "说话人分离与命名：片段说话人编号和自定义名称。", "本地数据库：录音标记、备注、照片附件。", "AI 服务：标题、标签、大纲、总结、待办、思维导图、笔记问答。", "云端分享：分享链接和权限。"],
     acceptance: ["已转写详情必须展示左对齐的标记、总结、转写记录三个一级标签，且同一时刻只展示一个一级内容；标记与转写记录内容区不得重复出现同名标题，标记页不得显示标记数量与生成状态说明。", "每段转写必须显示 HH:MM:SS 录音相对时间、对应说话人和正文；时间与说话人只读，正文保持原位编辑，同一说话人跨片段编号一致。", "总结一级标签内必须展示智能总结、章节大纲、待办事项、思维导图四个二级标签；点击可定位到同页对应区块，继续下滑可依次阅读全部四块内容，滚动时选中态同步变化。", "未转写和生成中详情只展示标记、总结两个一级标签，不显示转写记录和总结二级标签。", "录音期间的全部标记在已生成文件详情中完整展示，并可继续编辑。", "录音结束后的文件详情不得出现新增标记入口。", "点击标记时间定位音频；点击标记内容、转写记录和智能总结均在原文字位置直接输入，仅显示光标和系统键盘，不出现独立窗口或显式保存操作。", "总结和转写编辑时格式栏可切换标题、列表、对齐和引用；标记编辑时不显示格式栏。", "失焦、收起键盘或切换标签后内容自动保存。", "照片可查看或删除，时间与来源只读。", "思维导图按卡片预览呈现。", "音频设置和倍速按钮能打开对应弹窗。", "普通输入提问不显示快捷能力标签；快捷入口仅按当前模型与模板的可用能力展示，点击后立即开始对应分析。", "实际提问会自动经历 2 秒思考中、2 秒思考过程并显示答案，手机内没有完成、查看或暂停等阶段切换按钮；右侧状态链路可独立预览各阶段。", "回答来源仅显示可点击的数字圈号；来源面板标题为“来源”，展示可滚动、可加载的完整转写对话，相关文本高亮，点击任一片段开始播放且该说话人右侧显示小喇叭。", "回答操作区不显示加入笔记图标入口。", "标题和标签规则在字段与交互说明中明确。"],
     prototypeLinks: [["文件详情已转写", "APP-FILE-01"], ["文件详情为空", "APP-FILE-10"]],
@@ -813,11 +820,12 @@ const pages = [
     goal: "展示音频已存在但尚未生成 AI 笔记时的文件详情空状态。",
     entry: "文件列表点击未生成 AI 摘要的文件、转写/总结尚未生成完成。",
     fields: [["display_title", "展示标题", "文件名/云端同步数据"], ["audio_progress", "播放进度", "本地播放器"], ["marker_list", "录音标记列表", "本地数据库"], ["marker_generation_role", "生成辅助笔记", "AI 生成任务快照"], ["generation_state", "生成状态", "AI 服务"], ["estimated_audio_duration", "音频时长", "本地播放器"]],
-    rules: ["空状态保留标题、音频播放器和右上角操作。", "未生成状态以标记作为默认一级页签，完整展示录音期间的标记；录音结束后不允许新增标记，只能原位编辑已有文字或照片说明、查看照片和删除照片。", "总结页签显示可生成笔记提示，底部固定生成主按钮。", "生成按钮文案只显示生成；点击后进入转写与生成弹层，并在确认时冻结本次标记快照。"],
-    states: ["标记页签", "总结空状态", "标记原位编辑", "未生成 AI 摘要", "可生成笔记", "生成中"],
+    rules: ["空状态保留标题、音频播放器和右上角操作。", "未生成状态以标记作为默认一级页签，完整展示录音期间的标记；录音结束后不允许新增标记，只能原位编辑已有文字或照片说明、查看照片和删除照片。", "若本次录音没有标记，标记页签显示“0 条标记”和“本次录音没有标记。”空提示，不展示标记列表或新增标记入口。", "总结页签显示可生成笔记提示，底部固定生成主按钮。", "生成按钮文案只显示生成；点击后进入转写与生成弹层，并在确认时冻结本次标记快照。"],
+    states: ["标记页签", "标记空状态", "总结空状态", "标记原位编辑", "未生成 AI 摘要", "可生成笔记", "生成中"],
     deps: ["本地播放器。", "AI 服务：生成入口和状态。", "用量服务：生成前确认。"],
-    acceptance: ["空详情显示标记/总结两个页签；默认展示已保存标记，并说明生成时将作为辅助笔记。", "标记可定位播放和原位编辑，但不得新增。", "总结空状态不展示已转写内容和笔记提问框。", "底部按钮只显示生成。"],
-    prototypeLinks: [["文件详情已转写", "APP-FILE-01"], ["文件详情为空", "APP-FILE-10"], ["转写与生成", "APP-AI-01"], ["生成中", "APP-FILE-15"]]
+    acceptance: ["空详情显示标记/总结两个页签；默认展示已保存标记，并说明生成时将作为辅助笔记。", "无标记时显示“0 条标记”和“本次录音没有标记。”空提示，不展示标记列表或新增入口。", "标记可定位播放和原位编辑，但不得新增。", "总结空状态不展示已转写内容和笔记提问框。", "底部按钮只显示生成。"],
+    prototypeLinks: [["文件详情已转写", "APP-FILE-01"], ["文件详情为空", "APP-FILE-10"], ["转写与生成", "APP-AI-01"], ["生成中", "APP-FILE-15"]],
+    prototypeActions: [["已有标记", "set-file10-marker-state", "populated"], ["暂无标记", "set-file10-marker-state", "empty"]]
   },
   {
     id: "APP-FILE-15",
@@ -1830,7 +1838,9 @@ const stateDetailOverrides = {
     "加载更多": ["仅在列表底部加载下一页，现有文件和其他页面操作保持可用", "列表底部显示轻量 Loading"]
   },
   "APP-FILE-02": {
-    "默认": ["展示搜索输入框、创建时间筛选、最近搜索和最近 30 天内容", "输入框可直接输入"],
+    "默认": ["展示搜索输入框、右侧筛选按钮、最近搜索和最近 30 天内容", "输入框可直接输入；筛选条件按需展开"],
+    "无搜索记录": ["展示暂无搜索记录空状态；私有云未开启时显示开启私有云同步提示", "保留搜索和筛选入口"],
+    "无搜索记录·私有云已开启": ["展示暂无搜索记录空状态；私有云已开启时不展示开启私有云同步入口", "保留搜索和筛选入口"],
     "输入中": ["保留键盘和当前输入，根据关键词更新结果，不锁定页面其他操作", "输入内容实时显示"],
     "有结果": ["展示匹配的文件、转写或 AI 内容，关键词和筛选条件保持不变", "结果列表反馈；点击进入对应文件"],
     "无结果": ["展示无匹配结果空态，保留关键词和筛选条件", "空态文案：「未找到相关结果」"],
@@ -2456,6 +2466,7 @@ function go(id) {
   clearFirmwareUpdateTimer();
   previousPageId = currentPageId;
   currentPageId = id === "APP-HOME-02" ? "APP-HOME-01" : id === "APP-SYNC-02" ? "APP-SYNC-01" : id === "APP-REC-05" ? "APP-HOME-01" : id;
+  if (currentPageId !== "APP-FILE-02") searchLocationSheetOpen = false;
   if (currentPageId !== "APP-FILE-01") {
     clearAskPlaudThinkingTimer();
     askPlaudMode = "closed";
@@ -4148,20 +4159,9 @@ function renderImportAudioSheet() {
 }
 
 function renderSearch() {
-  return `
-    <div class="statusbar"><span>9:41</span><span>5G</span><span>82%</span></div>
-    <div class="search-page-top">
-      <button class="icon-btn back-large" data-go="APP-HOME-01" aria-label="返回">‹</button>
-      <label class="search-input">
-        <span aria-hidden="true"></span>
-        <input id="searchInput" type="search" value="${h(searchDraft)}" placeholder="搜索或提问" autocomplete="off" spellcheck="false">
-      </label>
-    </div>
-    <main class="screen-content search-screen compact">
-      <div class="search-sort-row">
-        <button data-go="APP-FILE-11">创建时间 <span>↕</span></button>
-      </div>
-      <div class="search-divider"></div>
+  const showFilters = searchFiltersVisible;
+  const historyContent = searchHasHistory
+    ? `
       <section class="recent-search-head">
         <h3>最近搜索</h3>
         <button class="trash-btn" data-go="APP-FILE-14" aria-label="清空最近搜索"></button>
@@ -4171,8 +4171,61 @@ function renderSearch() {
       <button class="search-result" data-action="open-search-results" aria-label="查看相关搜索结果">
         <strong>2026-06-29 17:28:59</strong>
         <span>06-29 17:28</span>
-      </button>
+      </button>`
+    : `
+      <section class="search-empty-history" aria-label="暂无搜索记录">
+        <div class="search-history-empty-icon" aria-hidden="true"><i></i><b></b></div>
+        <h2>暂无搜索记录</h2>
+        ${cloudSyncEnabled ? "" : `<p><span>开启私有云同步</span>，搜索其他设备上的录音</p>`}
+      </section>`;
+  return `
+    <div class="statusbar"><span>9:41</span><span>5G</span><span>82%</span></div>
+    <div class="search-page-top">
+      <button class="icon-btn back-large" data-go="APP-HOME-01" aria-label="返回">‹</button>
+      <label class="search-input">
+        <span aria-hidden="true"></span>
+        <input id="searchInput" type="search" value="${h(searchDraft)}" placeholder="搜索或提问" autocomplete="off" spellcheck="false">
+      </label>
+      <button class="search-filter-button ${showFilters ? "active" : ""}" data-action="toggle-search-filters" aria-label="筛选" aria-pressed="${showFilters}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18l-7 8v5l-4 2v-7L3 5z"></path></svg></button>
+    </div>
+    <main class="screen-content search-screen compact">
+      ${showFilters ? `<div class="search-sort-row">
+        <button data-go="APP-FILE-11">创建时间 <span>↕</span></button>
+        <button class="${searchLocationFilter ? "selected" : ""}" data-action="open-search-location-filter">文件位置 <span>↕</span></button>
+      </div>` : ""}
+      ${showFilters ? `<div class="search-divider"></div>` : ""}
+      ${historyContent}
     </main>
+    ${searchLocationSheetOpen ? renderSearchLocationSheet() : ""}
+  `;
+}
+
+function renderSearchLocationSheet() {
+  const options = [
+    ["conversation", "AI Recorder A1 · 对话模式"],
+    ["call", "AI Recorder A1 · 通话模式"],
+    ["import", "导入"]
+  ];
+  const selected = Boolean(searchLocationFilter);
+  return `
+    <div class="scrim search-location-scrim" data-action="close-search-location-filter"></div>
+    <section class="search-location-sheet" aria-label="文件位置">
+      <div class="sheet-header">
+        <h2>文件位置</h2>
+        <button data-action="close-search-location-filter" aria-label="关闭">×</button>
+      </div>
+      <div class="sheet-line"></div>
+      <div class="search-location-options">
+        ${options.map(([value, label]) => `
+          <button data-action="select-search-location-filter" data-value="${value}" aria-pressed="${searchLocationFilter === value}">
+            <span>${h(label)}</span><i class="${searchLocationFilter === value ? "checked" : ""}"></i>
+          </button>`).join("")}
+      </div>
+      <div class="time-sheet-actions search-location-actions">
+        <button class="secondary-btn" data-action="clear-search-location-filter">清除</button>
+        <button class="${selected ? "primary-btn" : "disabled-btn"}" data-action="apply-search-location-filter" ${selected ? "" : "disabled"}>应用</button>
+      </div>
+    </section>
   `;
 }
 
@@ -4181,6 +4234,7 @@ function submitSearchDraft() {
   if (!query) return;
   searchDraft = query;
   activeSearchQuery = query;
+  searchResultState = ["说", "好"].includes(query) ? "results" : "empty";
   go("APP-FILE-12");
 }
 
@@ -4192,7 +4246,7 @@ function renderSearchClearConfirm() {
       <h2>清除搜索记录</h2>
       <div class="sheet-line"></div>
       <p>确认清除全部搜索记录？<br>清除后将无法恢复。</p>
-      <button class="danger-soft-btn" data-go="APP-FILE-02">清除</button>
+      <button class="danger-soft-btn" data-action="clear-search-history">清除</button>
       <button class="cancel-outline-btn" data-go="APP-FILE-02">取消</button>
     </section>
   `;
@@ -4222,6 +4276,8 @@ function renderSearchTimeSheet() {
 
 function renderSearchResults() {
   const query = activeSearchQuery || "说";
+  const isEmpty = searchResultState === "empty";
+  const isLoading = searchResultState === "loading";
   const highlight = (text) => String(text)
     .split(query)
     .map((part) => h(part))
@@ -4254,16 +4310,27 @@ function renderSearchResults() {
     </div>
     <main class="screen-content search-screen result-screen compact">
       <div class="search-divider result"></div>
-      <h3 class="result-heading">相关结果</h3>
-      <section class="search-result-list">
-        ${results.map((result) => `
-          <article class="search-result-item" data-go="APP-FILE-01">
-            <h4>${highlight(result.title)}</h4>
-            <p>${highlight(result.excerpt)}</p>
-            <div><span>${h(result.type)}</span><time>${h(result.time)}</time></div>
-          </article>
-        `).join("")}
-      </section>
+      ${isEmpty
+        ? `<section class="search-empty-state" aria-label="搜索结果为空">
+            <span class="search-empty-icon" aria-hidden="true"></span>
+            <h3>未找到与“${h(query)}”相关的结果</h3>
+            <p>可尝试更换关键词继续搜索</p>
+          </section>`
+        : isLoading
+          ? `<section class="search-loading-state" aria-label="搜索结果加载中">
+              <i></i><i></i><i></i>
+              <p>正在搜索相关内容…</p>
+            </section>`
+          : `<h3 class="result-heading">相关结果</h3>
+             <section class="search-result-list">
+              ${results.map((result) => `
+                <article class="search-result-item" data-go="APP-FILE-01">
+                  <h4>${highlight(result.title)}</h4>
+                  <p>${highlight(result.excerpt)}</p>
+                  <div><span>${h(result.type)}</span><time>${h(result.time)}</time></div>
+                </article>
+              `).join("")}
+             </section>`}
     </main>
   `;
 }
@@ -7688,6 +7755,23 @@ const verifiedPageShowcases = {
     ["永久删除确认", "file23-delete-confirm"],
     ["恢复成功提示", "file23-restore-toast"]
   ],
+  "APP-FILE-02": [
+    ["最近搜索", "file02-history"],
+    ["暂无搜索记录", "file02-no-history"],
+    ["私有云已开启", "file02-cloud-enabled"],
+    ["筛选条件展开", "file02-filters"],
+    ["文件位置筛选弹窗", "file02-location-filter"]
+  ],
+  "APP-FILE-12": [
+    ["有结果", "file12-results"],
+    ["无结果", "file12-empty"],
+    ["加载中", "file12-loading"]
+  ],
+  "APP-FILE-10": [
+    ["有标记", "file10-with-markers"],
+    ["暂无标记", "file10-no-markers"],
+    ["未转写总结", "file10-untranscribed-summary"]
+  ],
   "APP-REC-04": [
     ["开始录音处理中（内部）", "rec04-starting"],
     ["录音中", "rec04-recording"],
@@ -7699,6 +7783,10 @@ const verifiedPageShowcases = {
     ["AI 照片说明完成", "rec04-ai-caption"]
   ],
   "APP-FILE-01": [
+    ["标记·有标记", "file01-markers-populated"],
+    ["标记·暂无标记", "file01-markers-empty"],
+    ["总结", "file01-summary"],
+    ["转写记录", "file01-transcript"],
     ["文件提问", "file01-ask"],
     ["回答生成中", "file01-ask-thinking"],
     ["回答完成", "file01-ask-answer"],
@@ -7846,6 +7934,9 @@ function renderPrototypeLinks(page) {
         || (action === "set-hotspot-state" && value === (hotspotTransferState === "systemPrompt" ? "awaiting" : hotspotTransferState))
         || (action === "set-device-recording-state" && value === (deviceRecordingActive ? "recording" : "idle"))
         || (action === "set-device-remove-connection" && value === deviceRemoveConnectionState)
+        || (action === "set-search-history-state" && ((value === "history" && searchHasHistory && !searchFiltersVisible) || (value === "empty" && !searchHasHistory && !searchFiltersVisible)))
+        || (action === "set-search-cloud-state" && !searchHasHistory && !searchFiltersVisible && ((value === "enabled" && cloudSyncEnabled) || (value === "disabled" && !cloudSyncEnabled)))
+        || (action === "set-search-filter-state" && ((value === "expanded" && searchFiltersVisible && !searchLocationSheetOpen) || (value === "location" && searchLocationSheetOpen)))
         || (action === "set-ask-demo-state" && askDemoActive);
       return `<button class="${active ? "active" : ""}" data-action="${h(action)}"${value ? ` data-value="${h(value)}"` : ""}>${h(label)}</button>`;
     }).join("")}
@@ -8459,6 +8550,45 @@ document.addEventListener("click", (event) => {
     completeDeviceDataClear();
     return;
   }
+  if (action && action.dataset.action === "toggle-search-filters") {
+    searchFiltersVisible = !searchFiltersVisible;
+    searchLocationSheetOpen = false;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "clear-search-history") {
+    searchHasHistory = false;
+    searchLocationSheetOpen = false;
+    go("APP-FILE-02");
+    return;
+  }
+  if (action && action.dataset.action === "open-search-location-filter") {
+    searchFiltersVisible = true;
+    searchLocationSheetOpen = true;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "close-search-location-filter") {
+    searchLocationSheetOpen = false;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "select-search-location-filter") {
+    searchLocationFilter = action.dataset.value || "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "clear-search-location-filter") {
+    searchLocationFilter = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "apply-search-location-filter") {
+    if (!searchLocationFilter) return;
+    searchLocationSheetOpen = false;
+    render();
+    return;
+  }
   if (action && action.dataset.action === "open-device-removal") {
     if (blockDeviceActionWhileRecording()) return;
     go("APP-DEV-10");
@@ -8468,6 +8598,7 @@ document.addEventListener("click", (event) => {
     const query = (action.dataset.query || searchDraft || activeSearchQuery || "说").trim();
     searchDraft = query;
     activeSearchQuery = query;
+    searchResultState = ["说", "好"].includes(query) ? "results" : "empty";
     go("APP-FILE-12");
     return;
   }
@@ -9412,6 +9543,48 @@ document.addEventListener("click", (event) => {
     recordingCameraOpen = false;
     recordingPhotoViewerId = "";
     recordingCameraPrompt = false;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "set-file10-marker-state") {
+    recordingMarks = action.dataset.value === "empty"
+      ? []
+      : recordingBaseMarks.map((mark) => ({ ...mark }));
+    fileDetailActiveTab = "markers";
+    fileDetailMarkerEditor = null;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "set-search-result-state") {
+    searchResultState = ["results", "empty", "loading"].includes(action.dataset.value)
+      ? action.dataset.value
+      : "results";
+    searchDraft = searchResultState === "empty" ? "动物" : searchDraft || "好";
+    activeSearchQuery = searchDraft;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "set-search-history-state") {
+    searchHasHistory = action.dataset.value !== "empty";
+    if (!searchHasHistory) cloudSyncEnabled = false;
+    searchFiltersVisible = false;
+    searchLocationSheetOpen = false;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "set-search-cloud-state") {
+    cloudSyncEnabled = action.dataset.value === "enabled";
+    searchHasHistory = false;
+    searchFiltersVisible = false;
+    searchLocationSheetOpen = false;
+    searchLocationFilter = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "set-search-filter-state") {
+    searchHasHistory = false;
+    searchFiltersVisible = true;
+    searchLocationSheetOpen = action.dataset.value === "location";
     render();
     return;
   }
@@ -10943,6 +11116,99 @@ function applyShowcasePreset(preset) {
       deviceRecordingActive = false;
       pauseHomeSyncForRecording();
       recordingTransferNotice = `已暂停文件传输并保留 ${homeSyncStats().percent}% 进度，录音保存后继续`;
+      break;
+    case "file10-no-markers":
+      recordingMarks = [];
+      fileDetailActiveTab = "markers";
+      fileDetailMarkerEditor = null;
+      break;
+    case "file10-with-markers":
+      recordingMarks = recordingBaseMarks.map((mark) => ({ ...mark }));
+      fileDetailActiveTab = "markers";
+      fileDetailMarkerEditor = null;
+      break;
+    case "file10-untranscribed-summary":
+      recordingMarks = recordingBaseMarks.map((mark) => ({ ...mark }));
+      fileDetailActiveTab = "summary";
+      fileDetailMarkerEditor = null;
+      break;
+    case "file01-markers-populated":
+      recordingMarks = recordingBaseMarks.map((mark) => ({ ...mark }));
+      fileDetailActiveTab = "markers";
+      fileDetailMarkerEditor = null;
+      break;
+    case "file01-markers-empty":
+      recordingMarks = [];
+      fileDetailActiveTab = "markers";
+      fileDetailMarkerEditor = null;
+      break;
+    case "file01-summary":
+      recordingMarks = recordingBaseMarks.map((mark) => ({ ...mark }));
+      fileDetailActiveTab = "summary";
+      fileDetailSummaryTab = "summary";
+      fileDetailContentEditor = null;
+      break;
+    case "file01-transcript":
+      recordingMarks = recordingBaseMarks.map((mark) => ({ ...mark }));
+      fileDetailActiveTab = "transcript";
+      fileDetailContentEditor = null;
+      break;
+    case "file02-history":
+      searchHasHistory = true;
+      searchFiltersVisible = false;
+      searchLocationSheetOpen = false;
+      searchLocationFilter = "";
+      searchDraft = "";
+      activeSearchQuery = "";
+      break;
+    case "file02-no-history":
+      searchHasHistory = false;
+      cloudSyncEnabled = false;
+      searchFiltersVisible = false;
+      searchLocationSheetOpen = false;
+      searchLocationFilter = "";
+      searchDraft = "";
+      activeSearchQuery = "";
+      break;
+    case "file02-cloud-enabled":
+      searchHasHistory = false;
+      cloudSyncEnabled = true;
+      searchFiltersVisible = false;
+      searchLocationSheetOpen = false;
+      searchLocationFilter = "";
+      searchDraft = "";
+      activeSearchQuery = "";
+      break;
+    case "file02-filters":
+      searchHasHistory = false;
+      searchFiltersVisible = true;
+      searchLocationSheetOpen = false;
+      searchLocationFilter = "";
+      searchDraft = "";
+      activeSearchQuery = "";
+      break;
+    case "file02-location-filter":
+      searchHasHistory = false;
+      searchFiltersVisible = true;
+      searchLocationSheetOpen = true;
+      searchLocationFilter = "";
+      searchDraft = "";
+      activeSearchQuery = "";
+      break;
+    case "file12-results":
+      searchResultState = "results";
+      searchDraft = "好";
+      activeSearchQuery = "好";
+      break;
+    case "file12-empty":
+      searchResultState = "empty";
+      searchDraft = "动物";
+      activeSearchQuery = "动物";
+      break;
+    case "file12-loading":
+      searchResultState = "loading";
+      searchDraft = "好";
+      activeSearchQuery = "好";
       break;
     case "rec04-start-failed":
       recordingLifecycleState = "start_failed";
