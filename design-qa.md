@@ -104,6 +104,32 @@ scope: 连接设备开启高速传输成功后，文件首页同步摘要的传�
 
 final result: passed with browser visual verification pending
 
+## APP-FILE-16 移动到文件夹 Toast 自动消失与状态快照（2026-09-10）
+
+scope: 移动成功后的 Toast 生命周期、移动到文件夹状态链路及底部“当前页面状态与反馈”快照
+
+### Interaction requirements
+
+- 在 APP-FILE-16 选择目标文件夹后，点击“移动到目标文件夹”返回文件详情页并显示“文件夹已移动至目标文件夹” Toast。
+- Toast 显示 3 秒后自动消失，页面恢复无遮挡状态；重复进入移动流程时不保留过期 Toast。
+- 状态快照覆盖默认、新增文件夹、已选择文件夹、移动完成·Toast 和 Toast 消失。
+
+### Code and build checks
+
+- `app.js` 新增独立 `moveFolderToastTimer`，移动成功通过定时器在 3000ms 后清除 Toast，并以 `role="status"` / `aria-live="polite"` 提供状态反馈。
+- APP-FILE-16 元数据、状态详情和需求文档已同步新增“toast 消失”状态及 3 秒自动消失规则。
+- `index.html` 已由 `node scripts/build-inline.js` 重建；`prd-preview.html` 本轮未改动，保留工作区既有变更。
+- `node --check app.js`、`node --check scripts/build-inline.js`、`node --check scripts/build-prd-preview.js` 和 `git diff --check` 通过。
+
+### Browser verification
+
+- 本地静态服务 `http://127.0.0.1:4173/index.html` 中打开 `page=APP-FILE-16&showcase=file16-selected-folder`，确认已选文件夹状态、目标按钮文案「移动到工作文件夹」和可点击状态。
+- 点击移动后立即返回文件详情页，AX 状态读取到「文件夹已移动至工作」，截图可见 Toast 覆盖在底部操作栏上方。
+- 等待 3200ms 后再次读取 AX 与截图，Toast 节点已移除，文件详情正文和提问输入仍保留。
+- `page=APP-FILE-16` 的“当前页面状态与反馈”区域已渲染默认、新增文件夹、已选择文件夹、移动完成·Toast、Toast 消失 5 个快照。
+
+final result: passed
+
 ## APP-DEV-11 录音中保存设备名称受限（2026-09-09）
 
 scope: 编辑设备名称期间设备开始录音、保存拦截、名称草稿保留
@@ -335,7 +361,16 @@ scope: 同步中开始录音、录音期间禁止音频传输、设备确认录�
 - 移除搜索空状态中的竞品“向 Plaud 提问”及星标内容；私有云未开启时才展示开启提示，已开启时不展示该入口。
 - 搜索框右侧筛选按钮改为无杂线的漏斗线性图标；展开后展示创建时间和文件位置，文件位置弹窗包含 AI Recorder A1·对话模式、AI Recorder A1·通话模式和导入，未选择时应用按钮置灰。
 - 清除最近搜索后进入暂无搜索记录状态；需求文档已补充私有云开关、筛选图标、空状态文案、状态链路和反馈规则。
+- 新增筛选条件已选择（展开）与已选择（折叠）两张状态快照；有创建时间或文件位置筛选时，筛选按钮与条件按钮显示蓝色高亮，收起条件后筛选值保持不变，再次展开可恢复。
+- 已执行构建、`node --check app.js`、构建脚本语法检查与 `git diff --check`；本地 HTTP 手机画板验证了已选择条件的按钮高亮、筛选标签回填、折叠后条件保留及再次展开恢复。
 - `node scripts/build-inline.js`、`node --check app.js`、`node --check scripts/build-inline.js` 与 `git diff --check` 已通过；浏览器运行态仍受本地 `file://` 安全策略限制。
+
+### APP-FILE-11 创建时间自定义范围（2026-09-10）
+
+- 创建时间弹层的今天、最近 7 天、最近 30 天、自定义改为可点击单选，选中项显示实心单选状态。
+- 选择自定义后只展示开始时间与结束时间两个可点击字段，不常驻展示日历；点击任一字段后才以独立大尺寸月历选择对应日期，选择完成后自动回到创建时间面板。
+- 新增未选择、自定义未完整（仅时间字段）、选择开始时间（独立月历）、自定义已选择（日期已填入）四张“当前页面状态与反馈”快照；两个日期均选择后“应用”按钮变为可点击，任一缺失时保持置灰。
+- 已执行 `node scripts/build-inline.js`、`node scripts/build-prd-preview.js`、`node --check app.js`、构建脚本语法检查与 `git diff --check`；本地 HTTP 手机画板验证了自定义初始页无月历、开始/结束字段分别打开独立月历、日期回填、应用按钮解锁及返回搜索页保留筛选条件。
 
 ### Expected state checks
 
@@ -585,6 +620,29 @@ scope: 注册页协议文案、默认勾选状态、未确认拦截和底部条�
 - 浏览器实际视觉与点击链路未复测；当前本地地址被浏览器安全审查拦截，未取得新的运行态截图和控制台结果。
 
 final result: passed with browser visual verification pending
+
+## APP-FILE-17 查找和替换输入与 QWERTY 键盘（2026-09-10）
+
+reference visual: `/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-351d3ec4-b85e-4f9f-a356-268a44c33dc6.png`、`/var/folders/5t/cmjb84kj5m34yyx94_788mpr0000gn/T/codex-clipboard-8549bff9-cf49-409b-a7ae-853ba387ba4c.png`、`/Users/andyma/Downloads/IMG_6539.PNG`、`/Users/andyma/Downloads/IMG_6538.PNG`、`/Users/andyma/Downloads/IMG_6537.PNG`
+preview URL: `http://127.0.0.1:8766/index.html?page=APP-FILE-17`
+
+### Interaction checks
+
+- 初始状态展示两个可输入字段、`0/0`、置灰的上一条/下一条/替换按钮，以及英文 QWERTY 键盘。
+- 在“查找”输入 `本` 后，浏览器运行态覆盖智能总结与转写文本计算匹配项，显示非零的“当前项/总数”；当前命中以深黄色高亮，其他命中以浅黄色高亮。
+- 输入 `确认` 后，浏览器运行态显示 `1/3`；点击下一条后显示 `2/3`，并自动切换至转写记录中对应的当前命中。
+- 在“替换为”输入 `确认完成` 后，“替换”恢复可操作；执行后显示“已替换”，并在当前命中所在的总结或转写文本中更新内容和结果计数。
+- 查找词保持非空且“替换为”留空时，“替换”仍显示黑色可点击样式；上一条、下一条和关闭按钮统一为相同的 44px 点击区域，禁用态颜色一致。
+- 查找词非空但没有匹配时，保持 `0/0` 与“未找到匹配内容”提示；“替换”仍使用黑色可点击样式，上一个/下一个继续置灰。
+- 关闭按钮返回文件详情；Escape 路径已接入事件处理。
+- APP-FILE-17 底部“当前页面状态与反馈”展示四份由同一渲染器输出的快照：待输入、无匹配·替换可点击、有匹配·当前第 2 项、已替换。
+
+### Build and browser checks
+
+- `node --check app.js`、`node --check scripts/build-inline.js`、`node --check scripts/build-prd-preview.js`、`node scripts/build-inline.js` 和 `git diff --check` 通过。
+- 运行态检查未发现浏览器 console error；已确认可输入性、匹配计数、替换结果和关闭返回。
+
+final result: passed
 
 ## APP 页面底部真实状态快照（2026-09-03）
 

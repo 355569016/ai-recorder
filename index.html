@@ -95,11 +95,21 @@ let searchHasHistory = true;
 let searchFiltersVisible = false;
 let searchLocationSheetOpen = false;
 let searchLocationFilter = "";
+let searchTimeFilter = "";
+let searchCustomStart = "";
+let searchCustomEnd = "";
+let searchCalendarYear = 2026;
+let searchCalendarMonth = 8;
+let searchCalendarPickerTarget = "";
 let activeSearchResult = null;
 let fileDetailAudioSeconds = 0;
 let fileDetailAudioPlaying = false;
 let fileDetailMarkerEditor = null;
 let fileDetailContentEditor = null;
+let findReplaceFindText = "";
+let findReplaceReplaceText = "";
+let findReplaceMatchIndex = 0;
+let findReplaceNotice = "";
 let fileDetailFormatPanel = "main";
 let fileDetailFormatState = {
   block: "body",
@@ -167,6 +177,7 @@ let moveFolderFolders = [
 let selectedMoveFolderId = "";
 let moveFolderCreateOpen = false;
 let moveFolderToast = "";
+let moveFolderToastTimer = null;
 let filterFolders = [
   { id: "andy", name: "Andy", count: 0, tone: "" },
   { id: "work", name: "工作", count: 3, tone: "blue" }
@@ -653,11 +664,11 @@ const pages = [
     goal: "在文件列表中搜索录音、导入音频和 AI 内容，并展示最近搜索与结果。",
     entry: "文件首页右上角搜索按钮。",
     fields: [["search_query", "搜索词", "用户输入/最近搜索"], ["created_time_filter", "创建时间", "本地筛选"], ["file_location_filter", "文件位置", "本地筛选"], ["recent_searches", "最近搜索", "本地缓存"], ["cloud_sync_enabled", "私有云同步开关", "本地设置/云端账号"], ["search_results", "搜索结果", "本地数据库/云端索引"]],
-    rules: ["搜索页归属于文件模块。", "顶部包含返回、搜索输入框和右侧筛选按钮。", "点击筛选按钮展开创建时间和文件位置条件；再次点击收起条件。", "文件位置筛选弹层包含 AI Recorder A1·对话模式、AI Recorder A1·通话模式和导入。", "无输入且存在历史时展示最近搜索和最近 30 天内容；无历史时展示暂无搜索记录空状态。", "私有云同步已开启时不展示“开启私有云同步”入口；未开启时才展示开启提示。", "搜索页不展示竞品提问入口、星标图标或相关文案。", "最近搜索右侧使用镂空垃圾桶图标清空。"],
-    states: ["默认有最近搜索", "无搜索记录", "无搜索记录·私有云已开启", "输入中", "筛选条件展开", "创建时间筛选弹窗", "文件位置筛选弹窗", "有结果", "无结果", "清空最近搜索"],
+    rules: ["搜索页归属于文件模块。", "顶部包含返回、搜索输入框和右侧筛选按钮。", "点击筛选按钮展开创建时间和文件位置条件；再次点击收起条件且不清除已选条件。", "有任一筛选条件已应用时，筛选按钮和已选条件按钮使用蓝色高亮；收起条件后筛选按钮仍保持高亮。", "文件位置筛选弹层包含 AI Recorder A1·对话模式、AI Recorder A1·通话模式和导入。", "无输入且存在历史时展示最近搜索和最近 30 天内容；无历史时展示暂无搜索记录空状态。", "私有云同步已开启时不展示“开启私有云同步”入口；未开启时才展示开启提示。", "搜索页不展示竞品提问入口、星标图标或相关文案。", "最近搜索右侧使用镂空垃圾桶图标清空。"],
+    states: ["默认有最近搜索", "无搜索记录", "无搜索记录·私有云已开启", "输入中", "筛选条件展开", "筛选条件已选择", "筛选条件已选择·折叠", "创建时间筛选弹窗", "文件位置筛选弹窗", "有结果", "无结果", "清空最近搜索"],
     deps: ["本地数据库：文件名、转写文本、AI 笔记索引。", "本地缓存：最近搜索。"],
-    acceptance: ["文件首页右上角进入搜索页。", "点击搜索框右侧筛选按钮后展示创建时间和文件位置两个条件。", "点击文件位置后打开底部弹层，展示 AI Recorder A1·对话模式、AI Recorder A1·通话模式和导入，未选择时应用按钮置灰。", "搜索页点击创建时间进入创建时间弹层。", "无搜索记录且私有云未开启时展示开启私有云同步提示；私有云已开启时不展示该入口。", "搜索页不出现向 Plaud 提问、星标或其他竞品内容。", "搜索页输入或点击搜索词后进入搜索结果页。", "搜索页与文件首页、文件详情同属文件列表模块。"],
-    prototypeActions: [["最近搜索", "set-search-history-state", "history"], ["暂无搜索记录", "set-search-history-state", "empty"], ["私有云已开启", "set-search-cloud-state", "enabled"], ["筛选条件展开", "set-search-filter-state", "expanded"], ["文件位置筛选弹窗", "set-search-filter-state", "location"]]
+    acceptance: ["文件首页右上角进入搜索页。", "点击搜索框右侧筛选按钮后展示创建时间和文件位置两个条件。", "应用创建时间或文件位置筛选后，筛选按钮和已选条件按钮显示蓝色高亮。", "筛选条件展开时再次点击筛选按钮可折叠条件，筛选值保持不变；再次点击可恢复展示。", "点击文件位置后打开底部弹层，展示 AI Recorder A1·对话模式、AI Recorder A1·通话模式和导入，未选择时应用按钮置灰。", "搜索页点击创建时间进入创建时间弹层。", "无搜索记录且私有云未开启时展示开启私有云同步提示；私有云已开启时不展示该入口。", "搜索页不出现向 Plaud 提问、星标或其他竞品内容。", "搜索页输入或点击搜索词后进入搜索结果页。", "搜索页与文件首页、文件详情同属文件列表模块。"],
+    prototypeActions: [["最近搜索", "set-search-history-state", "history"], ["暂无搜索记录", "set-search-history-state", "empty"], ["私有云已开启", "set-search-cloud-state", "enabled"], ["筛选条件展开", "set-search-filter-state", "expanded"], ["筛选条件已选择", "set-search-filter-state", "selected"], ["筛选条件已选择·折叠", "set-search-filter-state", "selected-collapsed"], ["文件位置筛选弹窗", "set-search-filter-state", "location"]]
   },
   {
     id: "APP-FILE-03",
@@ -707,11 +718,12 @@ const pages = [
     priority: "P0",
     goal: "在搜索页中按文件创建时间筛选结果。",
     entry: "搜索页点击创建时间。",
-    fields: [["created_time_filter", "创建时间范围", "用户选择"], ["custom_time_range", "自定义时间", "用户选择"]],
-    rules: ["创建时间以底部弹层展示。", "选项包含今天、最近 7 天、最近 30 天、自定义。", "未选择时应用按钮置灰，清除按钮保留。", "关闭或应用后回到搜索页。"],
-    states: ["未选择", "已选择", "自定义", "清除", "应用"],
+    fields: [["created_time_filter", "创建时间范围", "用户选择"], ["custom_time_range", "自定义时间", "用户选择"], ["custom_start_time", "开始时间", "用户选择"], ["custom_end_time", "结束时间", "用户选择"], ["calendar_target", "当前选择字段", "本地状态"], ["calendar_month", "当前月份", "本地状态"]],
+    rules: ["创建时间以底部弹层展示。", "选项包含今天、最近 7 天、最近 30 天、自定义，所有选项使用单选。", "选择自定义后仅展示开始时间和结束时间两个可点击字段；不在筛选面板内常驻展示月历。", "点击开始时间或结束时间后，以独立大尺寸月历选择对应日期；选中日期后关闭月历并回到创建时间面板。", "两个日期均选择后应用按钮可点击；未选择或自定义时间不完整时应用按钮置灰，清除按钮保留。", "关闭或应用后回到搜索页，并保留已应用的创建时间条件。"],
+    states: ["未选择", "今天", "最近 7 天", "最近 30 天", "自定义未完整", "选择开始时间", "选择结束时间", "自定义已选择", "清除", "应用"],
     deps: ["本地数据库：文件创建时间索引。"],
-    acceptance: ["点击搜索页创建时间弹出创建时间筛选面板。", "弹层样式参考搜索创建时间筛选图。"]
+    acceptance: ["点击搜索页创建时间弹出创建时间筛选面板。", "今天、最近 7 天、最近 30 天、自定义可点击单选，选中项展示选中态。", "选择自定义后仅显示开始时间和结束时间字段；点击任一字段才展示独立大尺寸月历。", "月历支持月份切换；选中日期后回到创建时间面板并填入对应字段。", "两个日期均选择后应用按钮变为可点击状态；点击应用回到搜索页并保留创建时间条件；点击清除移除选择。", "弹层和月历的层级适配手机尺寸，月历不遮挡或替代时间范围字段。"],
+    prototypeActions: [["未选择", "set-search-time-filter", "none"], ["自定义未完整", "set-search-time-filter", "custom"], ["选择开始时间", "set-search-time-filter", "calendar-start"], ["自定义已选择", "set-search-time-filter", "custom-ready"]]
   },
   {
     id: "APP-FILE-12",
@@ -966,23 +978,23 @@ const pages = [
     goal: "从文件详情选择目标文件夹并移动当前文件。",
     entry: "更多操作点击移至文件夹。",
     fields: [["folder_id", "目标文件夹", "本地数据库"], ["folder_count", "文件夹文件数", "本地数据库"], ["move_enabled", "是否可移动", "用户选择"]],
-    rules: ["移动到以底部弹层展示。", "默认展示全部文件但不作为可移动目标。", "未选择具体文件夹时移动按钮置灰。", "点击我的文件夹右侧加号，弹出文件夹名称输入框。", "输入文件夹名称并保存后，新文件夹加入我的文件夹列表。", "点击对应文件夹后，底部按钮可点击并显示为移动到目标文件夹名称。", "点击移动按钮后返回文件详情页，并展示 toast：文件夹已移动至目标文件夹。"],
-    states: ["默认", "新增文件夹", "已选择文件夹", "可移动", "移动完成", "toast 展示"],
+    rules: ["移动到以底部弹层展示。", "默认展示全部文件但不作为可移动目标。", "未选择具体文件夹时移动按钮置灰。", "点击我的文件夹右侧加号，弹出文件夹名称输入框。", "输入文件夹名称并保存后，新文件夹加入我的文件夹列表。", "点击对应文件夹后，底部按钮可点击并显示为移动到目标文件夹名称。", "点击移动按钮后返回文件详情页，并展示 toast：文件夹已移动至目标文件夹；Toast 持续 3 秒后自动消失，不遮挡后续操作。"],
+    states: ["默认", "新增文件夹", "已选择文件夹", "可移动", "移动完成", "toast 展示", "toast 消失"],
     deps: ["本地文件夹。", "本地数据库文件归属。"],
-    acceptance: ["弹层样式参考移动到截图。", "包含全部文件、我的文件夹、Andy、工作和移动到按钮。", "点击加号显示文件夹名称输入框，保存后新增文件夹。", "点击具体文件夹后，移动按钮变为可点击并显示为移动到该文件夹。", "点击移动按钮后返回文件详情页，并 toast 提示文件夹已移动至目标文件夹。"]
+    acceptance: ["弹层样式参考移动到截图。", "包含全部文件、我的文件夹、Andy、工作和移动到按钮。", "点击加号显示文件夹名称输入框，保存后新增文件夹。", "点击具体文件夹后，移动按钮变为可点击并显示为移动到该文件夹。", "点击移动按钮后返回文件详情页，并 toast 提示文件夹已移动至目标文件夹。", "Toast 显示约 3 秒后自动消失，页面恢复无遮挡状态并可继续操作。"]
   },
   {
     id: "APP-FILE-17",
     group: "文件",
     title: "查找和替换",
     priority: "P0",
-    goal: "在文件转写文本中查找关键词并替换。",
+    goal: "在当前文件的智能总结与转写文本中查找关键词并替换。",
     entry: "更多操作点击查找和替换。",
     fields: [["find_text", "查找文本", "用户输入"], ["replace_text", "替换文本", "用户输入"], ["match_count", "匹配数量", "本地文本索引"]],
-    rules: ["查找和替换在文件详情底部展示输入栏并唤起键盘。", "未输入或无匹配时显示 0/0 且替换按钮置灰。", "关闭后回到文件详情。"],
-    states: ["待输入", "无匹配", "有匹配", "替换中"],
-    deps: ["转写文本索引。", "本地文本替换能力。"],
-    acceptance: ["页面样式参考查找和替换截图。", "展示查找、替换为、上下条和关闭按钮。"]
+    rules: ["查找和替换在文件详情底部展示可输入的查找与替换输入栏，并自动聚焦查找输入。", "匹配数量根据当前文件的智能总结与转写文本实时计算；未输入或无匹配时显示 0/0，上一条、下一条置灰。", "查找词非空时替换按钮保持可点击样式；有匹配时显示当前命中项 X/Y，并以高亮提示当前命中内容，可用上下条切换。", "替换后保留查找上下文与结果计数，并显示已替换反馈；关闭或按 Escape 回到文件详情。"],
+    states: ["待输入", "无匹配", "有匹配", "已替换"],
+    deps: ["文件内容索引（智能总结、转写文本）。", "本地文本替换能力。"],
+    acceptance: ["页面样式参考查找和替换截图，并使用英文 QWERTY 键盘布局。", "展示并可输入查找、替换为、上下条和关闭按钮，以及当前项/总数计数。", "输入、无匹配、匹配导航、替换当前命中项和关闭路径均可操作。"]
   },
   {
     id: "APP-FILE-18",
@@ -1842,9 +1854,28 @@ const stateDetailOverrides = {
     "无搜索记录": ["展示暂无搜索记录空状态；私有云未开启时显示开启私有云同步提示", "保留搜索和筛选入口"],
     "无搜索记录·私有云已开启": ["展示暂无搜索记录空状态；私有云已开启时不展示开启私有云同步入口", "保留搜索和筛选入口"],
     "输入中": ["保留键盘和当前输入，根据关键词更新结果，不锁定页面其他操作", "输入内容实时显示"],
+    "筛选条件已选择": ["创建时间和文件位置条件显示为蓝色选中样式，筛选按钮同步高亮，条件处于展开状态", "点击筛选按钮可折叠条件，已选条件保持不变"],
+    "筛选条件已选择·折叠": ["筛选条件区域收起，筛选按钮仍保持已选高亮，已选条件继续保留在当前筛选状态", "再次点击筛选按钮展开时恢复原有条件"],
     "有结果": ["展示匹配的文件、转写或 AI 内容，关键词和筛选条件保持不变", "结果列表反馈；点击进入对应文件"],
     "无结果": ["展示无匹配结果空态，保留关键词和筛选条件", "空态文案：「未找到相关结果」"],
     "清空最近搜索": ["进入清除搜索记录确认弹层，不立即删除记录", "进入 APP-FILE-14"]
+  },
+  "APP-FILE-16": {
+    "默认": ["底部移动到文件夹弹层展开，未选择目标文件夹", "移动到按钮置灰"],
+    "新增文件夹": ["文件夹名称输入框展开，保留当前文件夹列表", "保存后新文件夹加入列表并自动选中"],
+    "已选择文件夹": ["目标文件夹显示勾选状态，底部按钮展示目标文件夹名称", "移动按钮可点击"],
+    "可移动": ["已选择可移动目标，移动按钮保持可操作", "点击后执行移动"],
+    "移动完成": ["返回文件详情页，目标文件夹归属已更新", "显示移动成功 Toast"],
+    "toast 展示": ["文件详情页显示「文件夹已移动至目标文件夹」Toast", "Toast 显示 3 秒后自动消失"],
+    "toast 消失": ["文件详情页恢复正常内容，不再显示 Toast", "无持续遮挡，页面继续可操作"]
+  },
+  "APP-FILE-11": {
+    "未选择": ["四个创建时间选项均未选中，不展示自定义时间字段或月历", "应用按钮置灰"],
+    "自定义未完整": ["选中自定义，只展示开始时间和结束时间两个可点击字段", "应用按钮置灰"],
+    "选择开始时间": ["开始时间字段触发独立大尺寸月历，背景与创建时间面板不可操作", "选中日期后关闭月历并回填开始时间"],
+    "选择结束时间": ["结束时间字段触发独立大尺寸月历，背景与创建时间面板不可操作", "选中日期后关闭月历并回填结束时间"],
+    "自定义已选择": ["开始和结束日期均已填入创建时间面板，月历不常驻展示", "应用按钮可点击"],
+    "应用": ["返回搜索页并保留创建时间条件", "筛选条件回填搜索页"]
   },
   "APP-REC-04": {
     "输入标记原位编辑态": ["在时间轴末尾显示原位输入框并保留录音上下文", "收起键盘或按回车自动保存；空白内容不新增标记"],
@@ -1883,10 +1914,10 @@ const stateDetailOverrides = {
     "已取消": ["关闭确认弹层，搜索记录和页面内容保持不变", "无"]
   },
   "APP-FILE-17": {
-    "待输入": ["展示查找和替换输入框，匹配计数为 0/0，替换按钮置灰", "键盘可输入；按钮置灰"],
-    "无匹配": ["保留当前查找词，匹配计数显示 0/0", "行内提示：「未找到匹配内容」"],
-    "有匹配": ["展示匹配数量和当前命中项，上一条/下一条可用", "计数反馈：「X/Y」"],
-    "替换中": ["替换按钮禁用并处理当前匹配内容", "Toast：「已替换」"]
+    "待输入": ["展示查找和替换输入框，匹配计数为 0/0，上一条/下一条置灰", "键盘可输入；替换按钮置灰"],
+    "无匹配": ["保留当前查找词，匹配计数显示 0/0，替换保持可点击", "行内提示：「未找到匹配内容」"],
+    "有匹配": ["在智能总结和转写文本中统计并展示匹配数量、当前命中项与高亮内容", "计数反馈：「X/Y」；上一条/下一条可用"],
+    "已替换": ["替换当前命中内容并保留查找上下文与更新后的结果计数", "行内反馈：「已替换」"]
   },
   "APP-FILE-18": {
     "待确认": ["底部弹层说明重新转写会消耗额度并删除现有 AI 内容", "按钮：「重新转写」「取消」"],
@@ -2467,6 +2498,12 @@ function go(id) {
   previousPageId = currentPageId;
   currentPageId = id === "APP-HOME-02" ? "APP-HOME-01" : id === "APP-SYNC-02" ? "APP-SYNC-01" : id === "APP-REC-05" ? "APP-HOME-01" : id;
   if (currentPageId !== "APP-FILE-02") searchLocationSheetOpen = false;
+  if (currentPageId === "APP-FILE-17" && previousPageId !== "APP-FILE-17") {
+    findReplaceFindText = "";
+    findReplaceReplaceText = "";
+    findReplaceMatchIndex = 0;
+    findReplaceNotice = "";
+  }
   if (currentPageId !== "APP-FILE-01") {
     clearAskPlaudThinkingTimer();
     askPlaudMode = "closed";
@@ -2581,6 +2618,7 @@ function go(id) {
     fileDetailGeneratingInitialized = false;
   }
   render();
+  if (currentPageId === "APP-FILE-17") focusFindReplaceInput();
   schedulePrototypeViewportTopReset();
 }
 
@@ -3596,6 +3634,79 @@ function keyboardMock(type = "number") {
   </section>`;
 }
 
+function renderFindReplaceKeyboard() {
+  const rows = [
+    ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
+    ["a", "s", "d", "f", "g", "h", "j", "k", "l"],
+    ["⇧", "z", "x", "c", "v", "b", "n", "m", "⌫"],
+    ["123", "space", "@", ".", "Go"]
+  ];
+  return `<section class="find-keyboard" aria-label="英文 QWERTY 键盘">
+    <div class="find-keyboard-suggestions"><span>“Hellii”</span><b>Hello</b><span>Hellos</span></div>
+    <div class="find-keyboard-keys">
+      ${rows.map((row, rowIndex) => `<div class="find-keyboard-row row-${rowIndex + 1}">${row.map((key) => `<button type="button" data-action="find-replace-key" data-key="${key}" class="${["⇧", "⌫", "123"].includes(key) ? "modifier" : ""} ${key === "space" ? "space" : ""} ${key === "Go" ? "go" : ""}">${key}</button>`).join("")}</div>`).join("")}
+    </div>
+    <div class="find-keyboard-footer"><span>☺</span><span>⌁</span></div>
+  </section>`;
+}
+
+function findReplaceMatches() {
+  const term = findReplaceFindText.trim();
+  if (!term) return [];
+  const matches = [];
+  const needle = term.toLocaleLowerCase();
+  const collectMatches = (text, details) => {
+    const source = text || "";
+    let offset = 0;
+    const haystack = source.toLocaleLowerCase();
+    while (offset < haystack.length) {
+      const start = haystack.indexOf(needle, offset);
+      if (start < 0) break;
+      matches.push({ ...details, start, length: term.length });
+      offset = start + term.length;
+    }
+  };
+  collectMatches(fileDetailContent.summary, { kind: "summary", key: "summary" });
+  fileDetailContent.transcript.forEach((item, transcriptIndex) => {
+    collectMatches(item.text, { kind: "transcript", key: `transcript-${transcriptIndex}`, transcriptIndex });
+  });
+  matches.forEach((match, index) => { match.index = index; });
+  return matches;
+}
+
+function syncFindReplaceMatchIndex() {
+  const matches = findReplaceMatches();
+  findReplaceMatchIndex = matches.length ? Math.max(0, Math.min(findReplaceMatchIndex, matches.length - 1)) : 0;
+  return matches;
+}
+
+function revealFindReplaceMatch(matches = syncFindReplaceMatchIndex()) {
+  const match = matches[findReplaceMatchIndex];
+  if (match) fileDetailActiveTab = match.kind === "summary" ? "summary" : "transcript";
+  return match;
+}
+
+function renderFindReplaceHighlightedText(content, key) {
+  if (currentPageId !== "APP-FILE-17" || !findReplaceFindText.trim()) return h(content);
+  const relevantMatches = findReplaceMatches().filter((match) => match.key === key);
+  if (!relevantMatches.length) return h(content);
+  let cursor = 0;
+  return relevantMatches.map((match) => {
+    const before = h(content.slice(cursor, match.start));
+    const matched = h(content.slice(match.start, match.start + match.length));
+    cursor = match.start + match.length;
+    return `${before}<mark class="find-replace-match ${match.index === findReplaceMatchIndex ? "is-current" : ""}">${matched}</mark>`;
+  }).join("") + h(content.slice(cursor));
+}
+
+function focusFindReplaceInput(id = "findReplaceFindInput") {
+  requestAnimationFrame(() => {
+    const input = document.getElementById(id);
+    input?.focus();
+    input?.setSelectionRange(input.value.length, input.value.length);
+  });
+}
+
 function renderLogin() {
   const canLogin = Boolean(loginEmail.trim() && loginPassword) && !loginSubmitting;
   const agreementChecked = loginAgreementAccepted;
@@ -4160,6 +4271,25 @@ function renderImportAudioSheet() {
 
 function renderSearch() {
   const showFilters = searchFiltersVisible;
+  const hasSelectedFilters = Boolean(searchTimeFilter || searchLocationFilter);
+  const timeFilterValue = searchTimeFilter === "today"
+    ? "今天"
+    : searchTimeFilter === "week"
+      ? "最近 7 天"
+      : searchTimeFilter === "month"
+        ? "最近 30 天"
+        : searchTimeFilter === "custom" && searchCustomStart && searchCustomEnd
+          ? `${searchCustomStart.replaceAll("-", "/")} - ${searchCustomEnd.replaceAll("-", "/")}`
+          : "";
+  const timeFilterLabel = timeFilterValue ? `创建时间: ${timeFilterValue}` : "创建时间";
+  const locationFilterValue = searchLocationFilter === "conversation"
+    ? "AI Recorder A1 · 对话模式"
+    : searchLocationFilter === "call"
+      ? "AI Recorder A1 · 通话模式"
+      : searchLocationFilter === "import"
+        ? "导入"
+        : "";
+  const locationFilterLabel = locationFilterValue ? `文件位置: ${locationFilterValue}` : "文件位置";
   const historyContent = searchHasHistory
     ? `
       <section class="recent-search-head">
@@ -4186,12 +4316,12 @@ function renderSearch() {
         <span aria-hidden="true"></span>
         <input id="searchInput" type="search" value="${h(searchDraft)}" placeholder="搜索或提问" autocomplete="off" spellcheck="false">
       </label>
-      <button class="search-filter-button ${showFilters ? "active" : ""}" data-action="toggle-search-filters" aria-label="筛选" aria-pressed="${showFilters}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18l-7 8v5l-4 2v-7L3 5z"></path></svg></button>
+      <button class="search-filter-button ${showFilters ? "active" : ""} ${hasSelectedFilters ? "has-selection" : ""}" data-action="toggle-search-filters" aria-label="筛选" aria-pressed="${showFilters}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18l-7 8v5l-4 2v-7L3 5z"></path></svg></button>
     </div>
     <main class="screen-content search-screen compact">
       ${showFilters ? `<div class="search-sort-row">
-        <button data-go="APP-FILE-11">创建时间 <span>↕</span></button>
-        <button class="${searchLocationFilter ? "selected" : ""}" data-action="open-search-location-filter">文件位置 <span>↕</span></button>
+        <button class="${searchTimeFilter ? "selected" : ""}" data-go="APP-FILE-11">${h(timeFilterLabel)} <span>↕</span></button>
+        <button class="${searchLocationFilter ? "selected" : ""}" data-action="open-search-location-filter">${h(locationFilterLabel)} <span>↕</span></button>
       </div>` : ""}
       ${showFilters ? `<div class="search-divider"></div>` : ""}
       ${historyContent}
@@ -4252,25 +4382,120 @@ function renderSearchClearConfirm() {
   `;
 }
 
+function formatSearchCalendarDate(year, month, day) {
+  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function formatSearchCalendarDateLabel(value) {
+  if (!value) return "选择日期";
+  const [year, month, day] = String(value).split("-");
+  return `${year}年${Number(month)}月${Number(day)}日`;
+}
+
+function getSearchCalendarDays(year, month) {
+  const firstDay = new Date(Date.UTC(year, month, 1)).getUTCDay();
+  const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const cellCount = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+  return Array.from({ length: cellCount }, (_, index) => {
+    const day = index - firstDay + 1;
+    if (day < 1 || day > daysInMonth) return null;
+    return {
+      day,
+      date: formatSearchCalendarDate(year, month, day)
+    };
+  });
+}
+
+function renderSearchCalendar() {
+  const target = searchCalendarPickerTarget === "end" ? "end" : "start";
+  const targetLabel = target === "end" ? "结束时间" : "开始时间";
+  const monthTitle = `${searchCalendarYear}年${searchCalendarMonth + 1}月`;
+  const today = new Date();
+  const todayKey = formatSearchCalendarDate(today.getFullYear(), today.getMonth(), today.getDate());
+  const isCurrentMonth = searchCalendarYear === today.getFullYear() && searchCalendarMonth === today.getMonth();
+  const isFutureMonth = searchCalendarYear > today.getFullYear()
+    || (searchCalendarYear === today.getFullYear() && searchCalendarMonth > today.getMonth());
+  const days = getSearchCalendarDays(searchCalendarYear, searchCalendarMonth);
+  const selectedDate = target === "end" ? searchCustomEnd : searchCustomStart;
+  const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
+  return `
+    <div class="search-calendar" aria-label="选择${targetLabel}">
+      <div class="search-calendar-header">
+        <h3><span>${h(monthTitle)}</span><i aria-hidden="true"></i></h3>
+        <div class="search-calendar-nav">
+          <button data-action="shift-search-calendar-month" data-offset="-1" aria-label="上个月">‹</button>
+          <button class="${isCurrentMonth || isFutureMonth ? "disabled" : ""}" data-action="shift-search-calendar-month" data-offset="1" aria-label="下个月" ${isCurrentMonth || isFutureMonth ? "disabled" : ""}>›</button>
+        </div>
+      </div>
+      <div class="search-calendar-weekdays" aria-hidden="true">
+        ${weekdays.map((weekday) => `<span>${weekday}</span>`).join("")}
+      </div>
+      <div class="search-calendar-grid">
+        ${days.map((item) => {
+          if (!item) return `<span class="search-calendar-day empty" aria-hidden="true"></span>`;
+          const isFuture = item.date > todayKey;
+          const classes = [
+            "search-calendar-day",
+            item.date === todayKey ? "today" : "",
+            isFuture ? "future" : "",
+            item.date === selectedDate ? "selected" : ""
+          ].filter(Boolean).join(" ");
+          return `<button class="${classes}" data-action="select-search-calendar-day" data-date="${item.date}" aria-label="${h(formatSearchCalendarDateLabel(item.date))}" ${isFuture ? "disabled" : ""}>${item.day}</button>`;
+        }).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderCustomTimeRange() {
+  const fields = [
+    ["start", "开始于", searchCustomStart],
+    ["end", "结束于", searchCustomEnd]
+  ];
+  return `<div class="custom-time-range" aria-label="自定义时间范围">
+    ${fields.map(([target, label, value], index) => `
+      ${index ? `<span class="custom-time-dash" aria-hidden="true">—</span>` : ""}
+      <button class="custom-time-field ${value ? "filled" : ""}" data-action="open-search-calendar-picker" data-target="${target}" aria-label="选择${label}">
+        <span>${label}</span>
+        ${value ? `<strong>${h(formatSearchCalendarDateLabel(value))}</strong>` : ""}
+      </button>
+    `).join("")}
+  </div>`;
+}
+
 function renderSearchTimeSheet() {
-  const options = ["今天", "最近 7 天", "最近 30 天", "自定义"];
+  const options = [
+    ["today", "今天"],
+    ["week", "最近 7 天"],
+    ["month", "最近 30 天"],
+    ["custom", "自定义"]
+  ];
+  const customActive = searchTimeFilter === "custom";
+  const canApply = Boolean(searchTimeFilter) && (!customActive || (searchCustomStart && searchCustomEnd));
   return `
     ${renderSearch()}
     <div class="scrim search-time-scrim" data-go="APP-FILE-02"></div>
-    <section class="creation-time-sheet">
+    <section class="creation-time-sheet ${customActive ? "custom-active" : ""}">
       <div class="sheet-header">
         <h2>创建时间</h2>
         <button data-go="APP-FILE-02" aria-label="关闭">×</button>
       </div>
       <div class="sheet-line"></div>
       <div class="time-option-list">
-        ${options.map((label) => `<button><span>${h(label)}</span><i></i></button>`).join("")}
+        ${options.map(([value, label]) => `<button data-action="select-search-time-filter" data-value="${value}" aria-pressed="${searchTimeFilter === value}"><span>${h(label)}</span><i class="${searchTimeFilter === value ? "checked" : ""}"></i></button>`).join("")}
       </div>
+      ${customActive ? renderCustomTimeRange() : ""}
       <div class="time-sheet-actions">
-        <button class="secondary-btn" data-go="APP-FILE-02">清除</button>
-        <button class="disabled-btn" data-go="APP-FILE-02">应用</button>
+        <button class="secondary-btn" data-action="clear-search-time-filter">清除</button>
+        <button class="${canApply ? "primary-btn" : "disabled-btn"}" data-action="apply-search-time-filter" ${canApply ? "" : "disabled"}>应用</button>
       </div>
     </section>
+    ${searchCalendarPickerTarget ? `
+      <div class="scrim search-calendar-scrim" data-action="close-search-calendar-picker"></div>
+      <section class="search-calendar-modal" aria-label="${searchCalendarPickerTarget === "end" ? "选择结束时间" : "选择开始时间"}">
+        ${renderSearchCalendar()}
+      </section>
+    ` : ""}
   `;
 }
 
@@ -4995,6 +5220,22 @@ function showFileDetailNotice(message) {
   }, 1800);
 }
 
+function clearMoveFolderToastTimer() {
+  if (!moveFolderToastTimer) return;
+  window.clearTimeout(moveFolderToastTimer);
+  moveFolderToastTimer = null;
+}
+
+function showMoveFolderToast(folderName) {
+  moveFolderToast = folderName;
+  clearMoveFolderToastTimer();
+  moveFolderToastTimer = window.setTimeout(() => {
+    moveFolderToastTimer = null;
+    moveFolderToast = "";
+    if (currentPageId === "APP-FILE-01") render();
+  }, 3000);
+}
+
 function renderFileDetailPlayer(totalTime = "00:43:52") {
   const duration = Math.max(1, fileDetailTimeToSeconds(totalTime));
   const progress = Math.min(100, Math.max(0, fileDetailAudioSeconds / duration * 100));
@@ -5083,7 +5324,7 @@ function renderFileDetailEditableContent(kind, content, options = {}) {
   const isEditing = fileDetailContentEditor?.key === key;
   const label = options.label || (kind === "summary" ? "总结" : "转写内容");
   if (!isEditing) {
-    return `<button class="file-inline-content" data-action="file-detail-edit-content" data-key="${h(key)}" data-kind="${h(kind)}" aria-label="编辑${h(label)}">${h(content)}</button>`;
+    return `<button class="file-inline-content" data-action="file-detail-edit-content" data-key="${h(key)}" data-kind="${h(kind)}" aria-label="编辑${h(label)}">${renderFindReplaceHighlightedText(content, key)}</button>`;
   }
   return `
     <div class="file-inline-edit file-inline-content-edit">
@@ -5474,7 +5715,7 @@ function renderFileDetail() {
     ${renderAskPlaudSheet()}
     ${renderFileDetailPhotoViewer()}
     ${fileDetailNotice ? `<div class="file-detail-notice" role="status">${h(fileDetailNotice)}</div>` : ""}
-    ${moveFolderToast ? `<div class="toast-message">文件夹已移动至${h(moveFolderToast)}</div>` : ""}
+    ${moveFolderToast ? `<div class="toast-message" role="status" aria-live="polite">文件夹已移动至${h(moveFolderToast)}</div>` : ""}
   `;
 }
 
@@ -5694,6 +5935,9 @@ function renderMoreMenu() {
 }
 
 function renderMoveFolderSheet() {
+  if (["file16-moved-toast", "file16-toast-dismissed"].includes(showcasePreset)) {
+    return renderFileDetail();
+  }
   const selectedFolder = moveFolderFolders.find((folder) => folder.id === selectedMoveFolderId);
   return `
     ${renderFileDetail()}
@@ -5725,22 +5969,29 @@ function renderMoveFolderSheet() {
 }
 
 function renderFindReplace() {
+  const matches = syncFindReplaceMatchIndex();
+  const hasMatches = matches.length > 0;
+  // Once a search term exists, keep the replacement action visually available.
+  // A 0/0 result remains an inline feedback state rather than a disabled control.
+  const canReplace = Boolean(findReplaceFindText.trim());
   return `
     ${renderFileDetail()}
-    <section class="find-replace-panel">
+    <section class="find-replace-panel" aria-label="查找和替换">
       <div class="find-line">
-        <label><span class="search-mini-icon"></span><b>查找</b></label>
-        <em>0/0</em>
-        <button>⌃</button>
-        <button>⌄</button>
-        <button data-go="APP-FILE-01" aria-label="关闭">×</button>
+        <label for="findReplaceFindInput"><span class="search-mini-icon"></span><input id="findReplaceFindInput" value="${h(findReplaceFindText)}" placeholder="查找" autocomplete="off" aria-label="查找文本"></label>
+        <em aria-live="polite">${hasMatches ? `${findReplaceMatchIndex + 1}/${matches.length}` : "0/0"}</em>
+        <button type="button" class="find-icon-button find-nav-button" data-action="find-replace-previous" ${hasMatches ? "" : "disabled"} aria-label="上一条">⌃</button>
+        <button type="button" class="find-icon-button find-nav-button" data-action="find-replace-next" ${hasMatches ? "" : "disabled"} aria-label="下一条">⌄</button>
+        <button class="find-icon-button find-close-button" data-go="APP-FILE-01" aria-label="关闭">×</button>
       </div>
       <div class="replace-line">
-        <label><span>⇄</span><b>替换为</b></label>
-        <button disabled>替换</button>
+        <label for="findReplaceReplaceInput"><span>⇄</span><input id="findReplaceReplaceInput" value="${h(findReplaceReplaceText)}" placeholder="替换为" autocomplete="off" aria-label="替换文本"></label>
+        <button type="button" data-action="find-replace-current" ${canReplace ? "" : "disabled"}>替换</button>
       </div>
+      ${findReplaceFindText.trim() && !hasMatches && !findReplaceNotice ? `<p class="find-replace-hint" role="status">未找到匹配内容</p>` : ""}
+      ${findReplaceNotice ? `<p class="find-replace-hint success" role="status">${h(findReplaceNotice)}</p>` : ""}
     </section>
-    ${keyboardMock("text")}
+    ${renderFindReplaceKeyboard()}
   `;
 }
 
@@ -7760,6 +8011,8 @@ const verifiedPageShowcases = {
     ["暂无搜索记录", "file02-no-history"],
     ["私有云已开启", "file02-cloud-enabled"],
     ["筛选条件展开", "file02-filters"],
+    ["筛选条件已选择", "file02-filters-selected"],
+    ["筛选条件已选择·折叠", "file02-filters-selected-collapsed"],
     ["文件位置筛选弹窗", "file02-location-filter"]
   ],
   "APP-FILE-12": [
@@ -7767,10 +8020,29 @@ const verifiedPageShowcases = {
     ["无结果", "file12-empty"],
     ["加载中", "file12-loading"]
   ],
+  "APP-FILE-11": [
+    ["未选择", "file11-empty"],
+    ["自定义未完整", "file11-custom"],
+    ["选择开始时间", "file11-calendar-start"],
+    ["自定义已选择", "file11-custom-ready"]
+  ],
   "APP-FILE-10": [
     ["有标记", "file10-with-markers"],
     ["暂无标记", "file10-no-markers"],
     ["未转写总结", "file10-untranscribed-summary"]
+  ],
+  "APP-FILE-16": [
+    ["默认", "file16-default"],
+    ["新增文件夹", "file16-create-folder"],
+    ["已选择文件夹", "file16-selected-folder"],
+    ["移动完成·Toast", "file16-moved-toast"],
+    ["Toast 消失", "file16-toast-dismissed"]
+  ],
+  "APP-FILE-17": [
+    ["待输入", "file17-empty"],
+    ["无匹配·替换可点击", "file17-no-match"],
+    ["有匹配·当前第 2 项", "file17-current-match"],
+    ["已替换", "file17-replaced"]
   ],
   "APP-REC-04": [
     ["开始录音处理中（内部）", "rec04-starting"],
@@ -7910,6 +8182,7 @@ function renderPrototypeLinks(page) {
   const target = document.getElementById("prototypeLinks");
   const links = page.prototypeLinks || [];
   const actions = page.prototypeActions || [];
+  const hasSelectedFilters = Boolean(searchTimeFilter || searchLocationFilter);
   target.innerHTML = links.length || actions.length ? `
     <span>状态链路</span>
     ${links.map(([label, id]) => `<button data-go="${h(id)}">${h(label)}</button>`).join("")}
@@ -7936,7 +8209,8 @@ function renderPrototypeLinks(page) {
         || (action === "set-device-remove-connection" && value === deviceRemoveConnectionState)
         || (action === "set-search-history-state" && ((value === "history" && searchHasHistory && !searchFiltersVisible) || (value === "empty" && !searchHasHistory && !searchFiltersVisible)))
         || (action === "set-search-cloud-state" && !searchHasHistory && !searchFiltersVisible && ((value === "enabled" && cloudSyncEnabled) || (value === "disabled" && !cloudSyncEnabled)))
-        || (action === "set-search-filter-state" && ((value === "expanded" && searchFiltersVisible && !searchLocationSheetOpen) || (value === "location" && searchLocationSheetOpen)))
+        || (action === "set-search-time-filter" && ((value === "none" && !searchTimeFilter) || (value === "custom" && searchTimeFilter === "custom" && !searchCalendarPickerTarget && !(searchCustomStart && searchCustomEnd)) || (value === "calendar-start" && searchTimeFilter === "custom" && searchCalendarPickerTarget === "start") || (value === "custom-ready" && searchTimeFilter === "custom" && !searchCalendarPickerTarget && Boolean(searchCustomStart && searchCustomEnd))))
+        || (action === "set-search-filter-state" && ((value === "expanded" && searchFiltersVisible && !searchLocationSheetOpen && !hasSelectedFilters) || (value === "selected" && searchFiltersVisible && !searchLocationSheetOpen && hasSelectedFilters) || (value === "selected-collapsed" && !searchFiltersVisible && !searchLocationSheetOpen && hasSelectedFilters) || (value === "location" && searchLocationSheetOpen)))
         || (action === "set-ask-demo-state" && askDemoActive);
       return `<button class="${active ? "active" : ""}" data-action="${h(action)}"${value ? ` data-value="${h(value)}"` : ""}>${h(label)}</button>`;
     }).join("")}
@@ -8245,6 +8519,62 @@ document.addEventListener("click", (event) => {
     return;
   }
   const action = event.target.closest("[data-action]");
+  if (action && action.dataset.action === "find-replace-previous") {
+    const matches = syncFindReplaceMatchIndex();
+    if (matches.length) findReplaceMatchIndex = (findReplaceMatchIndex - 1 + matches.length) % matches.length;
+    revealFindReplaceMatch(matches);
+    render();
+    focusFindReplaceInput();
+    return;
+  }
+  if (action && action.dataset.action === "find-replace-next") {
+    const matches = syncFindReplaceMatchIndex();
+    if (matches.length) findReplaceMatchIndex = (findReplaceMatchIndex + 1) % matches.length;
+    revealFindReplaceMatch(matches);
+    render();
+    focusFindReplaceInput();
+    return;
+  }
+  if (action && action.dataset.action === "find-replace-current") {
+    const matches = syncFindReplaceMatchIndex();
+    const match = matches[findReplaceMatchIndex];
+    if (!match || !findReplaceFindText.trim()) return;
+    if (match.kind === "summary") {
+      fileDetailContent.summary = `${fileDetailContent.summary.slice(0, match.start)}${findReplaceReplaceText}${fileDetailContent.summary.slice(match.start + match.length)}`;
+    } else {
+      const transcript = fileDetailContent.transcript[match.transcriptIndex];
+      transcript.text = `${transcript.text.slice(0, match.start)}${findReplaceReplaceText}${transcript.text.slice(match.start + match.length)}`;
+    }
+    findReplaceNotice = "已替换";
+    revealFindReplaceMatch();
+    render();
+    focusFindReplaceInput("findReplaceReplaceInput");
+    return;
+  }
+  if (action && action.dataset.action === "find-replace-key") {
+    const activeInput = document.activeElement?.id === "findReplaceReplaceInput" ? "replace" : "find";
+    const key = action.dataset.key || "";
+    if (key === "Go") {
+      const matches = syncFindReplaceMatchIndex();
+      if (matches.length) findReplaceMatchIndex = (findReplaceMatchIndex + 1) % matches.length;
+      revealFindReplaceMatch(matches);
+    } else if (key === "⌫") {
+      if (activeInput === "replace") findReplaceReplaceText = findReplaceReplaceText.slice(0, -1);
+      else findReplaceFindText = findReplaceFindText.slice(0, -1);
+    } else if (key === "space") {
+      if (activeInput === "replace") findReplaceReplaceText += " ";
+      else findReplaceFindText += " ";
+    } else if (!["⇧", "123"].includes(key)) {
+      if (activeInput === "replace") findReplaceReplaceText += key;
+      else findReplaceFindText += key;
+    }
+    findReplaceMatchIndex = 0;
+    findReplaceNotice = "";
+    revealFindReplaceMatch();
+    render();
+    focusFindReplaceInput(activeInput === "replace" ? "findReplaceReplaceInput" : "findReplaceFindInput");
+    return;
+  }
   if (action && action.dataset.action === "start-device-bind") {
     bindPermissionFeedback = "";
     if (!bindBluetoothGranted) {
@@ -8587,6 +8917,75 @@ document.addEventListener("click", (event) => {
     if (!searchLocationFilter) return;
     searchLocationSheetOpen = false;
     render();
+    return;
+  }
+  if (action && action.dataset.action === "select-search-time-filter") {
+    searchTimeFilter = action.dataset.value || "";
+    searchCalendarPickerTarget = "";
+    if (searchTimeFilter !== "custom") {
+      searchCustomStart = "";
+      searchCustomEnd = "";
+    }
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "open-search-calendar-picker") {
+    if (searchTimeFilter !== "custom") return;
+    searchCalendarPickerTarget = action.dataset.target === "end" ? "end" : "start";
+    const selectedDate = searchCalendarPickerTarget === "end" ? searchCustomEnd : searchCustomStart;
+    if (selectedDate) {
+      const [year, month] = selectedDate.split("-").map(Number);
+      searchCalendarYear = year;
+      searchCalendarMonth = month - 1;
+    }
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "close-search-calendar-picker") {
+    searchCalendarPickerTarget = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "select-search-calendar-day") {
+    if (searchTimeFilter !== "custom" || !searchCalendarPickerTarget) return;
+    const date = action.dataset.date || "";
+    if (!date || action.disabled) return;
+    if (searchCalendarPickerTarget === "start") {
+      searchCustomStart = date;
+      if (searchCustomEnd && date > searchCustomEnd) searchCustomEnd = "";
+    } else {
+      searchCustomEnd = date;
+      if (searchCustomStart && date < searchCustomStart) searchCustomStart = "";
+    }
+    searchCalendarPickerTarget = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "shift-search-calendar-month") {
+    if (!searchCalendarPickerTarget) return;
+    const offset = Number(action.dataset.offset || 0);
+    if (!Number.isFinite(offset) || !offset) return;
+    const nextMonth = new Date(Date.UTC(searchCalendarYear, searchCalendarMonth + offset, 1));
+    searchCalendarYear = nextMonth.getUTCFullYear();
+    searchCalendarMonth = nextMonth.getUTCMonth();
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "clear-search-time-filter") {
+    searchTimeFilter = "";
+    searchCustomStart = "";
+    searchCustomEnd = "";
+    searchCalendarYear = 2026;
+    searchCalendarMonth = 8;
+    searchCalendarPickerTarget = "";
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "apply-search-time-filter") {
+    const customReady = searchTimeFilter === "custom" && searchCustomStart && searchCustomEnd;
+    if (!searchTimeFilter || (searchTimeFilter === "custom" && !customReady)) return;
+    searchFiltersVisible = true;
+    go("APP-FILE-02");
     return;
   }
   if (action && action.dataset.action === "open-device-removal") {
@@ -9583,8 +9982,33 @@ document.addEventListener("click", (event) => {
   }
   if (action && action.dataset.action === "set-search-filter-state") {
     searchHasHistory = false;
-    searchFiltersVisible = true;
-    searchLocationSheetOpen = action.dataset.value === "location";
+    const value = action.dataset.value || "expanded";
+    const hasSelectedState = ["selected", "selected-collapsed"].includes(value);
+    searchFiltersVisible = value !== "selected-collapsed";
+    searchLocationSheetOpen = value === "location";
+    if (hasSelectedState) {
+      searchHasHistory = true;
+      searchTimeFilter = "month";
+      searchCustomStart = "";
+      searchCustomEnd = "";
+      searchLocationFilter = "call";
+    } else if (value === "expanded") {
+      searchTimeFilter = "";
+      searchCustomStart = "";
+      searchCustomEnd = "";
+      searchLocationFilter = "";
+    }
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "set-search-time-filter") {
+    const value = action.dataset.value || "none";
+    searchTimeFilter = value === "none" ? "" : "custom";
+    searchCustomStart = value === "custom-ready" ? "2026-07-01" : "";
+    searchCustomEnd = value === "custom-ready" ? "2026-07-04" : "";
+    searchCalendarYear = value === "custom-ready" ? 2026 : 2026;
+    searchCalendarMonth = value === "custom-ready" ? 6 : 8;
+    searchCalendarPickerTarget = value === "calendar-start" ? "start" : "";
     render();
     return;
   }
@@ -10112,7 +10536,7 @@ document.addEventListener("click", (event) => {
   if (action && action.dataset.action === "confirm-move-folder") {
     const selectedFolder = moveFolderFolders.find((folder) => folder.id === selectedMoveFolderId);
     if (selectedFolder) {
-      moveFolderToast = selectedFolder.name;
+      showMoveFolderToast(selectedFolder.name);
       go("APP-FILE-01");
     }
     return;
@@ -10356,6 +10780,25 @@ document.addEventListener("contextmenu", (event) => {
 });
 
 document.addEventListener("keydown", (event) => {
+  if (currentPageId === "APP-FILE-17" && event.key === "Escape") {
+    event.preventDefault();
+    go("APP-FILE-01");
+    return;
+  }
+  if (event.target.id === "findReplaceFindInput" && event.key === "Enter") {
+    event.preventDefault();
+    const matches = syncFindReplaceMatchIndex();
+    if (matches.length) findReplaceMatchIndex = (findReplaceMatchIndex + 1) % matches.length;
+    revealFindReplaceMatch(matches);
+    render();
+    focusFindReplaceInput();
+    return;
+  }
+  if (event.target.id === "findReplaceReplaceInput" && event.key === "Enter") {
+    event.preventDefault();
+    document.querySelector("[data-action='find-replace-current']")?.click();
+    return;
+  }
   if (event.target.id === "homeFileRenameInput" && event.key === "Enter") {
     event.preventDefault();
     document.querySelector("[data-action='save-home-file-rename']")?.click();
@@ -10431,6 +10874,22 @@ document.addEventListener("keydown", (event) => {
 });
 
 document.addEventListener("input", (event) => {
+  if (event.target.id === "findReplaceFindInput") {
+    findReplaceFindText = event.target.value;
+    findReplaceMatchIndex = 0;
+    findReplaceNotice = "";
+    revealFindReplaceMatch();
+    render();
+    focusFindReplaceInput();
+    return;
+  }
+  if (event.target.id === "findReplaceReplaceInput") {
+    findReplaceReplaceText = event.target.value;
+    findReplaceNotice = "";
+    render();
+    focusFindReplaceInput("findReplaceReplaceInput");
+    return;
+  }
   if (event.target.id === "homeFileRenameInput") {
     homeFileRenameDraft = event.target.value;
     homeFileRenameError = "";
@@ -11083,6 +11542,65 @@ function applyShowcasePreset(preset) {
     case "home01-success-toast":
       homeFileNotice = "文件名已更新";
       break;
+    case "file16-default":
+      clearMoveFolderToastTimer();
+      moveFolderToast = "";
+      moveFolderCreateOpen = false;
+      selectedMoveFolderId = "";
+      break;
+    case "file16-create-folder":
+      clearMoveFolderToastTimer();
+      moveFolderToast = "";
+      moveFolderCreateOpen = true;
+      selectedMoveFolderId = "";
+      break;
+    case "file16-selected-folder":
+      clearMoveFolderToastTimer();
+      moveFolderToast = "";
+      moveFolderCreateOpen = false;
+      selectedMoveFolderId = "work";
+      break;
+    case "file16-moved-toast":
+      clearMoveFolderToastTimer();
+      moveFolderCreateOpen = false;
+      selectedMoveFolderId = "work";
+      moveFolderToast = "工作";
+      break;
+    case "file16-toast-dismissed":
+      clearMoveFolderToastTimer();
+      moveFolderCreateOpen = false;
+      selectedMoveFolderId = "work";
+      moveFolderToast = "";
+      break;
+    case "file17-empty":
+      findReplaceFindText = "";
+      findReplaceReplaceText = "";
+      findReplaceMatchIndex = 0;
+      findReplaceNotice = "";
+      fileDetailActiveTab = "summary";
+      break;
+    case "file17-no-match":
+      findReplaceFindText = "不存在";
+      findReplaceReplaceText = "";
+      findReplaceMatchIndex = 0;
+      findReplaceNotice = "";
+      fileDetailActiveTab = "summary";
+      break;
+    case "file17-current-match":
+      findReplaceFindText = "确认";
+      findReplaceReplaceText = "确认完成";
+      findReplaceMatchIndex = 1;
+      findReplaceNotice = "";
+      revealFindReplaceMatch();
+      break;
+    case "file17-replaced":
+      fileDetailContent.summary = fileDetailContent.summary.replace("本次", "此次");
+      findReplaceFindText = "本";
+      findReplaceReplaceText = "此";
+      findReplaceMatchIndex = 0;
+      findReplaceNotice = "已替换";
+      revealFindReplaceMatch();
+      break;
     case "file03-create-folder":
       filterFolderSheetMode = "create";
       break;
@@ -11187,6 +11705,28 @@ function applyShowcasePreset(preset) {
       searchDraft = "";
       activeSearchQuery = "";
       break;
+    case "file02-filters-selected":
+      searchHasHistory = true;
+      searchFiltersVisible = true;
+      searchLocationSheetOpen = false;
+      searchTimeFilter = "month";
+      searchCustomStart = "";
+      searchCustomEnd = "";
+      searchLocationFilter = "call";
+      searchDraft = "";
+      activeSearchQuery = "";
+      break;
+    case "file02-filters-selected-collapsed":
+      searchHasHistory = true;
+      searchFiltersVisible = false;
+      searchLocationSheetOpen = false;
+      searchTimeFilter = "month";
+      searchCustomStart = "";
+      searchCustomEnd = "";
+      searchLocationFilter = "call";
+      searchDraft = "";
+      activeSearchQuery = "";
+      break;
     case "file02-location-filter":
       searchHasHistory = false;
       searchFiltersVisible = true;
@@ -11194,6 +11734,38 @@ function applyShowcasePreset(preset) {
       searchLocationFilter = "";
       searchDraft = "";
       activeSearchQuery = "";
+      break;
+    case "file11-empty":
+      searchTimeFilter = "";
+      searchCustomStart = "";
+      searchCustomEnd = "";
+      searchCalendarYear = 2026;
+      searchCalendarMonth = 8;
+      searchCalendarPickerTarget = "";
+      break;
+    case "file11-custom":
+      searchTimeFilter = "custom";
+      searchCustomStart = "";
+      searchCustomEnd = "";
+      searchCalendarYear = 2026;
+      searchCalendarMonth = 8;
+      searchCalendarPickerTarget = "";
+      break;
+    case "file11-calendar-start":
+      searchTimeFilter = "custom";
+      searchCustomStart = "";
+      searchCustomEnd = "";
+      searchCalendarYear = 2026;
+      searchCalendarMonth = 8;
+      searchCalendarPickerTarget = "start";
+      break;
+    case "file11-custom-ready":
+      searchTimeFilter = "custom";
+      searchCustomStart = "2026-07-01";
+      searchCustomEnd = "2026-07-04";
+      searchCalendarYear = 2026;
+      searchCalendarMonth = 6;
+      searchCalendarPickerTarget = "";
       break;
     case "file12-results":
       searchResultState = "results";
