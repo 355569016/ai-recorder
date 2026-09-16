@@ -91,6 +91,39 @@ let fileDetailSummaryTab = "summary";
 let searchDraft = "";
 let activeSearchQuery = "";
 let searchResultState = "results";
+const searchResultPageSize = 10;
+const searchResultsCatalog = [
+  {
+    title: "07-04 会议记录工具范式缺陷：音频与视觉信息未统一导致上下文断裂",
+    excerpt: "做关联起来的，就比如{{query}}，假如现在我们真的是在开一个会，上面还有投影内容需要一起记录……",
+    type: "转写",
+    time: "7月4日 15:18"
+  },
+  {
+    title: "2026-06-29 16:31:40",
+    excerpt: "这段录音围绕{{query}}展开，讨论了录音内容如何通过接口转换并保留完整上下文。",
+    type: "转写",
+    time: "6月29日 16:31"
+  },
+  {
+    title: "产品周会：{{query}}相关事项梳理",
+    excerpt: "AI 笔记已整理{{query}}相关结论、待办事项和后续需要验证的产品细节。",
+    type: "AI 笔记",
+    time: "6月27日 10:06"
+  },
+  ...Array.from({ length: 17 }, (_, index) => ({
+    title: `${String(6 - Math.floor(index / 6)).padStart(2, "0")}月${String(24 - index).padStart(2, "0")} 访谈记录：{{query}}相关讨论 ${index + 1}`,
+    excerpt: `围绕{{query}}的第 ${index + 1} 条命中内容，包含上下文、行动项和待确认信息。`,
+    type: index % 3 === 2 ? "AI 笔记" : "转写",
+    time: `${6 - Math.floor(index / 6)}月${String(24 - index).padStart(2, "0")}日 ${String(9 + index % 10).padStart(2, "0")}:${String(10 + index).padStart(2, "0")}`
+  }))
+];
+let searchResultVisibleCount = searchResultPageSize;
+let searchResultLoadMoreVisible = false;
+let searchResultLoading = false;
+let searchResultLoadError = false;
+let searchResultScrollTop = 0;
+let searchResultLoadTimer = null;
 let searchHasHistory = true;
 let searchFiltersVisible = false;
 let searchLocationSheetOpen = false;
@@ -110,6 +143,13 @@ let findReplaceFindText = "";
 let findReplaceReplaceText = "";
 let findReplaceMatchIndex = 0;
 let findReplaceNotice = "";
+let redeemCode = "";
+let redeemKeyboardOpen = false;
+let redeemSubmitting = false;
+let redeemNotice = "";
+let redeemNoticeTone = "";
+let redeemNoticeTimer = null;
+let redeemSubmitTimer = null;
 let fileDetailFormatPanel = "main";
 let fileDetailFormatState = {
   block: "body",
@@ -148,9 +188,31 @@ let fileDetailContent = {
       time: "00:04:12",
       speaker: "说话人 3",
       text: "原型评审完成后，产品、研发和设计分别补齐 PRD、技术方案与关键页面，进入灰度测试准备。"
-    }
+    },
+    { time: "00:05:36", speaker: "说话人 2", text: "首页先保留最小的创建入口，其他能力按实际使用频率再排序。" },
+    { time: "00:07:08", speaker: "说话人 1", text: "列表需要同时支持搜索、筛选和按时间倒序展示。" },
+    { time: "00:08:42", speaker: "说话人 3", text: "我们会把空状态、加载状态和异常反馈一起纳入验收。" },
+    { time: "00:10:15", speaker: "说话人 2", text: "会员权益的展示要与支付完成后的实际状态保持一致。" },
+    { time: "00:12:03", speaker: "说话人 1", text: "转写时长购买后立即更新余额，并保留可追溯的账单记录。" },
+    { time: "00:14:27", speaker: "说话人 3", text: "页面切换后应保留已经加载的数据和用户当前位置。" },
+    { time: "00:16:11", speaker: "说话人 2", text: "每次只加载十条，避免长列表首次打开时出现明显等待。" },
+    { time: "00:18:39", speaker: "说话人 1", text: "加载期间保留已有内容，并禁止重复发起请求。" },
+    { time: "00:20:04", speaker: "说话人 3", text: "全部内容加载完成后要给出明确的结束提示。" },
+    { time: "00:22:18", speaker: "说话人 2", text: "转写正文仍然保持原位编辑，分页不影响已编辑的内容。" },
+    { time: "00:24:51", speaker: "说话人 1", text: "搜索命中还未加载的转写时，由搜索服务返回准确定位结果。" },
+    { time: "00:27:06", speaker: "说话人 3", text: "加载失败时不清空当前列表，底部保留重试入口。" },
+    { time: "00:29:44", speaker: "说话人 2", text: "状态快照只用于说明页面表现，不在快照里触发真实加载。" },
+    { time: "00:32:20", speaker: "说话人 1", text: "账单空态与有记录状态都归属于同一个账单详情页。" },
+    { time: "00:35:02", speaker: "说话人 3", text: "历史页面编号只作兼容跳转，不再出现在主导航。" },
+    { time: "00:37:19", speaker: "说话人 2", text: "评审时需要分别验证首屏、触底、加载中和已到底状态。" }
   ]
 };
+const transcriptPageSize = 10;
+let transcriptVisibleCount = transcriptPageSize;
+let transcriptLoadMoreVisible = false;
+let transcriptLoading = false;
+let transcriptEmpty = false;
+let transcriptLoadTimer = null;
 let fileDetailPhotoViewerId = "";
 let fileDetailGeneratingInitialized = false;
 let fileDetailNotice = "";
@@ -189,9 +251,23 @@ let filterFolderError = "";
 const defaultRecycleBinItems = [
   { id: "recycle-1", name: "周一项目复盘", meta: "今天 16:11 · 00:07", source: "硬件录音", deletedAt: "今天 16:18" },
   { id: "recycle-2", name: "客户访谈", meta: "07-04 18:44 · 00:28:14", source: "硬件录音", deletedAt: "昨天 21:05" },
-  { id: "recycle-3", name: "Launch checklist", meta: "07-01 12:41 · 00:19:08", source: "导入音频", deletedAt: "07-02 09:30" }
+  { id: "recycle-3", name: "Launch checklist", meta: "07-01 12:41 · 00:19:08", source: "导入音频", deletedAt: "07-02 09:30" },
+  ...Array.from({ length: 17 }, (_, index) => ({
+    id: `recycle-${index + 4}`,
+    name: ["季度复盘", "产品路线图", "用户研究访谈", "设计评审", "市场策略讨论"][index % 5],
+    meta: `${String(6 - Math.floor(index / 5)).padStart(2, "0")}-${String(28 - index).padStart(2, "0")} ${String(9 + index % 10).padStart(2, "0")}:2${index % 6} · 00:${String(12 + index).padStart(2, "0")}:0${index % 9}`,
+    source: index % 3 === 0 ? "导入音频" : "硬件录音",
+    deletedAt: `${String(6 - Math.floor(index / 5)).padStart(2, "0")}-${String(29 - index).padStart(2, "0")} ${String(8 + index % 10).padStart(2, "0")}:1${index % 6}`
+  }))
 ];
 let recycleBinItems = defaultRecycleBinItems.map((item) => ({ ...item }));
+const recyclePageSize = 10;
+let recycleVisibleCount = recyclePageSize;
+let recycleLoadMoreVisible = false;
+let recycleLoading = false;
+let recycleLoadError = false;
+let recycleScrollTop = 0;
+let recycleLoadTimer = null;
 let recycleSelectionMode = false;
 let selectedRecycleIds = new Set();
 let recycleDeleteConfirmOpen = false;
@@ -572,7 +648,7 @@ const pages = [
       "点击“结束快传”后断开设备 Wi-Fi，并从当前批次、当前文件偏移和现有整体进度继续使用蓝牙传输；不得清空队列或从头开始。",
       "第一版不考虑 APP-SYNC-02 让录音卡连接当前 Wi-Fi 的方案，也不展示传输方式选择弹层。",
       "正在传输与等待传输任务统一归入全部文件列表，并排列在已完成同步的正常文件之前；不再单独展示同步队列列表。",
-      "为控制原型页面信息密度，APP-HOME-01 默认只展示前 3 条等待传输文件示例；后台仍保留完整待传输任务并按同步策略自动排序。",
+      "为控制原型页面信息密度，APP-HOME-01 文件列表按每页 10 条加载；后台仍保留完整文件并按同步策略自动排序，触底或点击“继续下拉加载更多文件”后追加下一页。",
       "等待传输状态只显示“等待传输”，不显示队列顺位、传输方式、已传输/总文件大小或单文件进度。",
       "等待传输任务不展示常驻“优先同步”按钮；点击或长按“等待传输”状态打开轻量顺序浮层，可将非下一项任务设为优先。",
       "全部文件中的正在传输和等待传输行整体置灰，且不显示右箭头或进入详情操作；正在传输行不可点击并可显示单文件百分比，等待传输行仅状态区域可点击或长按。",
@@ -596,7 +672,8 @@ const pages = [
       "正常文件长按约 500ms 打开单文件快捷菜单，菜单包含适用的生成、移动到文件夹、重命名和移至回收站。",
       "选择模式顶部显示已选数量和完成，底部操作根据单选/多选和文件生成状态动态启用；合并文件暂不纳入本轮。",
       "重命名使用底部弹层和系统键盘；名称为空、仅空格、含换行或超过 80 个字符时不可保存。",
-      "没有正常文件且没有同步中/等待传输/失败文件时显示首页空状态；空状态不展示列表下方导入按钮，导入仍从标题栏入口进入；筛选结果为空使用独立的筛选空状态。"
+      "没有正常文件且没有同步中/等待传输/失败文件时显示首页空状态；空状态不展示列表下方导入按钮，导入仍从标题栏入口进入；筛选结果为空使用独立的筛选空状态。",
+      "文件列表加载下一页时保留已显示内容并禁止重复触发；加载失败时保留当前列表并提供重试；仅当总文件数超过首屏 10 条且全部文件加载完成后显示已加载全部文件，总文件数不超过 10 条时不展示结束提示或占位样式。"
     ],
     criticalRules: [
       "交互调整：等待传输行不恢复右侧常驻按钮；点击或长按“等待传输”状态打开轻量浮层，确认后状态改为“已优先”，并以底部 Toast 提示“已设为优先，将在当前文件后传输”。",
@@ -605,7 +682,7 @@ const pages = [
       "当前没有同步任务时，首页不显示同步状态条，也不显示正在传输或等待传输的置灰文件记录；全部文件直接展示已完成同步的正常文件列表。",
       "同步失败处理强规则：传输失败后先由系统自动重试，不立即向用户显示失败；设备重新连接后自动继续重试。只有达到自动重试限额后，文件才显示轻量“同步失败 · 重试”操作。自动重试限额及退避间隔由同步重试策略配置。"
     ],
-    states: ["未添加录音卡", "已绑定未连接", "设备连接中", "设备连接成功", "当前无同步任务", "录音中查看文件", "保存成功后继续传输", "单任务同步中", "多任务同步中", "Wi-Fi 快传中", "结束快传并由蓝牙续传", "文件正在传输且不可点击", "文件等待传输状态可操作", "手机空间不足暂停", "手机空间不足弹窗", "空间不足弹窗已关闭", "已传到手机", "等待同步云端", "同步云端中", "私有云同步关闭", "已优先", "同步失败自动重试", "设备重连后自动重试", "达到自动重试限额后失败可重试", "单个任务同步完成", "本批次同步完成", "新同步批次", "全部文件空状态", "筛选结果空状态", "左滑直接进入选择模式", "文件选择模式", "单文件快捷菜单", "重命名弹层", "移至回收站确认", "加载更多"],
+    states: ["未添加录音卡", "已绑定未连接", "设备连接中", "设备连接成功", "当前无同步任务", "录音中查看文件", "保存成功后继续传输", "单任务同步中", "多任务同步中", "Wi-Fi 快传中", "结束快传并由蓝牙续传", "文件正在传输且不可点击", "文件等待传输状态可操作", "手机空间不足暂停", "手机空间不足弹窗", "空间不足弹窗已关闭", "已传到手机", "等待同步云端", "同步云端中", "私有云同步关闭", "已优先", "同步失败自动重试", "设备重连后自动重试", "达到自动重试限额后失败可重试", "单个任务同步完成", "本批次同步完成", "新同步批次", "全部文件空状态", "筛选结果空状态", "左滑直接进入选择模式", "文件选择模式", "单文件快捷菜单", "重命名弹层", "移至回收站确认", "加载更多", "加载中", "加载失败", "已加载全部"],
     deps: ["BLE 状态包：电量、存储、录音状态。", "BLE/STA/SoftAP 传输：暂停、恢复、已确认偏移量和校验值。", "本地数据库：文件列表、同步队列、转写状态。", "同步队列：录音抢占时保存任务顺序、传输通道和已确认 offset。", "同步重试策略：重试限额、退避间隔、设备重连触发。", "云端文件：上传/删除/状态，接口待后端定义。"],
     acceptance: [
       "打开 App 默认处于硬件录音场景时，首页只展示设备录音中状态，不展示同步进度模块。",
@@ -636,12 +713,12 @@ const pages = [
       "正常文件行不显示生成、详情或右箭头，整行点击进入对应详情状态；左滑直接切换到全部文件选择模式并选中当前行；未转写文件进入 APP-FILE-10 并保留详情页内生成入口，AI 已生成文件进入 APP-FILE-01。",
       "仅达到自动重试限额的同步失败行显示轻量“同步失败 · 重试”，点击后进入正在重试状态。",
       "导入音频弹层包含从文件里导入和从相册里导入两个系统选择入口。",
-      "下拉/继续滚动可加载更多文件。",
+      "下拉/继续滚动可加载更多文件，每次追加 10 条；加载中保留已有文件并禁止重复触发，加载失败保留列表并提供重试；仅当总文件数超过首屏 10 条且全部文件加载完成后显示已加载全部文件，总文件数不超过 10 条时不展示结束提示或占位样式。",
       "录音主按钮点击前执行登录/绑定/连接和手机空间检查；空间不足时停留首页并展示空间清理弹窗，不进入准备或录音中页面。",
       "手机空间不足时，App 打开后自动弹出空间清理弹窗；点灰色遮罩关闭后，点击录音、快传、等待释放空间或等待传输入口均重新弹出。点击“清理 AI录音卡 App 存储空间”进入 APP-ME-07。"
     ],
     prototypeLinks: [["设备详情", "APP-DEV-03"], ["添加设备", "APP-DEV-01"]],
-    prototypeActions: [["已绑定未连接", "home-set-connection-state", "disconnected"], ["正在连接", "home-set-connection-state", "connecting"], ["连接成功", "home-set-connection-state", "connected"], ["已传到手机", "home-set-cloud-state", "phone-ready"], ["等待同步云端", "home-set-cloud-state", "waiting"], ["同步云端中", "home-set-cloud-state", "uploading"], ["关闭云端同步", "home-set-cloud-state", "disabled"], ["手机空间不足", "home-set-sync-recovery", "storage-blocked"], ["关闭空间弹窗", "close-home-storage-shortage"], ["空间恢复续传", "home-set-sync-recovery", "storage-recovered"], ["未添加录音卡", "home-show-no-device"], ["蓝牙同步", "set-sync-transport", "ble"], ["Wi-Fi 快传", "set-sync-transport", "hotspot"], ["结束快传", "end-home-fast-transfer"], ["当前无同步任务", "home-show-no-sync-tasks"], ["全部文件空状态", "home-show-empty-files"], ["恢复文件示例", "home-reset-file-demo"], ["全部文件选择模式", "home-show-selection-mode"], ["完成当前任务", "home-complete-sync"], ["单任务新批次", "home-start-single-sync-batch"], ["重置多任务同步", "home-reset-sync-batch"]]
+    prototypeActions: [["已绑定未连接", "home-set-connection-state", "disconnected"], ["正在连接", "home-set-connection-state", "connecting"], ["连接成功", "home-set-connection-state", "connected"], ["已传到手机", "home-set-cloud-state", "phone-ready"], ["等待同步云端", "home-set-cloud-state", "waiting"], ["同步云端中", "home-set-cloud-state", "uploading"], ["关闭云端同步", "home-set-cloud-state", "disabled"], ["手机空间不足", "home-set-sync-recovery", "storage-blocked"], ["关闭空间弹窗", "close-home-storage-shortage"], ["空间恢复续传", "home-set-sync-recovery", "storage-recovered"], ["未添加录音卡", "home-show-no-device"], ["蓝牙同步", "set-sync-transport", "ble"], ["Wi-Fi 快传", "set-sync-transport", "hotspot"], ["结束快传", "end-home-fast-transfer"], ["当前无同步任务", "home-show-no-sync-tasks"], ["全部文件空状态", "home-show-empty-files"], ["恢复文件示例", "home-reset-file-demo"], ["全部文件选择模式", "home-show-selection-mode"], ["完成当前任务", "home-complete-sync"], ["单任务新批次", "home-start-single-sync-batch"], ["重置多任务同步", "home-reset-sync-batch"], ["加载更多", "set-home-file-list-state", "load-more"], ["加载中", "set-home-file-list-state", "loading"], ["加载失败", "set-home-file-list-state", "error"], ["已加载全部", "set-home-file-list-state", "loaded-all"]]
   },
   {
     id: "APP-HOME-03",
@@ -691,12 +768,12 @@ const pages = [
     priority: "P0",
     goal: "查看已移入回收站的音频，并通过单选或多选恢复文件或永久删除文件。",
     entry: "APP-FILE-03 筛选和排序弹层点击回收站。",
-    prototypeActions: [["恢复列表", "show-recycle-list"], ["空状态", "show-recycle-empty"]],
+    prototypeActions: [["恢复列表", "show-recycle-list"], ["空状态", "show-recycle-empty"], ["加载更多", "set-recycle-list-state", "load-more"], ["加载中", "set-recycle-list-state", "loading"], ["加载失败", "set-recycle-list-state", "error"], ["已加载全部", "set-recycle-list-state", "loaded-all"]],
     fields: [["trash_file_list", "回收站文件列表", "本地数据库"], ["selected_file_ids", "已选文件 ID", "用户选择"], ["selected_count", "已选数量", "本地状态"], ["trash_action", "恢复 / 删除", "用户操作"], ["trash_retention_days", "保留天数", "产品规则"], ["share_link_state", "分享链接状态", "云端分享服务"], ["generation_task_state", "生成任务状态", "AI 任务服务"], ["content_revision", "文件删除版本", "云端同步服务"]],
-    rules: ["回收站文件保留 30 天，之后自动永久删除。", "默认展示文件名、录音时间与时长、来源和移入回收站时间。", "点击任意文件行即进入选择模式并勾选该文件，继续点击其他文件可多选。", "选择模式顶部显示已选择数量和完成；再次点击已选文件可取消勾选。", "只有至少选中一个文件时，底部才显示恢复和删除操作。", "移入回收站后立即将文件标记为不可访问：分享链接在服务端撤销，外部访问返回文件不可用；生成中、排队或上传中的转写/AI 任务立即发送取消并停止。", "恢复后文件回到全部文件列表并从回收站移除；在原链接未到期且未被用户主动移除时，恢复原分享链接及权限配置。已取消的生成任务不自动继续，用户需手动重新发起。", "删除表示永久删除，执行前必须二次确认并明确此操作无法撤销；确认后保留删除版本标记以避免离线终端把缓存文件重新同步回来。", "其他终端联网时以云端文件状态和删除版本为准：移入回收站、恢复和永久删除均同步更新列表、分享访问和本地任务。", "回收站为空时显示暂无音频记录，不显示选择按钮和批量操作栏。"],
-    states: ["列表", "单选", "多选", "链接已失效", "生成任务已停止", "删除确认", "恢复完成", "永久删除完成", "空状态"],
+    rules: ["回收站文件保留 30 天，之后自动永久删除。", "默认展示文件名、录音时间与时长、来源和移入回收站时间。", "列表按每页 10 条加载，触底或点击“加载更多”后追加下一页。", "加载中保留当前已显示文件并禁止重复触发；加载失败保留当前列表并提供重试；仅当总记录超过首屏 10 条且全部加载后显示已加载全部回收站文件，总记录不超过 10 条时不展示结束提示或占位样式。", "点击任意文件行即进入选择模式并勾选该文件，继续点击其他文件可多选。", "选择模式顶部显示已选择数量和完成；再次点击已选文件可取消勾选。", "只有至少选中一个文件时，底部才显示恢复和删除操作。", "移入回收站后立即将文件标记为不可访问：分享链接在服务端撤销，外部访问返回文件不可用；生成中、排队或上传中的转写/AI 任务立即发送取消并停止。", "恢复后文件回到全部文件列表并从回收站移除；在原链接未到期且未被用户主动移除时，恢复原分享链接及权限配置。已取消的生成任务不自动继续，用户需手动重新发起。", "删除表示永久删除，执行前必须二次确认并明确此操作无法撤销；确认后保留删除版本标记以避免离线终端把缓存文件重新同步回来。", "其他终端联网时以云端文件状态和删除版本为准：移入回收站、恢复和永久删除均同步更新列表、分享访问和本地任务。", "回收站为空时显示暂无音频记录，不显示选择按钮和批量操作栏。"],
+    states: ["列表", "单选", "多选", "链接已失效", "生成任务已停止", "删除确认", "恢复完成", "永久删除完成", "空状态", "加载更多", "加载中", "加载失败", "已加载全部"],
     deps: ["本地数据库：文件删除状态、删除时间和原文件夹。", "云端文件版本、分享链接撤销与恢复能力。", "AI 任务取消接口。", "跨端同步服务。"],
-    acceptance: ["APP-FILE-03 点击回收站进入本页。", "点击文件行可进入单选并继续多选，顶部已选数量随选择变化。", "未选文件时不显示恢复和删除操作；有选中项时底部操作栏出现。", "移入回收站后原分享链接立即不可访问，生成任务停止；其他终端联网后同步相同状态。", "点击恢复后所选文件从回收站移除，原链接在未过期且未主动移除时恢复访问，已取消生成任务不自动继续。", "点击删除先出现不可撤销确认，确认后才永久移除文件并保持链接失效。", "所有文件被恢复或删除后显示暂无音频记录。"]
+    acceptance: ["APP-FILE-03 点击回收站进入本页。", "首屏展示 10 条，触底或点击“加载更多”追加下一页；加载中保留已显示内容并禁止重复触发，失败时可重试；仅当总记录超过 10 条且全部加载后显示已加载全部回收站文件，总记录不超过 10 条时不显示结束提示或占位样式。", "点击文件行可进入单选并继续多选，顶部已选数量随选择变化。", "未选文件时不显示恢复和删除操作；有选中项时底部操作栏出现。", "移入回收站后原分享链接立即不可访问，生成任务停止；其他终端联网后同步相同状态。", "点击恢复后所选文件从回收站移除，原链接在未过期且未主动移除时恢复访问，已取消生成任务不自动继续。", "点击删除先出现不可撤销确认，确认后才永久移除文件并保持链接失效。", "所有文件被恢复或删除后显示暂无音频记录。"]
   },
   {
     id: "APP-FILE-13",
@@ -733,11 +810,11 @@ const pages = [
     goal: "展示搜索词命中的转写、文件和 AI 笔记内容。",
     entry: "搜索页输入关键词或点击最近搜索。",
     fields: [["search_query", "搜索词", "用户输入"], ["matched_results", "相关结果", "本地数据库/云端索引"], ["highlight_text", "命中文本", "转写/AI 笔记索引"]],
-    rules: ["搜索结果页归属于文件模块。", "顶部仅保留返回和搜索框。", "结果页不展示 AI 提问入口，相关结果整体上移。", "命中的关键词以蓝色高亮。", "无结果时保留搜索词和返回入口，展示未找到结果与更换关键词提示，不展示空白结果列表。"],
-    states: ["有结果", "无结果", "加载中"],
+    rules: ["搜索结果页归属于文件模块。", "顶部仅保留返回和搜索框。", "结果页不展示 AI 提问入口，相关结果整体上移。", "命中的关键词以蓝色高亮。", "结果按每页 10 条加载，触底或点击“加载更多”后追加下一页。", "追加加载中保留已显示结果并禁止重复触发；加载失败保留当前列表并提供重试；仅当总结果数超过首屏 10 条且全部结果加载后显示已加载全部搜索结果，总结果数不超过 10 条时不展示结束提示或占位样式。", "首次搜索加载失败时保留搜索词和返回入口并提供重试。", "无结果时保留搜索词和返回入口，展示未找到结果与更换关键词提示，不展示空白结果列表。"],
+    states: ["有结果", "无结果", "加载中", "首次加载失败", "加载更多", "追加加载中", "加载失败", "已加载全部"],
     deps: ["本地数据库：文件名、时间、转写文本。", "AI 索引：笔记内容。"],
-    acceptance: ["搜索结果页面样式参考搜索结果图。", "搜索词和命中片段清晰可见。", "无结果时显示空结果图标、未找到结果文案和继续搜索提示。"],
-    prototypeActions: [["有结果", "set-search-result-state", "results"], ["无结果", "set-search-result-state", "empty"], ["加载中", "set-search-result-state", "loading"]]
+    acceptance: ["搜索结果页面样式参考搜索结果图。", "搜索词和命中片段清晰可见。", "首屏展示 10 条结果，触底或点击“加载更多”追加下一页；追加加载中保留已显示结果并禁止重复触发，失败时可重试；仅当总结果数超过首屏 10 条且全部结果加载完成后显示已加载全部搜索结果，总结果数不超过 10 条时不展示结束提示或占位样式。", "首次搜索加载失败时保留搜索词和返回入口并提供重试。", "无结果时显示空结果图标、未找到结果文案和继续搜索提示。"],
+    prototypeActions: [["有结果", "set-search-result-state", "results"], ["无结果", "set-search-result-state", "empty"], ["加载中", "set-search-result-state", "loading"], ["首次加载失败", "set-search-result-state", "error"], ["加载更多", "set-search-result-list-state", "load-more"], ["追加加载中", "set-search-result-list-state", "loading"], ["加载失败", "set-search-result-list-state", "error"], ["已加载全部", "set-search-result-list-state", "loaded-all"]]
   },
   {
     id: "APP-FILE-14",
@@ -818,7 +895,7 @@ const pages = [
     entry: "文件列表点击文件、同步完成通知、任务完成通知。",
     fields: [["display_title", "展示标题", "文件名/云端同步数据/AI 摘要"], ["title_source", "标题来源", "本地数据库/云端/AI"], ["ai_tags", "AI 标签", "AI 会议总结"], ["audio_progress", "播放进度", "本地播放器"], ["skip_silence_enabled", "跳过空白片段", "播放器设置"], ["playback_rate", "播放倍速", "播放器设置"], ["transcript_segments", "对话转写片段", "转写服务"], ["transcript_start_time", "录音相对时间 HH:MM:SS", "转写片段索引"], ["speaker_label", "说话人编号或名称", "说话人分离/本地命名"], ["transcript_text", "转写正文", "转写服务/用户编辑"], ["ai_sections", "AI 内容结构", "AI 模板"], ["marker_list", "文件标记列表", "录音标记/本地数据库"], ["marker_anchor_map", "标记锚点映射", "录音标记/播放时间戳"], ["marker_generation_role", "标记生成作用", "AI 生成任务快照"], ["note_question", "文件提问", "用户输入/AI 问答"], ["answer_source_refs", "回答引用来源", "转写片段索引"], ["share_state", "分享状态", "云端分享"]],
     rules: ["开启同步云端时，标题优先根据云端同步数据提炼。", "未开启同步云端时，标题默认使用文件名称。", "生成 AI 会议摘要后，标题根据 AI 会议内容重新提炼总结。", "生成 AI 会议总结后，根据会议内容提取关键标签。", "播放器进度条支持点击和拖动调整音频进度。", "播放器控制区包含音频设置、快退 15 秒、播放、快进 15 秒、倍速，不展示额外方向箭头。", "已转写文件的一级标签统一为标记、总结和转写记录，一级标签按内容宽度左对齐排列，负责切换内容类型；标记和转写记录内容区不再重复显示同名标题。", "转写记录按对话片段展示；每段先显示录音相对时间和说话人，正文另起一行。时间统一为 HH:MM:SS，不足一小时也补齐小时位。", "默认说话人按分离结果显示为说话人 1、说话人 2，并继续递增；同一说话人在不同时间片段保持相同编号，保存自定义名称后同步更新对应片段。", "转写时间和说话人只读，只有正文进入原位编辑。", "点击总结后展示智能总结、章节大纲、待办事项和思维导图四个二级标签；四块内容在同一长页面中按此顺序连续展示，二级标签只负责快速定位，页面滚动时同步更新选中态。", "未转写和生成中状态仅保留标记、总结两个一级标签，不提前展示转写记录或总结二级标签。", "录音中产生的文字、时间和照片标记在录音结束后完整继承到文件详情，不能依赖转写或 AI 生成状态。", "录音结束后不再允许新增标记，只能维护录音过程中已经产生的标记。", "点击标记时间或播放图标定位到对应音频时间并开始播放。", "点击标记文本、照片说明、转写记录或智能总结时，原文字直接出现光标并唤起系统键盘；不打开弹窗、新页面，不增加边框、下划线、取消或保存按钮。", "智能总结和转写记录使用系统键盘上方的轻量格式工具栏，至少包含标题/正文、列表、对齐、引用、撤销和重做；普通标记与照片说明保持纯文本键盘，不展示格式工具栏。", "编辑内容实时记录，输入框失焦、收起键盘或切换其他标签时自动保存。", "照片可打开和删除；标记时间与来源保持只读。", "生成 AI 内容时读取当时的标记快照作为辅助笔记；生成后继续编辑标记不会静默改写既有 AI 内容，重新生成时再读取最新标记。", "页面底部固定展示“对此文件提问”输入框；普通输入不显示快捷能力标签，只有点击当前模型和模板提供的快速入口后才显示对应标签并直接开始分析。", "普通提问与快捷分析都自动经历 2 秒思考中、2 秒思考过程，再显示思考完成后的答案；手机内不放阶段推进或暂停按钮，不同阶段仅由右侧状态链路预览。", "回答中的来源仅显示可点击的圈号数字；点击后打开标题为“来源”的完整转写对话流，相关片段高亮，面板内可下拉、加载更多并点击任一片段播放，播放片段的说话人右侧显示小喇叭。", "回答操作区暂不提供加入笔记图标入口。", "右上角分享按钮打开分享弹窗，三个点打开更多操作浮层。"],
-    states: ["标记一级标签", "标记一级标签·暂无标记", "总结一级标签", "转写记录一级标签", "智能总结二级标签", "章节大纲二级标签", "待办事项二级标签", "思维导图二级标签", "文件提问默认", "普通提问思考中", "普通提问思考过程", "快捷入口分析中", "思考暂停", "思考完成并显示答案", "打开来源完整转写", "来源片段播放", "标记原位编辑", "转写原位编辑", "总结原位编辑", "照片预览", "未生成 AI 摘要", "AI 已生成", "音频设置", "倍速选择", "分享", "更多操作", "文件损坏", "删除确认"],
+    states: ["标记一级标签", "标记一级标签·暂无标记", "总结一级标签", "转写记录·有记录", "转写记录·无记录", "转写记录·加载更多", "转写记录·加载中", "转写记录·已加载全部", "智能总结二级标签", "章节大纲二级标签", "待办事项二级标签", "思维导图二级标签", "文件提问默认", "普通提问思考中", "普通提问思考过程", "快捷入口分析中", "思考暂停", "思考完成并显示答案", "打开来源完整转写", "来源片段播放", "标记原位编辑", "转写原位编辑", "总结原位编辑", "照片预览", "未生成 AI 摘要", "AI 已生成", "音频设置", "倍速选择", "分享", "更多操作", "文件损坏", "删除确认"],
     deps: ["本地播放器：进度、跳转、快退快进、倍速。", "音频分析：静音/无声片段识别。", "转写服务：转写记录和时间戳。", "说话人分离与命名：片段说话人编号和自定义名称。", "本地数据库：录音标记、备注、照片附件。", "AI 服务：标题、标签、大纲、总结、待办、思维导图、笔记问答。", "云端分享：分享链接和权限。"],
     acceptance: ["已转写详情必须展示左对齐的标记、总结、转写记录三个一级标签，且同一时刻只展示一个一级内容；标记与转写记录内容区不得重复出现同名标题，标记页不得显示标记数量与生成状态说明。", "每段转写必须显示 HH:MM:SS 录音相对时间、对应说话人和正文；时间与说话人只读，正文保持原位编辑，同一说话人跨片段编号一致。", "总结一级标签内必须展示智能总结、章节大纲、待办事项、思维导图四个二级标签；点击可定位到同页对应区块，继续下滑可依次阅读全部四块内容，滚动时选中态同步变化。", "未转写和生成中详情只展示标记、总结两个一级标签，不显示转写记录和总结二级标签。", "录音期间的全部标记在已生成文件详情中完整展示，并可继续编辑。", "录音结束后的文件详情不得出现新增标记入口。", "点击标记时间定位音频；点击标记内容、转写记录和智能总结均在原文字位置直接输入，仅显示光标和系统键盘，不出现独立窗口或显式保存操作。", "总结和转写编辑时格式栏可切换标题、列表、对齐和引用；标记编辑时不显示格式栏。", "失焦、收起键盘或切换标签后内容自动保存。", "照片可查看或删除，时间与来源只读。", "思维导图按卡片预览呈现。", "音频设置和倍速按钮能打开对应弹窗。", "普通输入提问不显示快捷能力标签；快捷入口仅按当前模型与模板的可用能力展示，点击后立即开始对应分析。", "实际提问会自动经历 2 秒思考中、2 秒思考过程并显示答案，手机内没有完成、查看或暂停等阶段切换按钮；右侧状态链路可独立预览各阶段。", "回答来源仅显示可点击的数字圈号；来源面板标题为“来源”，展示可滚动、可加载的完整转写对话，相关文本高亮，点击任一片段开始播放且该说话人右侧显示小喇叭。", "回答操作区不显示加入笔记图标入口。", "标题和标签规则在字段与交互说明中明确。"],
     prototypeLinks: [["文件详情已转写", "APP-FILE-01"], ["文件详情为空", "APP-FILE-10"]],
@@ -1521,94 +1598,98 @@ const pages = [
     group: "我的",
     title: "兑换码",
     priority: "P1",
-    goal: "输入兑换码并提交兑换。",
+    goal: "在同一兑换码页面输入兑换码、校验并反馈兑换结果。",
     entry: "我的页点击兑换码。",
-    fields: [["redeem_code", "兑换码", "用户输入"], ["redeem_state", "兑换状态", "用量服务"]],
-    rules: ["兑换码区分大小写。", "未输入时兑换按钮置灰。", "输入框聚焦时展示键盘状态。"],
-    states: ["未输入", "输入中", "提交中", "兑换成功", "兑换失败"],
+    fields: [["redeem_code", "兑换码", "用户输入"], ["redeem_state", "兑换状态", "本地交互/用量服务"], ["redeem_feedback", "校验反馈", "用量服务/系统"], ["keyboard_state", "键盘状态", "系统键盘"]],
+    rules: ["兑换码区分大小写；未输入时兑换按钮置灰，输入任意非空内容后兑换按钮变为可点击样式。", "点击兑换后进入提交中，按钮暂不可重复点击；校验失败时停留当前页面并以 Toast 反馈“兑换码错误”。", "系统校验异常时停留当前页面并以 Toast 反馈“系统异常，请稍后再试”；校验成功时保留输入内容并以 Toast 反馈“兑换成功”。", "点击输入框展示键盘态，关闭或按 Escape 返回我的页面；APP-ME-15 仅作为历史状态别名，不再单独展示。"],
+    states: ["未输入", "输入中", "提交中", "兑换码错误", "系统异常", "兑换成功"],
     deps: ["用量服务：兑换码校验。"],
-    acceptance: ["兑换码弹窗样式参考截图。"]
+    acceptance: ["兑换码入口和键盘输入态合并在同一页面。", "输入兑换码后兑换按钮可点击；点击后覆盖提交中、兑换码错误、系统异常和兑换成功反馈。", "底部状态快照覆盖未输入、输入中、提交中、兑换码错误、系统异常和兑换成功。"]
   },
   {
     id: "APP-ME-15",
     group: "我的",
-    title: "兑换码输入中",
+    title: "兑换码输入中（已合并）",
     priority: "P1",
-    goal: "展示兑换码输入框聚焦和系统键盘状态。",
-    entry: "兑换码弹窗点击输入框。",
-    fields: [["redeem_code_input", "兑换码输入", "用户输入"]],
-    rules: ["键盘弹起时弹窗上移。", "兑换码未完整输入时按钮仍置灰。"],
-    states: ["键盘弹起", "输入中"],
-    deps: ["系统键盘。"],
-    acceptance: ["键盘状态参考截图。"]
+    internal: true,
+    goal: "作为 APP-ME-08 的历史状态别名，兼容旧链接并统一进入兑换码交互页面。",
+    entry: "历史链接或旧状态引用 APP-ME-15。",
+    fields: [["redeem_code", "兑换码", "用户输入"], ["keyboard_state", "键盘状态", "系统键盘"]],
+    rules: ["本状态由 APP-ME-08 承载，不再作为独立页面展示；旧链接统一跳转至 APP-ME-08。"],
+    states: ["输入中"],
+    deps: ["系统键盘。", "用量服务：兑换码校验。"],
+    acceptance: ["APP-ME-15 不出现在导航和状态流中，历史链接仍可进入 APP-ME-08。"]
   },
   {
     id: "APP-ME-09",
     group: "我的",
     title: "账单详情",
     priority: "P1",
-    goal: "展示账单记录空态或账单列表。",
+    goal: "在同一页面展示账单空态或按支付时间倒序排列的账单列表。",
     entry: "我的页点击账单详情。",
-    fields: [["billing_records", "账单记录", "支付系统"]],
-    rules: ["无账单时展示空态。", "有账单时展示按支付时间倒序排列的账单列表。", "账单列表需覆盖会员购买、会员升级和转写时长购买等支付类型。"],
-    states: ["暂无账单记录", "有账单记录"],
+    fields: [["billing_type", "支付类型", "支付系统"], ["billing_title", "服务名称", "支付系统"], ["billing_amount", "支付金额", "支付系统"], ["billing_time", "支付时间", "支付系统"], ["billing_status", "支付状态", "支付系统"]],
+    rules: ["无账单时在本页展示空态，不新建独立页面。", "有账单时按支付完成时间倒序，首次加载 10 条；总记录超过 10 条时触底后显示“加载更多”，继续下拉或点击后追加下一页 10 条。", "加载期间禁止重复触发；仅当总记录超过首屏 10 条且全部加载后显示“已加载全部记录”，总记录不超过 10 条时不展示结束提示或占位样式。", "列表覆盖会员购买、会员升级和转写时长购买，本期不提供账单下级详情页。", "页面下方状态快照只展示样式，不响应点击、滚动或加载。"],
+    states: ["有记录", "无记录", "加载更多", "加载中", "已加载全部记录"],
     deps: ["支付系统。"],
-    acceptance: ["空态参考账单详情截图。", "有账单记录时展示服务名称、支付时间、金额和支付状态。"],
-    prototypeLinks: [["账单不为空", "APP-ME-23"]]
+    acceptance: ["账单空态、有记录和分页反馈都在 APP-ME-09 完成。", "首次显示 10 条；总记录超过 10 条时触底后才显示加载入口，每次追加 10 条，末页显示已加载全部记录；总记录不超过 10 条时不显示结束提示或占位样式。", "每条记录展示服务名称、支付时间、金额和支付状态。"],
+    prototypeActions: [["账单为空", "set-billing-state", "empty"], ["账单有记录", "set-billing-state", "records"]]
   },
   {
     id: "APP-ME-23",
     group: "我的",
-    title: "账单详情有记录",
+    title: "账单详情有记录（已合并）",
     priority: "P1",
-    goal: "按支付时间倒序展示会员订阅、会员升级和转写时长购买账单。",
-    entry: "账单详情在支付系统返回账单记录时展示。",
+    internal: true,
+    goal: "作为历史页面编号兼容入口，统一进入 APP-ME-09 账单详情。",
+    entry: "历史链接或旧状态引用 APP-ME-23。",
     fields: [["billing_type", "支付类型", "支付系统"], ["billing_title", "服务名称", "支付系统"], ["billing_amount", "支付金额", "支付系统"], ["billing_time", "支付时间", "支付系统"], ["billing_status", "支付状态", "支付系统"]],
-    rules: ["账单按支付完成时间倒序排列。", "每条账单展示服务名称、支付时间、金额和已支付状态。", "当前原型仅展示记录，不提供账单详情下级页。"],
-    states: ["会员购买", "会员升级", "转写时长购买"],
+    rules: ["本状态由 APP-ME-09 承载，不再作为独立页面展示。"],
+    states: ["已合并"],
     deps: ["支付系统：订单、金额、状态和支付时间。"],
-    acceptance: ["账单列表能够清晰区分会员购买、会员升级和转写时长购买。", "账单信息在单屏内可快速扫描。"],
-    prototypeLinks: [["账单为空", "APP-ME-09"]]
+    acceptance: ["APP-ME-23 不出现在导航和状态流中，历史链接仍可进入 APP-ME-09。"]
   },
   {
     id: "APP-ME-10",
     group: "我的",
-    title: "恢复购买中",
+    title: "恢复购买",
     priority: "P1",
-    goal: "展示恢复购买请求处理中状态。",
+    goal: "在同一页面承载恢复购买请求处理、未找到记录和恢复成功反馈。",
     entry: "我的页点击恢复购买。",
-    fields: [["restore_state", "恢复状态", "支付系统"]],
-    rules: ["点击恢复购买后展示加载态。", "未找到购买记录时进入失败提示弹窗。"],
-    states: ["加载中", "未找到记录"],
+    fields: [["restore_state", "恢复状态", "支付系统"], ["restore_error", "恢复失败原因", "支付系统"], ["restore_entitlement_state", "恢复后的会员权益状态", "会员服务"]],
+    rules: ["点击恢复购买后停留本页并展示加载态，禁止重复发起恢复请求。", "支付系统返回未找到购买记录时，在本页展示失败提示，不再跳转到独立失败页。", "支付系统返回成功时，在本页展示恢复购买成功反馈，并刷新会员权益和剩余转写时长。", "用户在失败或成功反馈中点击确认后返回我的页；失败提示引导用户查看收据或订阅历史记录后重试。", "APP-ME-11 仅作为历史链接兼容别名，统一归入 APP-ME-10，不在导航和状态流中作为独立页面展示。"],
+    states: ["加载中", "未找到购买记录", "恢复购买成功"],
     deps: ["支付系统。"],
-    acceptance: ["加载态参考截图。"],
-    prototypeLinks: [["未找到购买记录", "APP-ME-11"]]
+    acceptance: ["同一 APP-ME-10 页面可展示加载中、未找到购买记录和恢复购买成功三种状态。", "加载中状态保留我的页背景并禁止重复提交；失败和成功状态均可确认返回我的页。", "APP-ME-11 不出现在导航和状态流中，历史链接仍可进入 APP-ME-10。"],
+    prototypeActions: [["加载中", "set-restore-purchase-state", "loading"], ["未找到购买记录", "set-restore-purchase-state", "not-found"], ["恢复购买成功", "set-restore-purchase-state", "success"]]
   },
   {
     id: "APP-ME-11",
     group: "我的",
-    title: "恢复购买失败",
+    title: "恢复购买（已合并）",
     priority: "P1",
-    goal: "提示未找到以前的购买记录。",
-    entry: "恢复购买中未找到历史购买。",
-    fields: [["restore_error", "恢复失败原因", "支付系统"]],
-    rules: ["用户确认后返回我的页。", "提示查看收据或订阅历史记录后重试。"],
-    states: ["未找到购买记录"],
+    internal: true,
+    goal: "作为历史页面编号兼容入口，统一进入 APP-ME-10 恢复购买状态页。",
+    entry: "历史链接或旧状态引用 APP-ME-11。",
+    fields: [["restore_state", "恢复状态", "支付系统"], ["restore_error", "恢复失败原因", "支付系统"]],
+    rules: ["本状态由 APP-ME-10 承载，不再作为独立页面展示；旧链接统一跳转至 APP-ME-10。"],
+    states: ["已合并"],
     deps: ["支付系统。"],
-    acceptance: ["失败弹窗参考截图。"]
+    acceptance: ["APP-ME-11 不出现在导航和状态流中，历史链接仍可进入 APP-ME-10。"]
   },
   {
     id: "APP-ME-12",
     group: "我的",
     title: "使用记录",
     priority: "P0",
-    goal: "作为 P0 用量账本承载页，展示转写用量记录；当前原型先按日期展示消耗时长。",
+    goal: "作为 P0 用量账本承载页，按时间倒序展示转写用量，并把每条记录连到对应文件的已转写详情。",
     entry: "我的页点击使用记录。",
-    fields: [["usage_date", "使用日期", "用量服务"], ["usage_duration", "消耗时长", "用量服务"]],
-    rules: ["列表按时间倒序。", "点击单条记录后续可进入用量明细。", "扣减/返还类型、关联文件、失败原因和任务明细属于后续交互补齐范围，不把当前日期/时长列表描述为完整账本。"],
-    states: ["有记录", "加载更多"],
+    fields: [["record_id", "记录 ID", "用量服务"], ["usage_date", "使用日期", "用量服务"], ["usage_duration", "消耗时长", "用量服务"], ["file_id", "关联文件", "用量服务/文件索引"], ["task_id", "关联任务", "用量服务"], ["ledger_type", "账本类型", "用量服务"], ["failure_reason", "失败原因", "用量服务"]],
+    rules: ["列表按时间倒序；首页默认加载 10 条记录。", "总记录超过 10 条时滚动到当前页最后一条记录附近才显示底部“加载更多”触发区；继续向下滚动或点击触发区后，追加下一页 10 条更早记录，已有记录和滚动位置保持不变。", "加载期间显示轻量 Loading 并禁止重复触发；仅当总记录超过首屏 10 条且全部加载后显示“已加载全部记录”，总记录不超过 10 条时不展示结束提示或占位样式。", "点击具有 file_id 的转写用量记录，进入 APP-FILE-01 文件详情已转写状态并默认打开“转写记录”一级标签；返回后回到本页并保留已加载页数。", "页面下方“当前页面状态与反馈”中的状态快照仅展示对应样式，不响应点击、滚动或加载；实际分页只在主页面列表生效。", "当前原型以日期、时长和 file_id 演示可追踪链路；扣减/返还类型、关联任务、失败原因的完整账本展示仍需用量服务补齐，缺少转写内容的返还记录后续应进入任务状态或用量明细。"],
+    states: ["有记录", "无记录", "加载更多", "加载中", "已加载全部记录"],
     deps: ["用量服务。"],
-    acceptance: ["使用记录列表样式参考截图。"]
+    acceptance: ["使用记录列表样式参考截图。", "首次进入显示 10 条记录，顶部不显示加载更多。", "总记录超过 10 条时滚动到第 10 条附近显示“加载更多”，继续下滑追加 10 条更早记录；加载中不可重复提交，最后一页显示“已加载全部记录”；总记录不超过 10 条时不显示结束提示或占位样式。", "点击任一有 file_id 的记录进入 APP-FILE-01，并直接选中“转写记录”；返回使用记录后保留原分页位置。", "页面下方状态快照只展示有记录、无记录和分页状态样式，不响应点击、滚动或加载。"],
+    prototypeLinks: [["转写记录", "APP-FILE-01"]],
+    prototypeActions: [["使用记录为空", "set-usage-record-state", "empty"]]
   },
   {
     id: "APP-DEV-03",
@@ -1847,7 +1928,10 @@ const stateDetailOverrides = {
     "本批次同步完成": ["隐藏同步摘要，全部已完成文件恢复正常可点击状态", "无"],
     "全部文件空状态": ["文件区域显示「暂无文件」，保留标题栏导入入口和底部录音入口", "空态文案：「暂无文件」"],
     "筛选结果空状态": ["文件区域显示「没有符合条件的文件」", "按钮：「清除筛选」"],
-    "加载更多": ["仅在列表底部加载下一页，现有文件和其他页面操作保持可用", "列表底部显示轻量 Loading"]
+    "加载更多": ["首屏展示 10 条文件，列表底部提供下一页入口；现有文件和其他页面操作保持可用", "按钮：「继续下拉加载更多文件」"],
+    "加载中": ["保留已显示的 10 条文件，追加请求进行中且不允许重复触发", "列表底部显示轻量 Loading：「加载中…」"],
+    "加载失败": ["保留已显示文件，不清空列表；等待用户重新发起下一页请求", "列表底部提示：「加载失败，请检查网络后重试」；按钮：「重试」"],
+    "已加载全部": ["总文件数超过首屏 10 条且所有文件均已展示，不再发起下一页请求；总文件数不超过 10 条时不展示结束提示或占位样式", "列表底部提示：「已加载全部文件」"]
   },
   "APP-FILE-02": {
     "默认": ["展示搜索输入框、右侧筛选按钮、最近搜索和最近 30 天内容", "输入框可直接输入；筛选条件按需展开"],
@@ -1859,6 +1943,23 @@ const stateDetailOverrides = {
     "有结果": ["展示匹配的文件、转写或 AI 内容，关键词和筛选条件保持不变", "结果列表反馈；点击进入对应文件"],
     "无结果": ["展示无匹配结果空态，保留关键词和筛选条件", "空态文案：「未找到相关结果」"],
     "清空最近搜索": ["进入清除搜索记录确认弹层，不立即删除记录", "进入 APP-FILE-14"]
+  },
+  "APP-FILE-23": {
+    "列表": ["回收站首屏展示 10 条文件记录", "文件名、时间、来源和移入时间可见"],
+    "加载更多": ["列表底部提供下一页入口，已显示记录保持不变", "按钮：「加载更多」"],
+    "加载中": ["保留已显示记录并禁止重复触发追加请求", "列表底部显示轻量 Loading：「加载中…」"],
+    "加载失败": ["保留已显示记录，不清空回收站列表", "提示：「加载失败，请检查网络后重试」；按钮：「重试」"],
+    "已加载全部": ["总回收站记录超过首屏 10 条且所有记录均已展示，不再发起下一页请求；总记录数不超过 10 条时不展示结束提示或占位样式", "列表底部提示：「已加载全部回收站文件」"],
+    "空状态": ["回收站无文件时显示空状态，不展示选择按钮和批量操作栏", "空态文案：「暂无音频记录」"]
+  },
+  "APP-FILE-12": {
+    "有结果": ["首屏展示 10 条搜索结果，关键词命中高亮", "结果列表可继续加载"],
+    "加载更多": ["结果列表底部提供下一页入口，已显示结果保持不变", "按钮：「加载更多」"],
+    "追加加载中": ["保留已显示结果并禁止重复触发追加请求", "列表底部显示轻量 Loading：「加载中…」"],
+    "加载失败": ["保留已显示结果，不清空列表", "提示：「加载失败，请检查网络后重试」；按钮：「重试」"],
+    "已加载全部": ["总命中结果超过首屏 10 条且所有结果均已展示，不再发起下一页请求；总结果数不超过 10 条时不展示结束提示或占位样式", "列表底部提示：「已加载全部搜索结果」"],
+    "无结果": ["保留搜索词和返回入口，不展示空白结果列表", "空态文案：「未找到相关结果」"],
+    "加载中": ["首次搜索请求进行中，结果区暂不展示列表", "加载动画和文案：「正在搜索相关内容…」"]
   },
   "APP-FILE-16": {
     "默认": ["底部移动到文件夹弹层展开，未选择目标文件夹", "移动到按钮置灰"],
@@ -1889,7 +1990,11 @@ const stateDetailOverrides = {
   "APP-FILE-01": {
     "标记一级标签": ["切换到标记内容区，展示录音期间保留的文字、时间和照片标记", "一级标签选中态"],
     "总结一级标签": ["切换到总结内容区；智能总结、章节大纲、待办事项和思维导图在同一滚动页连续展示", "一级标签选中态"],
-    "转写记录一级标签": ["切换到转写记录内容区，按时间和说话人展示正文", "一级标签选中态"],
+    "转写记录·有记录": ["转写内容区按时间和说话人展示首批 10 条正文", "转写记录一级标签选中"],
+    "转写记录·无记录": ["转写内容区显示“暂无转写记录”空态", "不展示列表或加载入口"],
+    "转写记录·加载更多": ["首批 10 条底部显示“加载更多”", "继续下拉或点击进入加载中"],
+    "转写记录·加载中": ["保留首批内容并在底部显示轻量 Loading", "加载期间禁止重复触发"],
+    "转写记录·已加载全部": ["总转写记录超过首屏 10 条且第二批 10 条追加后显示“已加载全部转写记录”；总记录数不超过 10 条时不展示结束提示或占位样式", "不再发起加载请求，正文仍可原位编辑"],
     "智能总结二级标签": ["保持总结内容区并滚动定位到智能总结", "二级标签随滚动位置高亮"],
     "章节大纲二级标签": ["保持总结内容区并滚动定位到章节大纲", "二级标签随滚动位置高亮"],
     "待办事项二级标签": ["保持总结内容区并滚动定位到待办事项", "二级标签随滚动位置高亮"],
@@ -1953,6 +2058,33 @@ const stateDetailOverrides = {
     "头像已更新": ["关闭头像面板并在设置页显示新头像", "Toast：「头像已更新」"],
     "偏好设置入口": ["偏好设置入口可点击并进入偏好设置页", "导航反馈：进入 APP-ME-26"],
     "账号入口": ["账号入口可点击并进入账号页", "导航反馈：进入 APP-ME-17"]
+  },
+  "APP-ME-08": {
+    "未输入": ["兑换码页面展示空输入框，兑换按钮置灰", "输入框可点击；按钮不可提交"],
+    "输入中": ["输入框保留兑换码内容并展示键盘态，兑换按钮变为可点击", "输入反馈；点击兑换进入提交中"],
+    "提交中": ["保留输入内容，兑换按钮暂不可重复点击并显示提交中状态", "校验完成后反馈兑换码错误、系统异常或兑换成功"],
+    "兑换码错误": ["停留兑换码页面并保留当前输入内容", "Toast：「兑换码错误」"],
+    "系统异常": ["停留兑换码页面并保留当前输入内容", "Toast：「系统异常，请稍后再试」"],
+    "兑换成功": ["停留兑换码页面并保留当前输入内容，会员用量按校验结果更新", "Toast：「兑换成功」"]
+  },
+  "APP-ME-09": {
+    "有记录": ["按支付完成时间倒序展示当前已加载账单；首次显示 10 条", "保留账单类型、服务名称、时间、金额和支付状态"],
+    "无记录": ["列表区域不展示账单行，居中展示“暂无账单记录”", "不发起分页请求"],
+    "加载更多": ["滚动到当前页最后一条附近后，在列表底部显示“加载更多”", "继续下拉或点击后进入加载中"],
+    "加载中": ["底部显示轻量 Loading，已有账单保持可见", "加载期间禁止重复触发；完成后追加 10 条"],
+    "已加载全部记录": ["总记录超过首屏 10 条且最后一页追加完成后显示“已加载全部记录”；总记录数不超过 10 条时不展示结束提示或占位样式", "不再发起加载请求"]
+  },
+  "APP-ME-10": {
+    "加载中": ["在“我的”页背景上展示恢复购买加载遮罩，保持会员信息可见", "显示“加载中…”并禁止重复发起；支付系统返回结果后在本页切换状态"],
+    "未找到购买记录": ["同页展示“未找到以前的购买记录”提示面板，保留我的页背景", "点击“确认”返回我的页；提示查看收据或订阅历史记录后重试"],
+    "恢复购买成功": ["同页展示恢复购买成功反馈，并承接会员权益和剩余转写时长更新", "点击“确认”返回我的页；不额外增加独立成功页"]
+  },
+  "APP-ME-12": {
+    "有记录": ["按时间倒序展示当前已加载的使用记录；首次进入加载 10 条，记录行带有关联 file_id", "点击记录整行进入 APP-FILE-01，并默认打开“转写记录”"],
+    "无记录": ["列表区域不展示记录行，显示“暂无使用记录”空状态和后续使用提示", "不发起分页请求；完成一次转写后再回到本页查看"],
+    "加载更多": ["滚动到当前页最后一条记录附近后，在列表底部显示“加载更多”触发区", "继续向下滚动或点击触发区进入加载中；已有记录保持可见"],
+    "加载中": ["列表底部显示轻量 Loading，当前页记录和滚动位置保持不变", "加载期间禁用重复触发；完成后追加下一页 10 条更早记录"],
+    "已加载全部记录": ["总记录超过首屏 10 条且最后一页追加完成后，在列表底部显示“已加载全部记录”；总记录数不超过 10 条时不展示结束提示或占位样式", "无更多请求；记录仍可点击进入对应文件详情"]
   },
   "APP-DEV-11": {
     "编辑中": ["带入当前设备名称并聚焦输入框，保存按钮按内容更新", "输入反馈；清除只影响草稿"],
@@ -2090,6 +2222,9 @@ document.body.classList.toggle("showcase-mode", Boolean(showcasePreset));
 if (currentPageId === "APP-HOME-02") currentPageId = "APP-HOME-01";
 if (currentPageId === "APP-SYNC-02") currentPageId = "APP-SYNC-01";
 if (currentPageId === "APP-REC-05") currentPageId = "APP-HOME-01";
+if (currentPageId === "APP-ME-15") currentPageId = "APP-ME-08";
+if (currentPageId === "APP-ME-23") currentPageId = "APP-ME-09";
+if (currentPageId === "APP-ME-11") currentPageId = "APP-ME-10";
 let previousPageId = null;
 let fileDetailTab = "transcript";
 let recordPaused = false;
@@ -2159,9 +2294,27 @@ let homePriorityLongPressTimer = null;
 const defaultHomeFileItems = [
   { id: "home-file-board", name: "Board meeting", meta: "今天 14:20 · 01:12:17 · 3 个标记", source: "硬件录音", state: "未转写", tone: "amber", go: "APP-FILE-10", generationState: "untranscribed", cloudState: "waiting" },
   { id: "home-file-interview", name: "Interview import", meta: "昨天 19:10 · 00:34:02", source: "导入文件", state: "AI 已生成", tone: "green", go: "APP-FILE-01", generationState: "generated", cloudState: "uploading" },
-  { id: "home-file-review", name: "Product review", meta: "07-04 · 00:26:44 · 2 个标记", source: "导入文件", state: "生成中", tone: "blue", go: "APP-FILE-15", generationState: "generating" }
+  { id: "home-file-review", name: "Product review", meta: "07-04 · 00:26:44 · 2 个标记", source: "导入文件", state: "生成中", tone: "blue", go: "APP-FILE-15", generationState: "generating" },
+  ...Array.from({ length: 17 }, (_, index) => ({
+    id: `home-file-${index + 4}`,
+    name: ["季度复盘", "客户访谈", "设计走查", "市场策略讨论", "项目同步"][index % 5],
+    meta: `${index < 2 ? "本周" : "06-" + String(28 - index).padStart(2, "0")} · 00:${String(18 + index).padStart(2, "0")}:0${index % 9}`,
+    source: index % 3 === 0 ? "导入文件" : "硬件录音",
+    state: index % 4 === 0 ? "未转写" : index % 4 === 1 ? "AI 已生成" : index % 4 === 2 ? "生成中" : "已完成",
+    tone: ["amber", "green", "blue", ""][index % 4],
+    go: index % 4 === 0 ? "APP-FILE-10" : index % 4 === 2 ? "APP-FILE-15" : "APP-FILE-01",
+    generationState: index % 4 === 0 ? "untranscribed" : index % 4 === 2 ? "generating" : "generated",
+    cloudState: index % 3 === 0 ? "waiting" : undefined
+  }))
 ];
 let homeFileItems = defaultHomeFileItems.map((item) => ({ ...item }));
+const homeFilePageSize = 10;
+let homeFileVisibleCount = homeFilePageSize;
+let homeFileLoadMoreVisible = false;
+let homeFileLoading = false;
+let homeFileLoadError = false;
+let homeFileScrollTop = 0;
+let homeFileLoadTimer = null;
 let homeSavedFileName = "周一项目复盘";
 let homeFileSelectionMode = false;
 let selectedHomeFileIds = new Set();
@@ -2179,6 +2332,56 @@ let homeFileNoticeTimer = null;
 let homeFilePointer = null;
 let homeFileLongPressTimer = null;
 let homeFileSuppressClick = false;
+const usageRecordPageSize = 10;
+const usageRecordCatalog = [
+  { id: "usage-20260708-120445", date: "2026-07-08 12:04:45", duration: "1分 10秒", fileId: "usage-file-01", fileName: "拼团营销工具需求评审会" },
+  { id: "usage-20260704-152125", date: "2026-07-04 15:21:25", duration: "1分 22秒", fileId: "usage-file-02", fileName: "客户访谈" },
+  { id: "usage-20260704-151603", date: "2026-07-04 15:16:03", duration: "8分 37秒", fileId: "usage-file-03", fileName: "产品方案评审" },
+  { id: "usage-20260704-151541", date: "2026-07-04 15:15:41", duration: "1分 14秒", fileId: "usage-file-04", fileName: "研发排期同步" },
+  { id: "usage-20260704-151225", date: "2026-07-04 15:12:25", duration: "7分 4秒", fileId: "usage-file-05", fileName: "用户反馈整理" },
+  { id: "usage-20260630-142723", date: "2026-06-30 14:27:23", duration: "12分 17秒", fileId: "usage-file-06", fileName: "季度复盘" },
+  { id: "usage-20260629-173054", date: "2026-06-29 17:30:54", duration: "53秒", fileId: "usage-file-07", fileName: "设计走查" },
+  { id: "usage-20260629-163220", date: "2026-06-29 16:32:20", duration: "26秒", fileId: "usage-file-08", fileName: "会议开场" },
+  { id: "usage-20260629-153019", date: "2026-06-29 15:30:19", duration: "7分 4秒", fileId: "usage-file-09", fileName: "市场策略讨论" },
+  { id: "usage-20260629-152401", date: "2026-06-29 15:24:01", duration: "46秒", fileId: "usage-file-10", fileName: "项目同步" },
+  { id: "usage-20260628-181006", date: "2026-06-28 18:10:06", duration: "4分 32秒", fileId: "usage-file-11", fileName: "周末工作回顾" },
+  { id: "usage-20260628-145218", date: "2026-06-28 14:52:18", duration: "2分 8秒", fileId: "usage-file-12", fileName: "供应商沟通" },
+  { id: "usage-20260627-110407", date: "2026-06-27 11:04:07", duration: "16分 40秒", fileId: "usage-file-13", fileName: "需求访谈记录" },
+  { id: "usage-20260626-094512", date: "2026-06-26 09:45:12", duration: "5分 16秒", fileId: "usage-file-14", fileName: "晨会" },
+  { id: "usage-20260625-172844", date: "2026-06-25 17:28:44", duration: "9分 3秒", fileId: "usage-file-15", fileName: "产品数据复盘" },
+  { id: "usage-20260624-133126", date: "2026-06-24 13:31:26", duration: "3分 55秒", fileId: "usage-file-16", fileName: "设计评审" },
+  { id: "usage-20260623-101805", date: "2026-06-23 10:18:05", duration: "6分 21秒", fileId: "usage-file-17", fileName: "项目启动会" },
+  { id: "usage-20260622-161140", date: "2026-06-22 16:11:40", duration: "11分 12秒", fileId: "usage-file-18", fileName: "运营方案讨论" },
+  { id: "usage-20260620-150932", date: "2026-06-20 15:09:32", duration: "2分 44秒", fileId: "usage-file-19", fileName: "测试问题复盘" },
+  { id: "usage-20260618-084517", date: "2026-06-18 08:45:17", duration: "18分 6秒", fileId: "usage-file-20", fileName: "月度总结" }
+];
+let usageRecordVisibleCount = usageRecordPageSize;
+let usageRecordLoadMoreVisible = false;
+let usageRecordLoading = false;
+let usageRecordScrollTop = 0;
+let usageRecordLoadTimer = null;
+let usageRecordEmpty = false;
+let restorePurchaseState = "loading";
+const billingPageSize = 10;
+const billingCatalog = [
+  ["卓越会员", "年度订阅", "2026-07-08 23:34", "¥699.00"], ["升级会员", "标准会员升级至卓越会员", "2026-06-30 10:16", "¥199.00"],
+  ["转写时长", "购买 300 分钟转写时长", "2026-06-18 18:22", "¥79.00"], ["转写时长", "购买 60 分钟转写时长", "2026-05-26 14:08", "¥19.00"],
+  ["标准会员", "月度订阅", "2026-05-08 09:42", "¥69.00"], ["转写时长", "购买 120 分钟转写时长", "2026-04-21 16:30", "¥39.00"],
+  ["标准会员", "月度订阅", "2026-04-08 09:43", "¥69.00"], ["转写时长", "购买 60 分钟转写时长", "2026-03-19 11:25", "¥19.00"],
+  ["标准会员", "月度订阅", "2026-03-08 09:40", "¥69.00"], ["转写时长", "购买 300 分钟转写时长", "2026-02-18 20:16", "¥79.00"],
+  ["标准会员", "月度订阅", "2026-02-08 09:38", "¥69.00"], ["转写时长", "购买 60 分钟转写时长", "2026-01-23 15:41", "¥19.00"],
+  ["标准会员", "月度订阅", "2026-01-08 09:35", "¥69.00"], ["转写时长", "购买 120 分钟转写时长", "2025-12-22 17:08", "¥39.00"],
+  ["标准会员", "月度订阅", "2025-12-08 09:32", "¥69.00"], ["转写时长", "购买 60 分钟转写时长", "2025-11-17 13:24", "¥19.00"],
+  ["标准会员", "月度订阅", "2025-11-08 09:31", "¥69.00"], ["转写时长", "购买 300 分钟转写时长", "2025-10-20 18:06", "¥79.00"],
+  ["标准会员", "月度订阅", "2025-10-08 09:29", "¥69.00"], ["标准会员", "首次月度订阅", "2025-09-08 12:10", "¥69.00"]
+];
+let billingVisibleCount = billingPageSize;
+let billingLoadMoreVisible = false;
+let billingLoading = false;
+let billingEmpty = false;
+let billingScrollTop = 0;
+let billingLoadTimer = null;
+let fileDetailReturnPage = "APP-HOME-01";
 let firmwareUpdateStep = "download";
 let firmwareUpdateTransport = "wifi";
 let firmwareJoinPromptOpen = false;
@@ -2496,7 +2699,7 @@ function go(id) {
   }
   clearFirmwareUpdateTimer();
   previousPageId = currentPageId;
-  currentPageId = id === "APP-HOME-02" ? "APP-HOME-01" : id === "APP-SYNC-02" ? "APP-SYNC-01" : id === "APP-REC-05" ? "APP-HOME-01" : id;
+  currentPageId = id === "APP-HOME-02" ? "APP-HOME-01" : id === "APP-SYNC-02" ? "APP-SYNC-01" : id === "APP-REC-05" ? "APP-HOME-01" : id === "APP-ME-15" ? "APP-ME-08" : id === "APP-ME-23" ? "APP-ME-09" : id === "APP-ME-11" ? "APP-ME-10" : id;
   if (currentPageId !== "APP-FILE-02") searchLocationSheetOpen = false;
   if (currentPageId === "APP-FILE-17" && previousPageId !== "APP-FILE-17") {
     findReplaceFindText = "";
@@ -2504,6 +2707,31 @@ function go(id) {
     findReplaceMatchIndex = 0;
     findReplaceNotice = "";
   }
+  if (currentPageId === "APP-ME-08" && previousPageId !== "APP-ME-08") {
+    clearRedeemNoticeTimer();
+    clearRedeemSubmitTimer();
+    redeemCode = "";
+    redeemKeyboardOpen = false;
+    redeemSubmitting = false;
+    redeemNotice = "";
+    redeemNoticeTone = "";
+  }
+  if (currentPageId === "APP-ME-10" && previousPageId !== "APP-ME-10") {
+    restorePurchaseState = "loading";
+  }
+  if (currentPageId !== "APP-ME-12") {
+    clearUsageRecordLoadTimer();
+    usageRecordLoading = false;
+    usageRecordLoadMoreVisible = false;
+  }
+  if (previousPageId === "APP-ME-08" && currentPageId !== "APP-ME-08") {
+    clearRedeemNoticeTimer();
+    clearRedeemSubmitTimer();
+    redeemSubmitting = false;
+    redeemNotice = "";
+    redeemNoticeTone = "";
+  }
+  if (currentPageId !== "APP-ME-08") redeemKeyboardOpen = false;
   if (currentPageId !== "APP-FILE-01") {
     clearAskPlaudThinkingTimer();
     askPlaudMode = "closed";
@@ -2533,6 +2761,12 @@ function go(id) {
   }
   if (currentPageId === "APP-HOME-01" && isHomeStorageBlocked() && !homeStorageShortagePromptDismissed) {
     homeStorageShortagePromptOpen = true;
+  }
+  if (currentPageId === "APP-HOME-01" && previousPageId !== "APP-HOME-01") {
+    resetHomeFilePagination();
+  }
+  if (currentPageId === "APP-FILE-12" && previousPageId !== "APP-FILE-12") {
+    resetSearchResultPagination();
   }
   if (currentPageId === "APP-ME-41" && previousPageId !== "APP-ME-41") {
     changePasswordCurrent = "";
@@ -2584,10 +2818,26 @@ function go(id) {
     filterFolderError = "";
   }
   if (currentPageId === "APP-FILE-23" && previousPageId !== "APP-FILE-23") {
+    resetRecyclePagination();
     recycleSelectionMode = false;
     selectedRecycleIds = new Set();
     recycleDeleteConfirmOpen = false;
     recycleNotice = "";
+  }
+  if (currentPageId !== "APP-FILE-23") {
+    clearRecycleLoadTimer();
+    recycleLoading = false;
+    recycleLoadMoreVisible = false;
+  }
+  if (currentPageId !== "APP-HOME-01") {
+    clearHomeFileLoadTimer();
+    homeFileLoading = false;
+    homeFileLoadMoreVisible = false;
+  }
+  if (currentPageId !== "APP-FILE-12") {
+    clearSearchResultLoadTimer();
+    searchResultLoading = false;
+    searchResultLoadMoreVisible = false;
   }
   if (currentPageId !== "APP-ME-36") {
     termSheetMode = "";
@@ -2608,7 +2858,8 @@ function go(id) {
     fileDetailNotice = "";
   }
   if (currentPageId === "APP-FILE-01" && previousPageId !== "APP-FILE-01") {
-    fileDetailActiveTab = "summary";
+    fileDetailReturnPage = previousPageId === "APP-ME-12" ? "APP-ME-12" : "APP-HOME-01";
+    fileDetailActiveTab = previousPageId === "APP-ME-12" ? "transcript" : "summary";
     fileDetailSummaryTab = "summary";
   }
   if (currentPageId === "APP-FILE-10" && previousPageId !== "APP-FILE-10") {
@@ -2812,11 +3063,12 @@ function getHomeFileById(fileId) {
   return [...homeFileItems, ...(saved ? [saved] : [])].find((item) => item.id === fileId) || null;
 }
 
-function getHomeVisibleFileItems() {
+function getHomeVisibleFileItems({ paged = false } = {}) {
   const saved = homeSyncStage === "saved" || homeSyncStage === "idle"
     ? [{ id: "home-file-saved", name: homeSavedFileName, meta: "刚刚 · 00:43:52", source: "硬件录音", state: "未转写", tone: "amber", go: "APP-FILE-10", generationState: "untranscribed" }]
     : [];
-  return [...saved, ...homeFileItems];
+  const files = paged ? homeFileItems.slice(0, homeFileVisibleCount) : homeFileItems;
+  return [...saved, ...files];
 }
 
 function isHomeStorageBlocked() {
@@ -2997,7 +3249,7 @@ function renderHomeEmptyState(filtered = false) {
 }
 
 function renderHomeNormalFileCards() {
-  const files = getHomeVisibleFileItems();
+  const files = getHomeVisibleFileItems({ paged: true });
   return files.length
     ? files.map((file) => fileCard({ ...file, homeFile: true })).join("")
     : renderHomeEmptyState();
@@ -3375,6 +3627,7 @@ function setHomeCloudDemoState(state) {
   homeSyncQueue = [];
   homeSyncStage = "idle";
   homeFailedFileState = "idle";
+  resetHomeFilePagination();
   cloudSyncEnabled = state !== "disabled";
   homeFileItems = defaultHomeFileItems.map((file, index) => ({
     ...file,
@@ -3493,6 +3746,7 @@ function completeHomeFileRecycle() {
 
 function showHomeEmptyFiles() {
   homeFileItems = [];
+  resetHomeFilePagination();
   homeSyncQueue = [];
   homeSyncStage = "empty";
   homeFailedFileState = "none";
@@ -3503,6 +3757,7 @@ function showHomeEmptyFiles() {
 
 function resetHomeFileDemo() {
   homeFileItems = defaultHomeFileItems.map((item) => ({ ...item }));
+  resetHomeFilePagination();
   homeSavedFileName = "周一项目复盘";
   homeSyncQueue = createDefaultHomeSyncQueue();
   homeSyncStage = "finishing";
@@ -4001,6 +4256,7 @@ function renderHomeContent({ showSync = true } = {}) {
     : activeDevice.connected ? "connected" : "disconnected";
   const canShowDeviceSync = homeDeviceAdded && showSync && connectionState === "connected";
   const visibleFiles = getHomeVisibleFileItems();
+  const showHomeLoadedAll = homeFileItems.length > homeFilePageSize && homeFileItems.length <= homeFileVisibleCount;
   const hasFailedFile = homeFailedFileState === "failed" || homeFailedFileState === "retrying";
   const showEmpty = !visibleFiles.length && !homeHasTransferRows() && !hasFailedFile;
   return `
@@ -4054,7 +4310,9 @@ function renderHomeContent({ showSync = true } = {}) {
         ? fileCard({ name: "产品讨论", meta: "昨天 16:40 · 00:58:20", source: "硬件录音", errorText: "同步失败", action: "重试", actionKey: "retry-home-failed-file" })
         : homeFailedFileState === "retrying" ? fileCard({ name: "产品讨论", meta: "昨天 16:40 · 00:58:20", source: "硬件录音", transferState: "syncing", statusText: "正在重试…" }) : ""}
       ${showEmpty ? renderHomeEmptyState() : visibleFiles.length ? renderHomeNormalFileCards() : ""}
-      ${visibleFiles.length ? `<button class="load-more-btn">继续下拉加载更多文件</button>` : ""}
+      ${visibleFiles.length && homeFileItems.length > homeFileVisibleCount ? `
+        ${homeFileLoadError ? `<div class="list-load-error" role="alert"><span>加载失败，请检查网络后重试</span><button data-action="retry-home-files">重试</button></div>` : `<button class="usage-record-load-more home-file-load-more" data-action="load-more-home-files" ${homeFileLoading ? "disabled" : ""} aria-live="polite"><span class="usage-record-load-spinner ${homeFileLoading ? "is-visible" : ""}" aria-hidden="true"></span><strong>${homeFileLoading ? "加载中…" : "继续下拉加载更多文件"}</strong></button>`}
+      ` : visibleFiles.length && showHomeLoadedAll ? `<p class="usage-record-load-end home-file-load-end" role="status">已加载全部文件</p>` : ""}
     </section>
   `;
 }
@@ -4210,9 +4468,61 @@ function renderRecycleDeleteConfirm() {
   `;
 }
 
+function clearRecycleLoadTimer() {
+  if (!recycleLoadTimer) return;
+  window.clearTimeout(recycleLoadTimer);
+  recycleLoadTimer = null;
+}
+
+function resetRecyclePagination() {
+  clearRecycleLoadTimer();
+  recycleVisibleCount = recyclePageSize;
+  recycleLoadMoreVisible = true;
+  recycleLoading = false;
+  recycleLoadError = false;
+  recycleScrollTop = 0;
+}
+
+function loadMoreRecycle() {
+  if (showcasePreset || recycleLoading || recycleBinItems.length <= recycleVisibleCount) return;
+  recycleLoading = true;
+  recycleLoadError = false;
+  clearRecycleLoadTimer();
+  render();
+  recycleLoadTimer = window.setTimeout(() => {
+    recycleLoadTimer = null;
+    if (currentPageId !== "APP-FILE-23") {
+      recycleLoading = false;
+      return;
+    }
+    recycleVisibleCount = Math.min(recycleBinItems.length, recycleVisibleCount + recyclePageSize);
+    recycleLoading = false;
+    recycleLoadMoreVisible = false;
+    render();
+  }, 520);
+}
+
+function handleRecycleScroll(event) {
+  if (showcasePreset || currentPageId !== "APP-FILE-23" || recycleLoading || recycleBinItems.length <= recycleVisibleCount) return;
+  const scroller = event.currentTarget;
+  recycleScrollTop = scroller.scrollTop;
+  const nearBottom = scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 18;
+  if (!nearBottom) return;
+  if (!recycleLoadMoreVisible) {
+    recycleLoadMoreVisible = true;
+    render();
+    return;
+  }
+  loadMoreRecycle();
+}
+
 function renderRecycleBin() {
   const count = selectedRecycleIds.size;
   const hasItems = recycleBinItems.length > 0;
+  const visibleItems = recycleBinItems.slice(0, recycleVisibleCount);
+  const hasMore = recycleVisibleCount < recycleBinItems.length;
+  const showLoadMore = hasMore;
+  const showRecycleLoadedAll = recycleBinItems.length > recyclePageSize && !hasMore;
   return `
     <div class="statusbar"><span>9:41</span><span>5G</span><span>82%</span></div>
     <header class="recycle-page-header ${recycleSelectionMode ? "selecting" : ""}">
@@ -4224,8 +4534,12 @@ function renderRecycleBin() {
       ${hasItems ? `
         <p class="recycle-retention-note">文件将在移入回收站 30 天后自动删除</p>
         <section class="recycle-file-list" aria-label="回收站文件">
-          ${recycleBinItems.map(renderRecycleBinItem).join("")}
+          ${visibleItems.map(renderRecycleBinItem).join("")}
         </section>
+        ${showLoadMore ? (recycleLoadError
+          ? `<div class="list-load-error" role="alert"><span>加载失败，请检查网络后重试</span><button data-action="retry-recycle-load">重试</button></div>`
+          : `<button class="usage-record-load-more recycle-load-more" data-action="load-more-recycle" ${recycleLoading ? "disabled" : ""} aria-live="polite"><span class="usage-record-load-spinner ${recycleLoading ? "is-visible" : ""}" aria-hidden="true"></span><strong>${recycleLoading ? "加载中…" : "加载更多"}</strong></button>`)
+          : showRecycleLoadedAll ? `<p class="usage-record-load-end recycle-load-end" role="status">已加载全部回收站文件</p>` : ""}
       ` : `
         <section class="recycle-empty-state" aria-label="回收站为空">
           <img src="./assets/icons/trash3.svg" alt="">
@@ -4365,6 +4679,7 @@ function submitSearchDraft() {
   searchDraft = query;
   activeSearchQuery = query;
   searchResultState = ["说", "好"].includes(query) ? "results" : "empty";
+  resetSearchResultPagination();
   go("APP-FILE-12");
 }
 
@@ -4499,34 +4814,70 @@ function renderSearchTimeSheet() {
   `;
 }
 
+function clearSearchResultLoadTimer() {
+  if (!searchResultLoadTimer) return;
+  window.clearTimeout(searchResultLoadTimer);
+  searchResultLoadTimer = null;
+}
+
+function resetSearchResultPagination() {
+  clearSearchResultLoadTimer();
+  searchResultVisibleCount = searchResultPageSize;
+  searchResultLoadMoreVisible = false;
+  searchResultLoading = false;
+  searchResultLoadError = false;
+  searchResultScrollTop = 0;
+}
+
+function loadMoreSearchResults() {
+  if (showcasePreset || searchResultState !== "results" || searchResultLoading || searchResultsCatalog.length <= searchResultVisibleCount) return;
+  searchResultLoading = true;
+  searchResultLoadError = false;
+  clearSearchResultLoadTimer();
+  render();
+  searchResultLoadTimer = window.setTimeout(() => {
+    searchResultLoadTimer = null;
+    if (currentPageId !== "APP-FILE-12") {
+      searchResultLoading = false;
+      return;
+    }
+    searchResultVisibleCount = Math.min(searchResultsCatalog.length, searchResultVisibleCount + searchResultPageSize);
+    searchResultLoading = false;
+    searchResultLoadMoreVisible = false;
+    render();
+  }, 520);
+}
+
+function handleSearchResultScroll(event) {
+  if (showcasePreset || currentPageId !== "APP-FILE-12" || searchResultState !== "results" || searchResultLoading || searchResultsCatalog.length <= searchResultVisibleCount) return;
+  const scroller = event.currentTarget;
+  searchResultScrollTop = scroller.scrollTop;
+  const nearBottom = scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 18;
+  if (!nearBottom) return;
+  if (!searchResultLoadMoreVisible) {
+    searchResultLoadMoreVisible = true;
+    render();
+    return;
+  }
+  loadMoreSearchResults();
+}
+
 function renderSearchResults() {
   const query = activeSearchQuery || "说";
   const isEmpty = searchResultState === "empty";
   const isLoading = searchResultState === "loading";
+  const isError = searchResultState === "error";
   const highlight = (text) => String(text)
     .split(query)
     .map((part) => h(part))
     .join(`<mark>${h(query)}</mark>`);
-  const results = [
-    {
-      title: "07-04 会议记录工具范式缺陷：音频与视觉信息未统一导致上下文断裂",
-      excerpt: `做关联起来的，就比如${query}，假如现在我们真的是在开一个会，上面还有投影内容需要一起记录……`,
-      type: "转写",
-      time: "7月4日 15:18"
-    },
-    {
-      title: "2026-06-29 16:31:40",
-      excerpt: `这段录音围绕${query}展开，讨论了录音内容如何通过接口转换并保留完整上下文。`,
-      type: "转写",
-      time: "6月29日 16:31"
-    },
-    {
-      title: `产品周会：${query}相关事项梳理`,
-      excerpt: `AI 笔记已整理${query}相关结论、待办事项和后续需要验证的产品细节。`,
-      type: "AI 笔记",
-      time: "6月27日 10:06"
-    }
-  ];
+  const results = searchResultsCatalog.slice(0, searchResultVisibleCount).map((result) => ({
+    ...result,
+    title: result.title.replaceAll("{{query}}", query),
+    excerpt: result.excerpt.replaceAll("{{query}}", query)
+  }));
+  const hasMore = searchResultVisibleCount < searchResultsCatalog.length;
+  const showSearchLoadedAll = searchResultsCatalog.length > searchResultPageSize && !hasMore;
   return `
     <div class="statusbar"><span>9:41</span><span>5G</span><span>82%</span></div>
     <div class="search-page-top result">
@@ -4546,6 +4897,12 @@ function renderSearchResults() {
               <i></i><i></i><i></i>
               <p>正在搜索相关内容…</p>
             </section>`
+          : isError
+            ? `<section class="search-error-state" aria-label="搜索结果加载失败">
+                <strong>搜索失败</strong>
+                <p>暂时无法加载搜索结果，请重试</p>
+                <button class="search-retry-btn" data-action="retry-search-results">重试</button>
+              </section>`
           : `<h3 class="result-heading">相关结果</h3>
              <section class="search-result-list">
               ${results.map((result) => `
@@ -4555,6 +4912,10 @@ function renderSearchResults() {
                   <div><span>${h(result.type)}</span><time>${h(result.time)}</time></div>
                 </article>
               `).join("")}
+              ${hasMore ? (searchResultLoadError
+                ? `<div class="list-load-error search-load-error" role="alert"><span>加载失败，请检查网络后重试</span><button data-action="retry-search-load">重试</button></div>`
+                : `<button class="usage-record-load-more search-load-more" data-action="load-more-search-results" ${searchResultLoading ? "disabled" : ""} aria-live="polite"><span class="usage-record-load-spinner ${searchResultLoading ? "is-visible" : ""}" aria-hidden="true"></span><strong>${searchResultLoading ? "加载中…" : "加载更多"}</strong></button>`)
+                : showSearchLoadedAll ? `<p class="usage-record-load-end search-load-end" role="status">已加载全部搜索结果</p>` : ""}
              </section>`}
     </main>
   `;
@@ -5150,6 +5511,7 @@ function renderAskSourceSheet() {
   const source = askPlaudSources.find((item) => item.number === askPlaudSourceIndex);
   if (!source) return "";
   const visibleTranscript = fileDetailContent.transcript.slice(0, askPlaudSourceVisibleCount);
+  const showAskSourceLoadedAll = fileDetailContent.transcript.length > transcriptPageSize && askPlaudSourceVisibleCount >= fileDetailContent.transcript.length;
   return `
     <section class="ask-source-sheet" aria-label="来源">
       <button class="ask-source-scrim" data-action="ask-close-source" aria-label="关闭来源"></button>
@@ -5166,7 +5528,7 @@ function renderAskSourceSheet() {
             </button>`;
           }).join("")}
         </div>
-        ${askPlaudSourceVisibleCount < fileDetailContent.transcript.length ? `<button class="ask-source-load-more" data-action="ask-load-source-more">加载更多转写</button>` : `<p class="ask-source-loaded">已加载全部转写内容</p>`}
+        ${askPlaudSourceVisibleCount < fileDetailContent.transcript.length ? `<button class="ask-source-load-more" data-action="ask-load-source-more">加载更多转写</button>` : showAskSourceLoadedAll ? `<p class="ask-source-loaded">已加载全部转写内容</p>` : ""}
       </div>
     </section>
   `;
@@ -5673,6 +6035,30 @@ function setupFileDetailSummarySectionSpy() {
   update();
 }
 
+function loadMoreTranscript() {
+  if (showcasePreset || transcriptEmpty || transcriptLoading || transcriptVisibleCount >= fileDetailContent.transcript.length) return;
+  transcriptLoading = true;
+  render();
+  transcriptLoadTimer = window.setTimeout(() => {
+    transcriptLoadTimer = null;
+    transcriptVisibleCount = Math.min(fileDetailContent.transcript.length, transcriptVisibleCount + transcriptPageSize);
+    transcriptLoading = false;
+    transcriptLoadMoreVisible = false;
+    if (currentPageId === "APP-FILE-01" && fileDetailActiveTab === "transcript") render();
+  }, 520);
+}
+
+function handleTranscriptScroll(event) {
+  if (showcasePreset || currentPageId !== "APP-FILE-01" || fileDetailActiveTab !== "transcript" || transcriptEmpty) return;
+  const scroller = event.currentTarget;
+  const nearBottom = scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 18;
+  if (!nearBottom || transcriptLoading || transcriptVisibleCount >= fileDetailContent.transcript.length) return;
+  if (!transcriptLoadMoreVisible) {
+    transcriptLoadMoreVisible = true;
+    render();
+  } else loadMoreTranscript();
+}
+
 function renderFileDetail() {
   const activeTab = ["markers", "summary", "transcript"].includes(fileDetailActiveTab) ? fileDetailActiveTab : "summary";
   fileDetailActiveTab = activeTab;
@@ -5683,11 +6069,12 @@ function renderFileDetail() {
     : fileDetailContentEditor?.kind === "transcript"
       ? "transcript"
       : "";
+  const showTranscriptLoadedAll = fileDetailContent.transcript.length > transcriptPageSize && transcriptVisibleCount >= fileDetailContent.transcript.length;
   return `
     <div class="statusbar detail-statusbar"><span>9:41</span><span>5G</span><span>82%</span></div>
     <main class="file-detail-page ${fileDetailMarkerEditor || contentEditing ? "is-editing" : ""} ${contentEditing ? "is-rich-editing" : ""}">
       <div class="detail-toolbar">
-        <button class="round-btn" data-go="APP-HOME-01" aria-label="返回">‹</button>
+        <button class="round-btn" data-go="${h(fileDetailReturnPage)}" aria-label="返回">‹</button>
         <h1 class="detail-toolbar-title">拼团营销工具需求评审会</h1>
         <div class="detail-actions">
           <button class="round-btn" data-go="APP-FILE-06" aria-label="分享">↗</button>
@@ -5703,7 +6090,10 @@ function renderFileDetail() {
           </section>
         ` : activeTab === "transcript" ? `
           <section class="file-detail-section ai-section ${editingSection === "transcript" ? "is-editing-section" : ""}" data-detail-section="transcript" id="detail-transcript">
-            ${fileDetailContent.transcript.map((item, index) => renderFileDetailTranscriptItem(item, index)).join("")}
+            ${transcriptEmpty ? `<div class="transcript-empty" role="status"><strong>暂无转写记录</strong><p>转写完成后，对话内容会显示在这里</p></div>` : `
+              ${fileDetailContent.transcript.slice(0, transcriptVisibleCount).map((item, index) => renderFileDetailTranscriptItem(item, index)).join("")}
+              ${transcriptVisibleCount < fileDetailContent.transcript.length && (transcriptLoadMoreVisible || transcriptLoading) ? `<button class="usage-record-load-more" data-action="load-more-transcript" ${transcriptLoading ? "disabled" : ""}><span class="usage-record-load-spinner ${transcriptLoading ? "is-visible" : ""}"></span><strong>${transcriptLoading ? "加载中…" : "加载更多"}</strong></button>` : showTranscriptLoadedAll ? `<p class="usage-record-load-end">已加载全部转写记录</p>` : ""}
+            `}
           </section>
         ` : `
           ${renderFileDetailSummaryTabs()}
@@ -7201,7 +7591,68 @@ function renderDeleteCloudRecordConfirm() {
   `;
 }
 
-function renderRedeemCode(keyboard = false) {
+function clearRedeemNoticeTimer() {
+  if (!redeemNoticeTimer) return;
+  window.clearTimeout(redeemNoticeTimer);
+  redeemNoticeTimer = null;
+}
+
+function clearRedeemSubmitTimer() {
+  if (!redeemSubmitTimer) return;
+  window.clearTimeout(redeemSubmitTimer);
+  redeemSubmitTimer = null;
+}
+
+function showRedeemNotice(message, tone = "success") {
+  redeemNotice = message;
+  redeemNoticeTone = tone;
+  clearRedeemNoticeTimer();
+  render();
+  if (showcasePreset) return;
+  redeemNoticeTimer = window.setTimeout(() => {
+    redeemNoticeTimer = null;
+    redeemNotice = "";
+    redeemNoticeTone = "";
+    if (currentPageId === "APP-ME-08") render();
+  }, 2400);
+}
+
+function focusRedeemInput() {
+  requestAnimationFrame(() => {
+    const input = document.getElementById("redeemCodeInput");
+    input?.focus();
+    input?.setSelectionRange(input.value.length, input.value.length);
+  });
+}
+
+function submitRedeemCode() {
+  const code = redeemCode.trim();
+  if (!code || redeemSubmitting) return;
+  redeemSubmitting = true;
+  redeemNotice = "";
+  redeemNoticeTone = "";
+  render();
+  clearRedeemSubmitTimer();
+  redeemSubmitTimer = window.setTimeout(() => {
+    redeemSubmitTimer = null;
+    if (currentPageId !== "APP-ME-08") {
+      redeemSubmitting = false;
+      return;
+    }
+    redeemSubmitting = false;
+    if (code === "SYSTEM") {
+      showRedeemNotice("系统异常，请稍后再试", "system");
+    } else if (code.length < 6 || ["ERROR", "INVALID"].includes(code)) {
+      showRedeemNotice("兑换码错误", "error");
+    } else {
+      showRedeemNotice("兑换成功", "success");
+    }
+  }, 520);
+}
+
+function renderRedeemCode() {
+  const canRedeem = Boolean(redeemCode.trim()) && !redeemSubmitting;
+  const keyboard = redeemKeyboardOpen || Boolean(showcasePreset);
   return `
     ${renderUsage()}
     <div class="scrim" data-go="APP-ME-01"></div>
@@ -7209,34 +7660,107 @@ function renderRedeemCode(keyboard = false) {
       <button class="sheet-close" data-go="APP-ME-01">×</button>
       <h2>兑换码</h2>
       <div class="me-line"></div>
-      <button class="redeem-input" data-go="APP-ME-15">请输入兑换码，区分大小写</button>
-      <button class="disabled-btn">兑换</button>
+      <label class="redeem-input-field ${redeemCode ? "has-value" : ""}" data-action="focus-redeem-input">
+        <input id="redeemCodeInput" value="${h(redeemCode)}" placeholder="请输入兑换码，区分大小写" autocomplete="off" aria-label="兑换码">
+      </label>
+      <button class="${canRedeem ? "dark" : "disabled-btn"}" data-action="submit-redeem-code" ${canRedeem ? "" : "disabled"}>${redeemSubmitting ? "兑换中…" : "兑换"}</button>
+      ${redeemNotice ? `<p class="redeem-toast ${h(redeemNoticeTone)}" role="status" aria-live="polite">${h(redeemNotice)}</p>` : ""}
     </section>
     ${keyboard ? keyboardMock("text") : ""}
   `;
 }
 
-function renderBillingDetail() {
-  return `
-    <main class="me-simple-page">
-      ${meTop("账单详情", { close: "APP-ME-01" })}
-      <section class="bill-empty">
-        <div class="bill-empty-icon"></div>
-        <p>暂无账单记录</p>
-      </section>
-    </main>
-  `;
+function clearHomeFileLoadTimer() {
+  if (!homeFileLoadTimer) return;
+  window.clearTimeout(homeFileLoadTimer);
+  homeFileLoadTimer = null;
 }
 
-function renderBillingHistory() {
-  const bills = [
-    ["卓越会员", "年度订阅", "2026-07-08 23:34", "¥699.00"],
-    ["升级会员", "标准会员升级至卓越会员", "2026-06-30 10:16", "¥199.00"],
-    ["转写时长", "购买 300 分钟转写时长", "2026-06-18 18:22", "¥79.00"],
-    ["转写时长", "购买 60 分钟转写时长", "2026-05-26 14:08", "¥19.00"]
-  ];
+function resetHomeFilePagination() {
+  clearHomeFileLoadTimer();
+  homeFileVisibleCount = homeFilePageSize;
+  homeFileLoadMoreVisible = false;
+  homeFileLoading = false;
+  homeFileLoadError = false;
+  homeFileScrollTop = 0;
+}
+
+function loadMoreHomeFiles() {
+  if (showcasePreset || homeFileLoading || homeFileItems.length <= homeFileVisibleCount) return;
+  homeFileLoading = true;
+  homeFileLoadError = false;
+  clearHomeFileLoadTimer();
+  render();
+  homeFileLoadTimer = window.setTimeout(() => {
+    homeFileLoadTimer = null;
+    if (currentPageId !== "APP-HOME-01") {
+      homeFileLoading = false;
+      return;
+    }
+    homeFileVisibleCount = Math.min(homeFileItems.length, homeFileVisibleCount + homeFilePageSize);
+    homeFileLoading = false;
+    homeFileLoadMoreVisible = false;
+    render();
+  }, 520);
+}
+
+function handleHomeFileScroll(event) {
+  if (showcasePreset || currentPageId !== "APP-HOME-01" || homeFileLoading || homeFileItems.length <= homeFileVisibleCount) return;
+  const scroller = event.currentTarget;
+  homeFileScrollTop = scroller.scrollTop;
+  const nearBottom = scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 18;
+  if (!nearBottom) return;
+  if (!homeFileLoadMoreVisible) {
+    homeFileLoadMoreVisible = true;
+    render();
+    return;
+  }
+  loadMoreHomeFiles();
+}
+
+function loadMoreBilling() {
+  if (showcasePreset || billingEmpty || billingLoading || billingVisibleCount >= billingCatalog.length) return;
+  billingLoading = true;
+  render();
+  billingLoadTimer = window.setTimeout(() => {
+    billingLoadTimer = null;
+    billingVisibleCount = Math.min(billingCatalog.length, billingVisibleCount + billingPageSize);
+    billingLoading = false;
+    billingLoadMoreVisible = false;
+    if (currentPageId === "APP-ME-09") render();
+  }, 520);
+}
+
+function handleBillingScroll(event) {
+  if (showcasePreset || currentPageId !== "APP-ME-09" || billingEmpty) return;
+  const scroller = event.currentTarget;
+  billingScrollTop = scroller.scrollTop;
+  const nearBottom = scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 18;
+  if (!nearBottom || billingLoading || billingVisibleCount >= billingCatalog.length) return;
+  if (!billingLoadMoreVisible) {
+    billingLoadMoreVisible = true;
+    render();
+  } else loadMoreBilling();
+}
+
+function renderBillingDetail() {
+  if (billingEmpty) {
+    return `
+      <main class="me-simple-page billing-page">
+        ${meTop("账单详情", { close: "APP-ME-01" })}
+        <section class="bill-empty">
+          <div class="bill-empty-icon"></div>
+          <p>暂无账单记录</p>
+        </section>
+      </main>
+    `;
+  }
+  const bills = billingCatalog.slice(0, billingVisibleCount);
+  const hasMore = billingVisibleCount < billingCatalog.length;
+  const showLoadMore = hasMore && (billingLoadMoreVisible || billingLoading);
+  const showBillingLoadedAll = billingCatalog.length > billingPageSize && !hasMore;
   return `
-    <main class="me-simple-page">
+    <main class="me-simple-page billing-page">
       ${meTop("账单详情", { close: "APP-ME-01" })}
       <section class="bill-history">
         <p class="bill-history-heading">账单记录</p>
@@ -7244,70 +7768,139 @@ function renderBillingHistory() {
         <div class="bill-history-list">
           ${bills.map(([type, title, time, amount]) => `
             <article class="bill-item">
-              <div class="bill-item-copy">
-                <span class="bill-type">${h(type)}</span>
-                <b>${h(title)}</b>
-                <small>${h(time)}</small>
-              </div>
-              <div class="bill-item-payment">
-                <strong>${h(amount)}</strong>
-                <span>已支付</span>
-              </div>
+              <div class="bill-item-copy"><span class="bill-type">${h(type)}</span><b>${h(title)}</b><small>${h(time)}</small></div>
+              <div class="bill-item-payment"><strong>${h(amount)}</strong><span>已支付</span></div>
             </article>
           `).join("")}
+          ${showLoadMore ? `<button class="usage-record-load-more" data-action="load-more-billing" ${billingLoading ? "disabled" : ""}><span class="usage-record-load-spinner ${billingLoading ? "is-visible" : ""}"></span><strong>${billingLoading ? "加载中…" : "加载更多"}</strong></button>` : showBillingLoadedAll ? `<p class="usage-record-load-end">已加载全部记录</p>` : ""}
         </div>
       </section>
     </main>
   `;
 }
 
-function renderRestorePurchaseLoading() {
-  return `
+function renderBillingHistory() {
+  return renderBillingDetail();
+}
+
+function renderRestorePurchase() {
+  const backdrop = `
     ${renderUsage()}
     <div class="scrim" data-go="APP-ME-01"></div>
-    <button class="restore-loader" data-go="APP-ME-11"><span></span></button>
+  `;
+  if (restorePurchaseState === "success") {
+    return `
+      ${backdrop}
+      <section class="me-sheet restore-sheet restore-success-sheet">
+        <div class="restore-success-icon" aria-hidden="true">✓</div>
+        <h2>恢复购买成功</h2>
+        <div class="me-line"></div>
+        <p>已恢复你的购买记录，会员权益和剩余转写时长已更新。</p>
+        <button class="dark" data-go="APP-ME-01">确认</button>
+      </section>
+    `;
+  }
+  if (restorePurchaseState === "not-found") {
+    return `
+      ${backdrop}
+      <section class="me-sheet restore-sheet">
+        <h2>未找到以前的购买记录</h2>
+        <div class="me-line"></div>
+        <p>没有找到这个账号之前的购买记录。请查看你的收据或订阅历史记录，并再次尝试恢复。</p>
+        <button class="dark" data-go="APP-ME-01">确认</button>
+      </section>
+    `;
+  }
+  return `
+    ${backdrop}
+    <button class="restore-loader" type="button" data-action="set-restore-purchase-state" data-value="not-found" aria-label="恢复购买加载中"><span></span></button>
   `;
 }
 
-function renderRestorePurchaseFailed() {
-  return `
-    ${renderUsage()}
-    <div class="scrim" data-go="APP-ME-01"></div>
-    <section class="me-sheet restore-sheet">
-      <h2>未找到以前的购买记录</h2>
-      <div class="me-line"></div>
-      <p>没有找到这个账号之前的购买记录。请查看你的收据或订阅历史记录，并再次尝试恢复。</p>
-    <button class="dark" data-go="APP-ME-01">确认</button>
-    </section>
-  `;
+function clearUsageRecordLoadTimer() {
+  if (!usageRecordLoadTimer) return;
+  window.clearTimeout(usageRecordLoadTimer);
+  usageRecordLoadTimer = null;
+}
+
+function resetUsageRecordPagination() {
+  clearUsageRecordLoadTimer();
+  usageRecordVisibleCount = usageRecordPageSize;
+  usageRecordLoadMoreVisible = false;
+  usageRecordLoading = false;
+  usageRecordScrollTop = 0;
+  usageRecordEmpty = false;
+}
+
+function loadMoreUsageRecords() {
+  if (showcasePreset || usageRecordEmpty || usageRecordLoading || usageRecordVisibleCount >= usageRecordCatalog.length) return;
+  usageRecordLoading = true;
+  clearUsageRecordLoadTimer();
+  render();
+  usageRecordLoadTimer = window.setTimeout(() => {
+    usageRecordLoadTimer = null;
+    if (currentPageId !== "APP-ME-12") {
+      usageRecordLoading = false;
+      return;
+    }
+    usageRecordVisibleCount = Math.min(usageRecordCatalog.length, usageRecordVisibleCount + usageRecordPageSize);
+    usageRecordLoading = false;
+    usageRecordLoadMoreVisible = false;
+    render();
+  }, 520);
+}
+
+function handleUsageRecordScroll(event) {
+  if (showcasePreset || currentPageId !== "APP-ME-12" || usageRecordEmpty) return;
+  const scroller = event.currentTarget;
+  usageRecordScrollTop = scroller.scrollTop;
+  const nearBottom = scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 18;
+  if (!nearBottom || usageRecordLoading || usageRecordVisibleCount >= usageRecordCatalog.length) return;
+  if (!usageRecordLoadMoreVisible) {
+    usageRecordLoadMoreVisible = true;
+    render();
+    return;
+  }
+  loadMoreUsageRecords();
 }
 
 function renderUsageRecords() {
-  const records = [
-    ["2026-07-08 12:04:45", "1分 10秒"],
-    ["2026-07-04 15:21:25", "1分 22秒"],
-    ["2026-07-04 15:16:03", "8分 37秒"],
-    ["2026-07-04 15:15:41", "1分 14秒"],
-    ["2026-07-04 15:12:25", "7分 4秒"],
-    ["2026-06-30 14:27:23", "12分 17秒"],
-    ["2026-06-29 17:30:54", "53秒"],
-    ["2026-06-29 16:32:20", "26秒"],
-    ["2026-06-29 15:30:19", "7分 4秒"],
-    ["2026-06-29 15:24:01", "46秒"]
-  ];
+  if (usageRecordEmpty) {
+    return `
+      <main class="me-simple-page usage-record-page">
+        ${meTop("使用记录", { close: "APP-ME-01" })}
+        <section>
+          <h1>日期 & 时长</h1>
+          <div class="me-line"></div>
+          <div class="usage-record-empty" role="status" aria-label="使用记录为空">
+            <div class="usage-record-empty-icon" aria-hidden="true"><span></span></div>
+            <strong>暂无使用记录</strong>
+            <p>完成一次转写后，使用记录会显示在这里</p>
+          </div>
+        </section>
+      </main>
+    `;
+  }
+  const records = usageRecordCatalog.slice(0, usageRecordVisibleCount);
+  const hasMore = usageRecordVisibleCount < usageRecordCatalog.length;
+  const showLoadMore = hasMore && (usageRecordLoadMoreVisible || usageRecordLoading);
+  const showUsageLoadedAll = usageRecordCatalog.length > usageRecordPageSize && !hasMore;
   return `
     <main class="me-simple-page usage-record-page">
       ${meTop("使用记录", { close: "APP-ME-01" })}
       <section>
         <h1>日期 & 时长</h1>
         <div class="me-line"></div>
-        ${records.map(([date, duration]) => `
-          <button class="usage-record-row">
-            <span>${h(date)}</span>
-            <b>${h(duration)}</b>
+        <div class="usage-record-list" aria-label="转写用量记录">
+        ${records.map((record) => `
+          <button class="usage-record-row" data-action="open-usage-record" data-record-id="${h(record.id)}" data-file-id="${h(record.fileId)}" aria-label="打开 ${h(record.fileName)} 的转写详情">
+            <span>${h(record.date)}</span>
+            <b>${h(record.duration)}</b>
             <i>›</i>
           </button>
         `).join("")}
+        ${showLoadMore ? `<button class="usage-record-load-more" data-action="load-more-usage-records" ${usageRecordLoading ? "disabled" : ""} aria-live="polite"><span class="usage-record-load-spinner ${usageRecordLoading ? "is-visible" : ""}" aria-hidden="true"></span><strong>${usageRecordLoading ? "加载中…" : "加载更多"}</strong></button>` : showUsageLoadedAll ? `<p class="usage-record-load-end" role="status">已加载全部记录</p>` : ""}
+        </div>
       </section>
     </main>
   `;
@@ -7891,12 +8484,12 @@ const renderers = {
   "APP-ME-07": renderCloudStorageConfirm,
   "APP-ME-13": renderDeleteCloudRecord,
   "APP-ME-14": renderDeleteCloudRecordConfirm,
-  "APP-ME-08": () => renderRedeemCode(false),
-  "APP-ME-15": () => renderRedeemCode(true),
+  "APP-ME-08": renderRedeemCode,
+  "APP-ME-15": renderRedeemCode,
   "APP-ME-09": renderBillingDetail,
   "APP-ME-23": renderBillingHistory,
-  "APP-ME-10": renderRestorePurchaseLoading,
-  "APP-ME-11": renderRestorePurchaseFailed,
+  "APP-ME-10": renderRestorePurchase,
+  "APP-ME-11": renderRestorePurchase,
   "APP-ME-12": renderUsageRecords,
   "APP-DEV-03": renderDeviceDetail,
   "APP-ME-04": () => renderPrivacy(true),
@@ -7993,7 +8586,11 @@ const verifiedPageShowcases = {
     ["调整等待传输顺序", "home01-priority-menu"],
     ["录音中查看文件", "home01-transfer-paused"],
     ["录音中点击同步提示", "home01-recording-transfer-toast"],
-    ["操作成功提示", "home01-success-toast"]
+    ["操作成功提示", "home01-success-toast"],
+    ["文件加载更多", "home01-file-load-more"],
+    ["文件加载中", "home01-file-loading"],
+    ["文件加载失败", "home01-file-load-error"],
+    ["文件已加载全部", "home01-file-loaded-all"]
   ],
   "APP-FILE-03": [
     ["添加文件夹", "file03-create-folder"],
@@ -8004,7 +8601,12 @@ const verifiedPageShowcases = {
   "APP-FILE-23": [
     ["批量选择", "file23-selection"],
     ["永久删除确认", "file23-delete-confirm"],
-    ["恢复成功提示", "file23-restore-toast"]
+    ["恢复成功提示", "file23-restore-toast"],
+    ["加载更多", "file23-load-more"],
+    ["加载中", "file23-loading"],
+    ["加载失败", "file23-load-error"],
+    ["已加载全部", "file23-loaded-all"],
+    ["空状态", "file23-empty"]
   ],
   "APP-FILE-02": [
     ["最近搜索", "file02-history"],
@@ -8018,7 +8620,12 @@ const verifiedPageShowcases = {
   "APP-FILE-12": [
     ["有结果", "file12-results"],
     ["无结果", "file12-empty"],
-    ["加载中", "file12-loading"]
+    ["加载中", "file12-loading"],
+    ["加载更多", "file12-load-more"],
+    ["追加加载中", "file12-loading-more"],
+    ["加载失败", "file12-load-error"],
+    ["已加载全部", "file12-loaded-all"],
+    ["首次加载失败", "file12-initial-error"]
   ],
   "APP-FILE-11": [
     ["未选择", "file11-empty"],
@@ -8058,7 +8665,11 @@ const verifiedPageShowcases = {
     ["标记·有标记", "file01-markers-populated"],
     ["标记·暂无标记", "file01-markers-empty"],
     ["总结", "file01-summary"],
-    ["转写记录", "file01-transcript"],
+    ["转写·有记录", "file01-transcript"],
+    ["转写·无记录", "file01-transcript-empty"],
+    ["转写·加载更多", "file01-transcript-load-more"],
+    ["转写·加载中", "file01-transcript-loading"],
+    ["转写·已加载全部", "file01-transcript-loaded-all"],
     ["文件提问", "file01-ask"],
     ["回答生成中", "file01-ask-thinking"],
     ["回答完成", "file01-ask-answer"],
@@ -8074,6 +8685,33 @@ const verifiedPageShowcases = {
     ["更换头像", "me16-avatar-actions"],
     ["头像拍照", "me16-avatar-camera"],
     ["头像更新成功提示", "me16-avatar-success"]
+  ],
+  "APP-ME-08": [
+    ["未输入", "me08-empty"],
+    ["输入中", "me08-input"],
+    ["提交中", "me08-submitting"],
+    ["兑换码错误", "me08-invalid"],
+    ["系统异常", "me08-system-error"],
+    ["兑换成功", "me08-success"]
+  ],
+  "APP-ME-10": [
+    ["加载中", "me10-loading"],
+    ["未找到购买记录", "me10-not-found"],
+    ["恢复购买成功", "me10-success"]
+  ],
+  "APP-ME-09": [
+    ["有记录", "me09-with-records"],
+    ["无记录", "me09-empty"],
+    ["加载更多", "me09-load-more"],
+    ["加载中", "me09-loading"],
+    ["已加载全部记录", "me09-loaded-all"]
+  ],
+  "APP-ME-12": [
+    ["有记录", "me12-with-records"],
+    ["无记录", "me12-empty"],
+    ["加载更多", "me12-load-more"],
+    ["加载中", "me12-loading"],
+    ["已加载全部记录", "me12-loaded-all"]
   ],
   "APP-ME-34": [
     ["启用术语条件不足", "me34-enable-notice"]
@@ -8092,6 +8730,8 @@ const verifiedPageShowcases = {
     ["退出设备登录确认", "me19-logout-confirm"]
   ],
   "APP-ME-22": [
+    ["未勾选", "me22-unchecked"],
+    ["已勾选", "me22-checked"],
     ["密码身份验证", "me22-password-verify"],
     ["密码验证错误", "me22-password-error"],
     ["验证码已发送", "me22-code-sent"],
@@ -8170,7 +8810,7 @@ function renderFlow() {
     return;
   }
   target.className = "flow-strip";
-  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-07", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-DEV-05", "APP-HOME-01", "APP-SYNC-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-REC-03", "APP-AI-02", "APP-AI-03", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-24", "APP-FILE-25", "APP-FILE-26", "APP-FILE-27", "APP-FILE-28", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-01", "APP-ME-16", "APP-ME-26", "APP-ME-27", "APP-ME-28", "APP-ME-29", "APP-ME-30", "APP-ME-31", "APP-ME-32", "APP-ME-33", "APP-ME-34", "APP-ME-35", "APP-ME-36", "APP-ME-37", "APP-ME-38", "APP-ME-40", "APP-ME-39", "APP-ME-17", "APP-ME-18", "APP-ME-41", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-15", "APP-ME-09", "APP-ME-23", "APP-ME-10", "APP-ME-11", "APP-ME-12", "APP-DEV-03", "APP-DEV-11", "APP-DEV-10", "APP-ME-04", "APP-ME-24", "APP-ME-25", "APP-DEV-06", "APP-DEV-07", "APP-DEV-08", "APP-DEV-09"];
+  const flow = ["APP-PRD-00", "APP-ONB-01", "APP-ONB-02", "APP-ONB-03", "APP-ONB-05", "APP-ONB-07", "APP-ONB-06", "APP-ONB-04", "APP-DEV-01", "APP-DEV-02", "APP-DEV-04", "APP-DEV-05", "APP-HOME-01", "APP-SYNC-01", "APP-FILE-13", "APP-FILE-02", "APP-FILE-14", "APP-FILE-11", "APP-FILE-12", "APP-FILE-03", "APP-FILE-01", "APP-FILE-10", "APP-AI-01", "APP-REC-03", "APP-AI-02", "APP-AI-03", "APP-FILE-15", "APP-FILE-04", "APP-FILE-05", "APP-FILE-06", "APP-FILE-24", "APP-FILE-25", "APP-FILE-26", "APP-FILE-27", "APP-FILE-28", "APP-FILE-08", "APP-FILE-20", "APP-FILE-09", "APP-FILE-21", "APP-FILE-22", "APP-FILE-07", "APP-FILE-16", "APP-FILE-17", "APP-FILE-18", "APP-FILE-19", "APP-HOME-03", "APP-REC-02", "APP-REC-04", "APP-ME-01", "APP-ME-16", "APP-ME-26", "APP-ME-27", "APP-ME-28", "APP-ME-29", "APP-ME-30", "APP-ME-31", "APP-ME-32", "APP-ME-33", "APP-ME-34", "APP-ME-35", "APP-ME-36", "APP-ME-37", "APP-ME-38", "APP-ME-40", "APP-ME-39", "APP-ME-17", "APP-ME-18", "APP-ME-41", "APP-ME-19", "APP-ME-20", "APP-ME-21", "APP-ME-22", "APP-ME-05", "APP-ME-06", "APP-ME-07", "APP-ME-13", "APP-ME-14", "APP-ME-08", "APP-ME-09", "APP-ME-10", "APP-ME-12", "APP-DEV-03", "APP-DEV-11", "APP-DEV-10", "APP-ME-04", "APP-ME-24", "APP-ME-25", "APP-DEV-06", "APP-DEV-07", "APP-DEV-08", "APP-DEV-09"];
   flow.splice(flow.indexOf("APP-FILE-03") + 1, 0, "APP-FILE-23");
   target.innerHTML = flow.map((id, index) => {
     const page = pageById(id);
@@ -8206,6 +8846,8 @@ function renderPrototypeLinks(page) {
         || (action === "home-show-selection-mode" && homeFileSelectionMode)
         || (action === "set-hotspot-state" && value === (hotspotTransferState === "systemPrompt" ? "awaiting" : hotspotTransferState))
         || (action === "set-device-recording-state" && value === (deviceRecordingActive ? "recording" : "idle"))
+        || (action === "set-usage-record-state" && ((value === "empty" && usageRecordEmpty) || (value === "records" && !usageRecordEmpty)))
+        || (action === "set-restore-purchase-state" && value === restorePurchaseState)
         || (action === "set-device-remove-connection" && value === deviceRemoveConnectionState)
         || (action === "set-search-history-state" && ((value === "history" && searchHasHistory && !searchFiltersVisible) || (value === "empty" && !searchHasHistory && !searchFiltersVisible)))
         || (action === "set-search-cloud-state" && !searchHasHistory && !searchFiltersVisible && ((value === "enabled" && cloudSyncEnabled) || (value === "disabled" && !cloudSyncEnabled)))
@@ -8453,6 +9095,38 @@ function render() {
       heatmapScroller.scrollLeft = heatmapScroller.scrollWidth;
     });
   }
+  const usageRecordScroller = document.querySelector(".usage-record-page");
+  if (usageRecordScroller && !showcasePreset) {
+    usageRecordScroller.addEventListener("scroll", handleUsageRecordScroll, { passive: true });
+    requestAnimationFrame(() => {
+      const maxScrollTop = Math.max(0, usageRecordScroller.scrollHeight - usageRecordScroller.clientHeight);
+      usageRecordScroller.scrollTop = Math.min(usageRecordScrollTop, maxScrollTop);
+    });
+  }
+  const billingScroller = document.querySelector(".billing-page");
+  if (billingScroller && !showcasePreset) {
+    billingScroller.addEventListener("scroll", handleBillingScroll, { passive: true });
+    requestAnimationFrame(() => { billingScroller.scrollTop = Math.min(billingScrollTop, Math.max(0, billingScroller.scrollHeight - billingScroller.clientHeight)); });
+  }
+  const homeFileScroller = document.querySelector("#homeFileList")?.closest(".screen-content");
+  if (homeFileScroller && !showcasePreset && page.id === "APP-HOME-01") {
+    homeFileScroller.addEventListener("scroll", handleHomeFileScroll, { passive: true });
+    requestAnimationFrame(() => { homeFileScroller.scrollTop = Math.min(homeFileScrollTop, Math.max(0, homeFileScroller.scrollHeight - homeFileScroller.clientHeight)); });
+  }
+  const recycleScroller = document.querySelector(".recycle-page");
+  if (recycleScroller && !showcasePreset && page.id === "APP-FILE-23") {
+    recycleScroller.addEventListener("scroll", handleRecycleScroll, { passive: true });
+    requestAnimationFrame(() => { recycleScroller.scrollTop = Math.min(recycleScrollTop, Math.max(0, recycleScroller.scrollHeight - recycleScroller.clientHeight)); });
+  }
+  const searchResultScroller = document.querySelector(".result-screen");
+  if (searchResultScroller && !showcasePreset && page.id === "APP-FILE-12") {
+    searchResultScroller.addEventListener("scroll", handleSearchResultScroll, { passive: true });
+    requestAnimationFrame(() => { searchResultScroller.scrollTop = Math.min(searchResultScrollTop, Math.max(0, searchResultScroller.scrollHeight - searchResultScroller.clientHeight)); });
+  }
+  const transcriptScroller = document.querySelector(".file-detail-page");
+  if (transcriptScroller && !showcasePreset && page.id === "APP-FILE-01" && fileDetailActiveTab === "transcript") {
+    transcriptScroller.addEventListener("scroll", handleTranscriptScroll, { passive: true });
+  }
   renderNav();
   renderFlow();
   renderPrototypeLinks(page);
@@ -8519,6 +9193,150 @@ document.addEventListener("click", (event) => {
     return;
   }
   const action = event.target.closest("[data-action]");
+  if (action && action.dataset.action === "load-more-billing" && !showcasePreset) {
+    loadMoreBilling();
+    return;
+  }
+  if (action && action.dataset.action === "load-more-home-files" && !showcasePreset) {
+    loadMoreHomeFiles();
+    return;
+  }
+  if (action && action.dataset.action === "retry-home-files" && !showcasePreset) {
+    homeFileLoadError = false;
+    homeFileLoadMoreVisible = true;
+    loadMoreHomeFiles();
+    return;
+  }
+  if (action && action.dataset.action === "set-home-file-list-state" && !showcasePreset) {
+    const nextState = action.dataset.value || "load-more";
+    resetHomeFilePagination();
+    if (nextState === "loading") {
+      homeFileLoadMoreVisible = true;
+      homeFileLoading = true;
+    } else if (nextState === "error") {
+      homeFileLoadMoreVisible = true;
+      homeFileLoadError = true;
+    } else if (nextState === "loaded-all") {
+      homeFileVisibleCount = homeFileItems.length;
+    } else {
+      homeFileLoadMoreVisible = true;
+    }
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "load-more-recycle" && !showcasePreset) {
+    loadMoreRecycle();
+    return;
+  }
+  if (action && action.dataset.action === "retry-recycle-load" && !showcasePreset) {
+    recycleLoadError = false;
+    recycleLoadMoreVisible = true;
+    loadMoreRecycle();
+    return;
+  }
+  if (action && action.dataset.action === "set-recycle-list-state" && !showcasePreset) {
+    const nextState = action.dataset.value || "load-more";
+    resetRecyclePagination();
+    if (nextState === "loading") {
+      recycleLoadMoreVisible = true;
+      recycleLoading = true;
+    } else if (nextState === "error") {
+      recycleLoadMoreVisible = true;
+      recycleLoadError = true;
+    } else if (nextState === "loaded-all") {
+      recycleVisibleCount = recycleBinItems.length;
+    } else if (nextState === "empty") {
+      recycleBinItems = [];
+    } else {
+      recycleLoadMoreVisible = true;
+    }
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "load-more-search-results" && !showcasePreset) {
+    loadMoreSearchResults();
+    return;
+  }
+  if (action && action.dataset.action === "retry-search-load" && !showcasePreset) {
+    searchResultLoadError = false;
+    searchResultLoadMoreVisible = true;
+    loadMoreSearchResults();
+    return;
+  }
+  if (action && action.dataset.action === "retry-search-results" && !showcasePreset) {
+    searchResultState = "results";
+    resetSearchResultPagination();
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "set-search-result-list-state" && !showcasePreset) {
+    const nextState = action.dataset.value || "load-more";
+    searchResultState = "results";
+    resetSearchResultPagination();
+    if (nextState === "loading") {
+      searchResultLoadMoreVisible = true;
+      searchResultLoading = true;
+    } else if (nextState === "error") {
+      searchResultLoadMoreVisible = true;
+      searchResultLoadError = true;
+    } else if (nextState === "loaded-all") {
+      searchResultVisibleCount = searchResultsCatalog.length;
+    } else {
+      searchResultLoadMoreVisible = true;
+    }
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "set-billing-state" && !showcasePreset) {
+    billingEmpty = action.dataset.value === "empty";
+    billingVisibleCount = billingPageSize;
+    billingLoadMoreVisible = false;
+    billingLoading = false;
+    billingScrollTop = 0;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "load-more-transcript" && !showcasePreset) {
+    loadMoreTranscript();
+    return;
+  }
+  if (action && action.dataset.action === "open-usage-record" && !showcasePreset) {
+    go("APP-FILE-01");
+    return;
+  }
+  if (action && action.dataset.action === "load-more-usage-records" && !showcasePreset) {
+    loadMoreUsageRecords();
+    return;
+  }
+  if (action && action.dataset.action === "set-usage-record-state" && !showcasePreset) {
+    usageRecordEmpty = action.dataset.value === "empty";
+    usageRecordVisibleCount = usageRecordPageSize;
+    usageRecordLoadMoreVisible = false;
+    usageRecordLoading = false;
+    usageRecordScrollTop = 0;
+    render();
+    return;
+  }
+  if (action && action.dataset.action === "set-restore-purchase-state" && !showcasePreset) {
+    const nextState = action.dataset.value;
+    restorePurchaseState = ["loading", "not-found", "success"].includes(nextState) ? nextState : "loading";
+    if (currentPageId !== "APP-ME-10") {
+      go("APP-ME-10");
+    } else {
+      render();
+    }
+    return;
+  }
+  if (action && action.dataset.action === "focus-redeem-input") {
+    redeemKeyboardOpen = true;
+    render();
+    focusRedeemInput();
+    return;
+  }
+  if (action && action.dataset.action === "submit-redeem-code") {
+    submitRedeemCode();
+    return;
+  }
   if (action && action.dataset.action === "find-replace-previous") {
     const matches = syncFindReplaceMatchIndex();
     if (matches.length) findReplaceMatchIndex = (findReplaceMatchIndex - 1 + matches.length) % matches.length;
@@ -8998,6 +9816,7 @@ document.addEventListener("click", (event) => {
     searchDraft = query;
     activeSearchQuery = query;
     searchResultState = ["说", "好"].includes(query) ? "results" : "empty";
+    resetSearchResultPagination();
     go("APP-FILE-12");
     return;
   }
@@ -9955,11 +10774,12 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (action && action.dataset.action === "set-search-result-state") {
-    searchResultState = ["results", "empty", "loading"].includes(action.dataset.value)
+    searchResultState = ["results", "empty", "loading", "error"].includes(action.dataset.value)
       ? action.dataset.value
       : "results";
     searchDraft = searchResultState === "empty" ? "动物" : searchDraft || "好";
     activeSearchQuery = searchDraft;
+    resetSearchResultPagination();
     render();
     return;
   }
@@ -10388,6 +11208,7 @@ document.addEventListener("click", (event) => {
   }
   if (action && action.dataset.action === "show-recycle-list") {
     recycleBinItems = defaultRecycleBinItems.map((item) => ({ ...item }));
+    resetRecyclePagination();
     recycleSelectionMode = false;
     selectedRecycleIds = new Set();
     recycleDeleteConfirmOpen = false;
@@ -10398,6 +11219,7 @@ document.addEventListener("click", (event) => {
   }
   if (action && action.dataset.action === "show-recycle-empty") {
     recycleBinItems = [];
+    resetRecyclePagination();
     recycleSelectionMode = false;
     selectedRecycleIds = new Set();
     recycleDeleteConfirmOpen = false;
@@ -10436,6 +11258,7 @@ document.addEventListener("click", (event) => {
     const count = selectedRecycleIds.size;
     if (!count) return;
     recycleBinItems = recycleBinItems.filter((item) => !selectedRecycleIds.has(item.id));
+    resetRecyclePagination();
     selectedRecycleIds = new Set();
     recycleSelectionMode = false;
     recycleNotice = `已恢复 ${count} 个文件`;
@@ -10457,6 +11280,7 @@ document.addEventListener("click", (event) => {
     const count = selectedRecycleIds.size;
     if (!count) return;
     recycleBinItems = recycleBinItems.filter((item) => !selectedRecycleIds.has(item.id));
+    resetRecyclePagination();
     selectedRecycleIds = new Set();
     recycleSelectionMode = false;
     recycleDeleteConfirmOpen = false;
@@ -10780,6 +11604,11 @@ document.addEventListener("contextmenu", (event) => {
 });
 
 document.addEventListener("keydown", (event) => {
+  if (currentPageId === "APP-ME-08" && event.key === "Escape") {
+    event.preventDefault();
+    go("APP-ME-01");
+    return;
+  }
   if (currentPageId === "APP-FILE-17" && event.key === "Escape") {
     event.preventDefault();
     go("APP-FILE-01");
@@ -10874,6 +11703,15 @@ document.addEventListener("keydown", (event) => {
 });
 
 document.addEventListener("input", (event) => {
+  if (event.target.id === "redeemCodeInput") {
+    redeemCode = event.target.value;
+    redeemKeyboardOpen = true;
+    redeemNotice = "";
+    redeemNoticeTone = "";
+    render();
+    focusRedeemInput();
+    return;
+  }
   if (event.target.id === "findReplaceFindInput") {
     findReplaceFindText = event.target.value;
     findReplaceMatchIndex = 0;
@@ -11542,6 +12380,28 @@ function applyShowcasePreset(preset) {
     case "home01-success-toast":
       homeFileNotice = "文件名已更新";
       break;
+    case "home01-file-load-more":
+      homeFileItems = defaultHomeFileItems.map((item) => ({ ...item }));
+      resetHomeFilePagination();
+      homeFileLoadMoreVisible = true;
+      break;
+    case "home01-file-loading":
+      homeFileItems = defaultHomeFileItems.map((item) => ({ ...item }));
+      resetHomeFilePagination();
+      homeFileLoadMoreVisible = true;
+      homeFileLoading = true;
+      break;
+    case "home01-file-load-error":
+      homeFileItems = defaultHomeFileItems.map((item) => ({ ...item }));
+      resetHomeFilePagination();
+      homeFileLoadMoreVisible = true;
+      homeFileLoadError = true;
+      break;
+    case "home01-file-loaded-all":
+      homeFileItems = defaultHomeFileItems.map((item) => ({ ...item }));
+      resetHomeFilePagination();
+      homeFileVisibleCount = homeFileItems.length;
+      break;
     case "file16-default":
       clearMoveFolderToastTimer();
       moveFolderToast = "";
@@ -11601,6 +12461,139 @@ function applyShowcasePreset(preset) {
       findReplaceNotice = "已替换";
       revealFindReplaceMatch();
       break;
+    case "me08-empty":
+      clearRedeemNoticeTimer();
+      clearRedeemSubmitTimer();
+      redeemCode = "";
+      redeemKeyboardOpen = false;
+      redeemSubmitting = false;
+      redeemNotice = "";
+      redeemNoticeTone = "";
+      break;
+    case "me08-input":
+      clearRedeemNoticeTimer();
+      clearRedeemSubmitTimer();
+      redeemCode = "DEMO2026";
+      redeemKeyboardOpen = true;
+      redeemSubmitting = false;
+      redeemNotice = "";
+      redeemNoticeTone = "";
+      break;
+    case "me08-submitting":
+      clearRedeemNoticeTimer();
+      clearRedeemSubmitTimer();
+      redeemCode = "DEMO2026";
+      redeemKeyboardOpen = true;
+      redeemSubmitting = true;
+      redeemNotice = "";
+      redeemNoticeTone = "";
+      break;
+    case "me08-invalid":
+      clearRedeemNoticeTimer();
+      clearRedeemSubmitTimer();
+      redeemCode = "ERROR";
+      redeemKeyboardOpen = true;
+      redeemSubmitting = false;
+      redeemNotice = "兑换码错误";
+      redeemNoticeTone = "error";
+      break;
+    case "me08-system-error":
+      clearRedeemNoticeTimer();
+      clearRedeemSubmitTimer();
+      redeemCode = "SYSTEM";
+      redeemKeyboardOpen = true;
+      redeemSubmitting = false;
+      redeemNotice = "系统异常，请稍后再试";
+      redeemNoticeTone = "system";
+      break;
+    case "me08-success":
+      clearRedeemNoticeTimer();
+      clearRedeemSubmitTimer();
+      redeemCode = "DEMO2026";
+      redeemKeyboardOpen = true;
+      redeemSubmitting = false;
+      redeemNotice = "兑换成功";
+      redeemNoticeTone = "success";
+      break;
+    case "me10-loading":
+      restorePurchaseState = "loading";
+      break;
+    case "me10-not-found":
+      restorePurchaseState = "not-found";
+      break;
+    case "me10-success":
+      restorePurchaseState = "success";
+      break;
+    case "me09-with-records":
+      billingEmpty = false;
+      billingVisibleCount = billingPageSize;
+      billingLoadMoreVisible = false;
+      billingLoading = false;
+      break;
+    case "me09-empty":
+      billingEmpty = true;
+      billingVisibleCount = billingPageSize;
+      billingLoadMoreVisible = false;
+      billingLoading = false;
+      break;
+    case "me09-load-more":
+      billingEmpty = false;
+      billingVisibleCount = billingPageSize;
+      billingLoadMoreVisible = true;
+      billingLoading = false;
+      break;
+    case "me09-loading":
+      billingEmpty = false;
+      billingVisibleCount = billingPageSize;
+      billingLoadMoreVisible = true;
+      billingLoading = true;
+      break;
+    case "me09-loaded-all":
+      billingEmpty = false;
+      billingVisibleCount = billingCatalog.length;
+      billingLoadMoreVisible = false;
+      billingLoading = false;
+      break;
+    case "me12-with-records":
+      clearUsageRecordLoadTimer();
+      usageRecordEmpty = false;
+      usageRecordVisibleCount = usageRecordPageSize;
+      usageRecordLoadMoreVisible = false;
+      usageRecordLoading = false;
+      usageRecordScrollTop = 0;
+      break;
+    case "me12-empty":
+      clearUsageRecordLoadTimer();
+      usageRecordEmpty = true;
+      usageRecordVisibleCount = usageRecordPageSize;
+      usageRecordLoadMoreVisible = false;
+      usageRecordLoading = false;
+      usageRecordScrollTop = 0;
+      break;
+    case "me12-load-more":
+      clearUsageRecordLoadTimer();
+      usageRecordEmpty = false;
+      usageRecordVisibleCount = usageRecordPageSize;
+      usageRecordLoadMoreVisible = true;
+      usageRecordLoading = false;
+      usageRecordScrollTop = 0;
+      break;
+    case "me12-loading":
+      clearUsageRecordLoadTimer();
+      usageRecordEmpty = false;
+      usageRecordVisibleCount = usageRecordPageSize;
+      usageRecordLoadMoreVisible = true;
+      usageRecordLoading = true;
+      usageRecordScrollTop = 0;
+      break;
+    case "me12-loaded-all":
+      clearUsageRecordLoadTimer();
+      usageRecordEmpty = false;
+      usageRecordVisibleCount = usageRecordCatalog.length;
+      usageRecordLoadMoreVisible = false;
+      usageRecordLoading = false;
+      usageRecordScrollTop = 0;
+      break;
     case "file03-create-folder":
       filterFolderSheetMode = "create";
       break;
@@ -11627,7 +12620,34 @@ function applyShowcasePreset(preset) {
       break;
     case "file23-restore-toast":
       recycleBinItems = recycleBinItems.filter((item) => item.id === "recycle-3");
+      resetRecyclePagination();
       recycleNotice = "已恢复 2 个文件";
+      break;
+    case "file23-load-more":
+      recycleBinItems = defaultRecycleBinItems.map((item) => ({ ...item }));
+      resetRecyclePagination();
+      recycleLoadMoreVisible = true;
+      break;
+    case "file23-loading":
+      recycleBinItems = defaultRecycleBinItems.map((item) => ({ ...item }));
+      resetRecyclePagination();
+      recycleLoadMoreVisible = true;
+      recycleLoading = true;
+      break;
+    case "file23-load-error":
+      recycleBinItems = defaultRecycleBinItems.map((item) => ({ ...item }));
+      resetRecyclePagination();
+      recycleLoadMoreVisible = true;
+      recycleLoadError = true;
+      break;
+    case "file23-loaded-all":
+      recycleBinItems = defaultRecycleBinItems.map((item) => ({ ...item }));
+      resetRecyclePagination();
+      recycleVisibleCount = recycleBinItems.length;
+      break;
+    case "file23-empty":
+      recycleBinItems = [];
+      resetRecyclePagination();
       break;
     case "rec04-starting":
       recordingLifecycleState = "starting";
@@ -11670,6 +12690,38 @@ function applyShowcasePreset(preset) {
       recordingMarks = recordingBaseMarks.map((mark) => ({ ...mark }));
       fileDetailActiveTab = "transcript";
       fileDetailContentEditor = null;
+      transcriptEmpty = false;
+      transcriptVisibleCount = transcriptPageSize;
+      transcriptLoadMoreVisible = false;
+      transcriptLoading = false;
+      break;
+    case "file01-transcript-empty":
+      fileDetailActiveTab = "transcript";
+      transcriptEmpty = true;
+      transcriptVisibleCount = transcriptPageSize;
+      transcriptLoadMoreVisible = false;
+      transcriptLoading = false;
+      break;
+    case "file01-transcript-load-more":
+      fileDetailActiveTab = "transcript";
+      transcriptEmpty = false;
+      transcriptVisibleCount = transcriptPageSize;
+      transcriptLoadMoreVisible = true;
+      transcriptLoading = false;
+      break;
+    case "file01-transcript-loading":
+      fileDetailActiveTab = "transcript";
+      transcriptEmpty = false;
+      transcriptVisibleCount = transcriptPageSize;
+      transcriptLoadMoreVisible = true;
+      transcriptLoading = true;
+      break;
+    case "file01-transcript-loaded-all":
+      fileDetailActiveTab = "transcript";
+      transcriptEmpty = false;
+      transcriptVisibleCount = fileDetailContent.transcript.length;
+      transcriptLoadMoreVisible = false;
+      transcriptLoading = false;
       break;
     case "file02-history":
       searchHasHistory = true;
@@ -11771,16 +12823,55 @@ function applyShowcasePreset(preset) {
       searchResultState = "results";
       searchDraft = "好";
       activeSearchQuery = "好";
+      resetSearchResultPagination();
       break;
     case "file12-empty":
       searchResultState = "empty";
       searchDraft = "动物";
       activeSearchQuery = "动物";
+      resetSearchResultPagination();
       break;
     case "file12-loading":
       searchResultState = "loading";
       searchDraft = "好";
       activeSearchQuery = "好";
+      resetSearchResultPagination();
+      break;
+    case "file12-load-more":
+      searchResultState = "results";
+      searchDraft = "好";
+      activeSearchQuery = "好";
+      resetSearchResultPagination();
+      searchResultLoadMoreVisible = true;
+      break;
+    case "file12-loading-more":
+      searchResultState = "results";
+      searchDraft = "好";
+      activeSearchQuery = "好";
+      resetSearchResultPagination();
+      searchResultLoadMoreVisible = true;
+      searchResultLoading = true;
+      break;
+    case "file12-load-error":
+      searchResultState = "results";
+      searchDraft = "好";
+      activeSearchQuery = "好";
+      resetSearchResultPagination();
+      searchResultLoadMoreVisible = true;
+      searchResultLoadError = true;
+      break;
+    case "file12-loaded-all":
+      searchResultState = "results";
+      searchDraft = "好";
+      activeSearchQuery = "好";
+      resetSearchResultPagination();
+      searchResultVisibleCount = searchResultsCatalog.length;
+      break;
+    case "file12-initial-error":
+      searchResultState = "error";
+      searchDraft = "好";
+      activeSearchQuery = "好";
+      resetSearchResultPagination();
       break;
     case "rec04-start-failed":
       recordingLifecycleState = "start_failed";
@@ -11928,6 +13019,28 @@ function applyShowcasePreset(preset) {
       break;
     case "me19-logout-confirm":
       pendingLogoutDeviceId = "web1";
+      break;
+    case "me22-unchecked":
+      deleteAccountStep = "warning";
+      deleteAccountReadConfirmed = false;
+      deleteAccountConfirmMode = "password";
+      deleteAccountPassword = "";
+      deleteAccountPasswordVisible = false;
+      deleteAccountCode = "";
+      deleteAccountCodeSent = false;
+      deleteAccountConfirmNotice = "";
+      deleteAccountConfirmNoticeTone = "";
+      break;
+    case "me22-checked":
+      deleteAccountStep = "warning";
+      deleteAccountReadConfirmed = true;
+      deleteAccountConfirmMode = "password";
+      deleteAccountPassword = "";
+      deleteAccountPasswordVisible = false;
+      deleteAccountCode = "";
+      deleteAccountCodeSent = false;
+      deleteAccountConfirmNotice = "";
+      deleteAccountConfirmNoticeTone = "";
       break;
     case "me22-password-verify":
       deleteAccountStep = "confirm";

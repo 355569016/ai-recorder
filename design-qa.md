@@ -13,7 +13,7 @@ scope: 对照真实渲染状态与“当前页面状态与反馈”，补齐所�
 
 ### Audit boundary
 
-- 已核对原型中所有会改变按钮文案或禁用状态的异步标识；设备详情刷新/连接、录音开始/结束和 Wi-Fi 连接状态已有快照，恢复购买中由独立页面 APP-ME-10 直接承载。
+- 已核对原型中所有会改变按钮文案或禁用状态的异步标识；设备详情刷新/连接、录音开始/结束和 Wi-Fi 连接状态已有快照，恢复购买三态现由 APP-ME-10 统一承载。
 - APP-DEV-02 的连接中/绑定成功/绑定失败、APP-ME-22 的删除中等仅存在于需求状态描述，当前渲染器没有对应真实状态变量或处理中画面，因此未伪造为“真实原型状态”快照。
 
 ### Checks
@@ -22,6 +22,25 @@ scope: 对照真实渲染状态与“当前页面状态与反馈”，补齐所�
 - 浏览器逐页确认 6 个页面均显示新增反馈卡；7 个处理中预设直达后均呈现对应禁用按钮文案：邮箱密码登录中、账号注册发送中、注册验证中、重置验证码发送中、重置验证中、验证码发送中和验证码登录中。Google / Apple 点击后不再渲染 App 内“登录中”页面。
 - APP-ONB-02 截图核对确认邮箱、密码、协议选中态与“发送中…”按钮的布局和参考图一致；未新增额外 Loading 图标。
 - 浏览器仍记录项目既有的 `MutationObserver` 环境错误；新增快照均已正常渲染，未发现由本轮预设引入的渲染中断。
+
+final result: passed
+
+## APP-ME-09 账单详情合并与列表分页统一（2026-09-16）
+
+scope: 将账单有记录与无记录合并至 APP-ME-09，并统一账单、使用记录与文件详情转写记录的 10 条一批加载规则。
+
+### Interaction requirements
+
+- APP-ME-23 降为历史兼容入口，不再出现在左侧导航或页面状态流中。
+- 账单与转写记录首次各展示 10 条；触底后显示“加载更多”，继续下拉或点击后追加下一批 10 条。
+- 加载期间保留已有内容并禁止重复触发；末页分别显示“已加载全部记录”和“已加载全部转写记录”。
+- APP-ME-09 与 APP-FILE-01 的“当前页面状态与反馈”均覆盖有记录、无记录、加载更多、加载中和已加载全部。
+
+### Verification
+
+- `node scripts/build-inline.js`、`node scripts/build-prd-preview.js`、`node --check app.js`、两个构建脚本语法检查与 `git diff --check` 通过。
+- 浏览器确认 APP-ME-09 左侧导航不再显示 APP-ME-23，主页首批为 10 条，五张状态快照均正常渲染。
+- 浏览器确认 APP-FILE-01 的已加载全部快照展示 20 条对话片段与结束提示，转写正文的原位编辑入口仍保留。
 
 final result: passed
 
@@ -65,6 +84,37 @@ scope: 重新转写确认后先允许用户调整生成配置，再显式提交�
 - 本轮未取得浏览器运行态截图；静态验证不能替代实际点击验收。
 
 final result: passed with browser interaction verification pending
+
+## APP-ME-12 使用记录链路与分页加载（2026-09-16）
+
+scope: 将使用记录行接入文件详情已转写状态，并实现按页加载更多的滚动交互；同步页面效果需求文档与产品需求文档。
+
+### Interaction requirements
+
+- 首次进入使用记录显示 10 条按时间倒序的转写用量记录；未滚动到列表底部时不显示“加载更多”。
+- 滚动到当前最后一条记录附近后显示“加载更多”；继续向下滚动或点击触发区，进入加载中并追加下一页 10 条更早记录。
+- 加载中禁用重复触发；全部 20 条演示记录加载完成后显示“已加载全部记录”。
+- 点击任一有 `file_id` 的记录整行进入 APP-FILE-01 文件详情的已转写状态，默认打开“转写记录”；返回时保留已加载页数和滚动位置。
+
+### Code and build checks
+
+- `app.js` 新增 20 条可追踪演示记录、10 条首屏/10 条分页策略、加载中与结束态、滚动触发和整行跳转；APP-FILE-01 返回按钮按入口回到 APP-ME-12。
+- APP-ME-12 页面效果需求与 `AI录音卡App需求文档_v3.0.md` 已补充 `file_id` 链路、加载更多状态表、状态反馈和验收点。
+- `index.html` 与 `prd-preview.html` 已由源码重建。
+- `node scripts/build-inline.js`、`node scripts/build-prd-preview.js`、`node --check app.js`、`node --check scripts/build-inline.js`、`node --check scripts/build-prd-preview.js` 和 `git diff --check` 通过。
+
+### Runtime evidence
+
+- 本地预览地址：`http://127.0.0.1:8766/index.html?page=APP-ME-12`。
+- 首次进入无“加载更多”且有 10 行；第一次下滑到列表底部后出现“加载更多”。
+- 第二次下滑先显示禁用的“加载中…”；等待 700 ms 后追加 10 行（可见 `2026-06-28 18:10:06` 至 `2026-06-18 08:45:17`），底部显示“已加载全部记录”。
+- 点击“拼团营销工具需求评审会”记录进入 APP-FILE-01；文件详情一级标签中“转写记录”具有 `active` 状态。返回使用记录后仍有 20 行，实测滚动位置保持在 `scrollTop=963`。
+
+### Product design evaluation
+
+- 产品设计 agent 建议首页首批加载 10 条，每次继续加载 10 条；在接近当前最后一条时再显示触发区，加载中禁用重复触发，末页明确显示“已加载全部记录”。该建议已落入本轮交互和需求说明。
+
+final result: passed
 
 # APP-HOME-01 文件首页状态快照补充（2026-09-04）
 
@@ -988,3 +1038,130 @@ scope: 邮箱验证码登录页协议项默认状态、登录前置确认和条�
 - 浏览器实际视觉与点击链路未复测；当前本地地址被浏览器安全审查拦截，未取得新的运行态截图和控制台结果。
 
 final result: passed with browser visual verification pending
+
+## APP-ME-08 兑换码合并交互与状态反馈（2026-09-16）
+
+scope: 将 APP-ME-08 兑换码入口与原 APP-ME-15 输入态合并为同一可交互页面，补齐输入、提交中、校验异常、成功 Toast 及底部状态快照。
+
+### Interaction requirements
+
+- 兑换码输入框为真实可编辑输入；为空时兑换按钮置灰，输入任意非空内容后变为可点击样式。
+- 点击兑换进入“兑换中…”提交态并禁止重复提交；原型演示按输入值覆盖“兑换码错误”“系统异常，请稍后再试”和“兑换成功”三类 Toast。
+- 关闭按钮或 Escape 返回我的页面；APP-ME-15 仅保留历史链接兼容，不再出现在导航和状态流中。
+- 底部“当前页面状态与反馈”覆盖未输入、输入中、提交中、兑换码错误、系统异常、兑换成功六个真实渲染快照。
+
+### Code and build checks
+
+- APP-ME-08 与历史 APP-ME-15 已统一映射到 `renderRedeemCode()`；输入事件、按钮可用态、提交锁定和 Toast 均复用同一页面状态变量。
+- 需求文档已同步合并规则、字段、依赖、状态表现与验收点；生成的 `index.html` 已由源码重建。
+- `node scripts/build-inline.js`、`node --check app.js`、`node --check scripts/build-inline.js`、`node --check scripts/build-prd-preview.js` 和 `git diff --check` 通过。
+- 静态断言确认 `redeemCodeInput`、`submit-redeem-code`、三类 Toast 文案、六个 `me08-*` 快照预设及 APP-ME-15 历史别名映射均存在。
+
+### Runtime evidence
+
+- 本轮已启动本地预览服务 `http://127.0.0.1:8766`；Chrome 自动化读取标签页时出现连接超时，未取得新的运行态截图，因此不把浏览器点击验收标记为已通过。
+- 待浏览器自动化服务恢复后，应复核：空输入按钮置灰、输入后按钮可点击、提交中禁用、三类 Toast 文案与关闭 / Escape 返回链路。
+
+final result: passed with browser interaction verification pending
+
+## APP-ME-12 使用记录状态与空态补全（2026-09-16）
+
+scope: 补齐 APP-ME-12 当前页面状态与反馈中的有记录、无记录、加载更多、加载中和已加载全部记录，并增加使用记录为空的真实原型展示。
+
+### Code and build checks
+
+- 新增 `me12-with-records`、`me12-empty`、`me12-load-more`、`me12-loading`、`me12-loaded-all` 五个状态快照；空态不展示记录行、加载触发区或结束提示。
+- APP-ME-12 状态链路新增“使用记录为空”，可在主页面切换到空态；状态快照通过 `pointer-events: none` 和 `showcasePreset` 分支保持静态，仅展示样式，不响应点击、滚动或加载。
+- APP-ME-12 元数据、状态详情、页面效果需求和 App PRD 均已同步无记录空态及分页状态表现。
+- `index.html` 与 `prd-preview.html` 已重建；`node --check app.js`、两个构建脚本检查和 `git diff --check` 通过。
+
+### Runtime evidence
+
+- 在 `http://127.0.0.1:8766/index.html?page=APP-ME-12` 的“当前页面状态与反馈”中确认五张快照均已出现。
+- `me12-empty` 实测 0 条记录，显示“暂无使用记录”和“完成一次转写后，使用记录会显示在这里”，无“加载更多”或“已加载全部记录”。
+- `me12-load-more` 实测 10 条记录及可用“加载更多”；`me12-loading` 实测 10 条记录及禁用“加载中…”；`me12-loaded-all` 实测 20 条记录及“已加载全部记录”。
+- 主页面状态链路可见“使用记录为空”；状态快照不挂载使用记录滚动监听，快照内的列表行和“加载更多”均不会触发页面跳转或分页。
+- 浏览器日志仅有项目既有 `MutationObserver` 环境错误，未发现本轮状态快照引入的渲染错误。
+
+final result: passed
+
+## APP-ME-22 首步提示页状态快照补全（2026-09-16）
+
+scope: 核对删除账号流程在点击“下一步”前的第 1/2 页是否出现在“当前页面状态与反馈”，并检查同页面后续步骤快照是否存在同类遗漏。
+
+### Coverage evidence
+
+- APP-ME-22 原有快照仅覆盖密码身份验证、密码验证错误、验证码已发送和验证码错误，缺少第 1/2 页的阅读确认状态。
+- 已新增“未勾选”和“已勾选”两个快照，分别展示下一步置灰与勾选后可用的页面表现；快照顺序按流程置于身份验证状态之前。
+- 对照 `verifiedPageShowcases` 与各页面的分步状态后，未发现其他“同一页面已展示后续步骤、但缺少点击下一步前页面”的同类缺口；普通默认态和由独立页面承载的下一步目标仍遵循既有快照范围规则。
+
+### Code and build checks
+
+- `node scripts/build-inline.js`、`node scripts/build-prd-preview.js`、`node --check app.js`、两个构建脚本检查和 `git diff --check` 通过。
+- APP-ME-22 需求章节已补充快照清单，生成的 `index.html` 与 `prd-preview.html` 已同步。
+
+final result: passed
+
+## APP-ME-10 恢复购买状态合并与成功态补全（2026-09-16）
+
+scope: 将原 APP-ME-10 恢复购买中与 APP-ME-11 恢复购买失败合并为一个状态页，补充缺失的恢复购买成功态，并同步页面需求与 PRD。
+
+### Coverage evidence
+
+- APP-ME-10 现在由统一渲染器承载“加载中”“未找到购买记录”“恢复购买成功”三种状态；加载态点击可在同页演示进入未找到记录，失败和成功确认均返回 APP-ME-01 我的页。
+- APP-ME-11 标记为内部历史别名，旧链接统一归一到 APP-ME-10，不再出现在导航和状态流中。
+- APP-ME-10 的“当前页面状态与反馈”已包含三张真实原型快照；快照使用独立 showcase 预设，仅展示样式，不承载额外独立页面。
+
+### Code and build checks
+
+- APP-ME-10 元数据、状态详情、状态链路按钮、三种 showcase 预设及旧编号兼容映射均已更新；统一渲染器复用我的页背景、蒙层和反馈面板。
+- 页面效果设计需求文档与 App PRD 已补充恢复购买字段、三态页面表现、返回规则和支付/会员依赖；`index.html` 与 `prd-preview.html` 已由源文件重建。
+- `node scripts/build-inline.js`、`node scripts/build-prd-preview.js`、`node --check app.js`、两个构建脚本检查和 `git diff --check` 通过。
+
+### Residual checks
+
+- 本轮未取得新的浏览器运行态截图；本地浏览器自动化仍受 request-header policy 阻断，因此视觉与真实点击验收需待浏览器服务恢复后复测。
+
+final result: passed with browser visual verification pending
+
+## APP-HOME-01 / APP-FILE-23 / APP-FILE-12 列表分页状态补全（2026-09-16）
+
+scope: 为文件首页、回收站和搜索结果补齐首屏 10 条、加载更多、追加加载中、加载失败重试、已加载全部及对应空态/首次加载失败状态。
+
+### Coverage evidence
+
+- 三页均保留原页面入口，在同一列表页追加分页数据；首屏使用 10 条记录，继续滚动或点击入口后追加下一页。
+- APP-HOME-01 增加“继续下拉加载更多文件”、加载中、失败重试和“已加载全部文件”；APP-FILE-23 增加回收站列表分页及空状态；APP-FILE-12 增加 20 条确定性搜索结果、追加加载状态和首次搜索失败状态。
+- 三页的页面元数据、状态链路、状态快照预设、页面效果设计需求文档和生成预览已同步。
+
+### Code and build checks
+
+- `node scripts/build-inline.js`、`node scripts/build-prd-preview.js`、`node --check app.js`、`node --check scripts/build-inline.js`、`node --check scripts/build-prd-preview.js` 和 `git diff --check` 通过。
+- `index.html` 与 `prd-preview.html` 已从源文件重建。
+
+### Runtime evidence
+
+- 已启动本地预览 `http://127.0.0.1:8766`。Safari AX 树确认 APP-HOME-01 默认列表含 10 条正常文件和“继续下拉加载更多文件”；滚动主列表后追加到 20 条并显示“已加载全部文件”。
+- APP-HOME-01 的 `home01-file-loading` 快照显示禁用“加载中…”，`home01-file-load-error` 快照保留当前文件并显示“加载失败，请检查网络后重试”和“重试”。
+- APP-FILE-23 默认列表确认 10 条回收站记录；其加载更多、加载中、加载失败、已加载全部和空状态快照均在当前页面状态与反馈中呈现。
+- APP-FILE-12 默认列表确认 10 条搜索结果和“加载更多”；其有结果、追加加载中、加载失败、已加载全部、无结果和首次加载失败快照均在当前页面状态与反馈中呈现。
+- Safari 自动化对嵌套原型按钮的索引点击受 elementHasNoFrame 限制，因此回收站和搜索结果的追加动作以源码事件链、HTTP 预览和 AX 状态快照完成验证；未将该限制误报为点击验收通过。
+
+final result: passed with nested-frame click verification pending
+
+## 分页列表短列表结束提示规则（2026-09-16）
+
+scope: 当列表总记录数不超过首屏 10 条时，隐藏“已加载全部…”结束文案及其占位样式；只有确实存在分页且已加载完全部记录时才保留结束反馈。
+
+### Coverage evidence
+
+- APP-HOME-01、APP-FILE-23、APP-FILE-12 的主列表结束提示均增加总量大于首屏 10 条的条件；回收站恢复后仅剩少量记录时不再显示“已加载全部回收站文件”。
+- 同一规则同步应用到 APP-FILE-01 转写记录、文件提问来源、APP-ME-09 账单详情和 APP-ME-12 使用记录，避免后续短列表复现相同问题。
+- 状态快照保留“已加载全部”样式，因为这些快照使用超过 10 条的分页示例；真实短列表不渲染该节点，也不保留对应占位高度。
+
+### Code and build checks
+
+- `node scripts/build-inline.js`、`node scripts/build-prd-preview.js`、`node --check app.js`、两个构建脚本检查和 `git diff --check` 通过。
+- 页面效果设计需求文档与 App PRD 已同步“总量不超过 10 条不显示结束提示”的规则，`index.html` 与 `prd-preview.html` 已重建。
+
+final result: passed
