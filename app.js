@@ -2212,7 +2212,7 @@ function enableSearchCloudSync() {
   cloudSyncEnabled = !failed;
   searchCloudNotice = failed ? "开启失败，请稍后再试。" : "私有云已开启";
   window.clearTimeout(searchCloudNoticeTimer);
-  searchCloudNoticeTimer = window.setTimeout(() => {
+  searchCloudNoticeTimer = setPrototypeTimeout(() => {
     searchCloudNotice = "";
     searchCloudNoticeTimer = null;
     render();
@@ -2442,7 +2442,7 @@ function showDeviceActionNotice(message) {
   deviceActionNotice = message;
   if (deviceActionNoticeTimer) window.clearTimeout(deviceActionNoticeTimer);
   render();
-  deviceActionNoticeTimer = window.setTimeout(() => {
+  deviceActionNoticeTimer = setPrototypeTimeout(() => {
     deviceActionNoticeTimer = null;
     deviceActionNotice = "";
     if (["APP-DEV-01", "APP-DEV-03", "APP-DEV-11"].includes(currentPageId)) render();
@@ -2527,7 +2527,7 @@ function beginHomeConnectionRecovery() {
   if (!activeDevice || homeConnectionPhase === "connecting") return;
   setHomeConnectionState("connecting");
   render();
-  homeConnectionTimer = window.setTimeout(() => {
+  homeConnectionTimer = setPrototypeTimeout(() => {
     homeConnectionTimer = null;
     setHomeConnectionState("connected");
     if (currentPageId === "APP-HOME-01") render();
@@ -2585,7 +2585,7 @@ function blockDeviceActionWhileRecording() {
 
 function scheduleFirmwareUpdateStep(callback, delay = 3000) {
   clearFirmwareUpdateTimer();
-  firmwareUpdateTimer = window.setTimeout(() => {
+  firmwareUpdateTimer = setPrototypeTimeout(() => {
     firmwareUpdateTimer = null;
     if (currentPageId !== "APP-DEV-08") return;
     callback();
@@ -2767,6 +2767,59 @@ function handleHostedNavigation(id) {
   }
   if (searchLocationSheetOpen) discardSearchLocationEdit();
   return false;
+}
+
+// Outer review navigation freezes transient states; phone actions run the original timing.
+let prototypeReviewMode = true;
+let prototypeTimerEpoch = 0;
+
+function setPrototypeTimeout(callback, delay) {
+  if (prototypeReviewMode || showcasePreset) return null;
+  const epoch = prototypeTimerEpoch;
+  return window.setTimeout(() => {
+    if (!prototypeReviewMode && epoch === prototypeTimerEpoch) callback();
+  }, delay);
+}
+
+function setPrototypeInterval(callback, delay) {
+  if (prototypeReviewMode || showcasePreset) return null;
+  const epoch = prototypeTimerEpoch;
+  return window.setInterval(() => {
+    if (!prototypeReviewMode && epoch === prototypeTimerEpoch) callback();
+  }, delay);
+}
+
+function enterPrototypeReview() {
+  prototypeReviewMode = true;
+  prototypeTimerEpoch += 1;
+  [
+    accountAvatarNoticeTimer, recordingNoticeTimer, searchResultLoadTimer, redeemNoticeTimer,
+    redeemSubmitTimer, transcriptLoadTimer, fileDetailNoticeTimer, moveFolderToastTimer,
+    recycleLoadTimer, recycleNoticeTimer, reviewTransitionTimer, restorePurchaseTimer,
+    homeTrashToastTimer, askPlaudThinkingTimer, searchCloudNoticeTimer, homeConnectionTimer,
+    homeHotspotSuccessNoticeTimer, homePriorityMenuTimer, homePriorityNoticeTimer, homeFileLoadTimer,
+    homeFileNoticeTimer, usageRecordLoadTimer, billingLoadTimer, firmwareUpdateTimer,
+    syncPrototypeTimer, recordingLifecycleTimer, deviceActionNoticeTimer, deviceConnectionTimer,
+  ].forEach(timer => window.clearTimeout(timer));
+  accountAvatarNoticeTimer = recordingNoticeTimer = searchResultLoadTimer = redeemNoticeTimer = null;
+  redeemSubmitTimer = transcriptLoadTimer = fileDetailNoticeTimer = moveFolderToastTimer = null;
+  recycleLoadTimer = recycleNoticeTimer = reviewTransitionTimer = restorePurchaseTimer = null;
+  homeTrashToastTimer = askPlaudThinkingTimer = searchCloudNoticeTimer = homeConnectionTimer = null;
+  homeHotspotSuccessNoticeTimer = homePriorityMenuTimer = homePriorityNoticeTimer = homeFileLoadTimer = null;
+  homeFileNoticeTimer = usageRecordLoadTimer = billingLoadTimer = firmwareUpdateTimer = null;
+  syncPrototypeTimer = recordingLifecycleTimer = deviceActionNoticeTimer = deviceConnectionTimer = null;
+  window.clearInterval(resetPasswordTimer);
+  window.clearInterval(registerCodeTimer);
+  resetPasswordTimer = registerCodeTimer = null;
+}
+
+function setPrototypeInteractionSource(target) {
+  if (showcasePreset) return;
+  if (target.closest("#phone")) {
+    prototypeReviewMode = false;
+  } else if (target.closest("#nav, #prototypeLinks, #flowStrip")) {
+    enterPrototypeReview();
+  }
 }
 
 function go(id) {
@@ -3033,7 +3086,7 @@ function beginRecordingSession() {
   deviceRecordingActive = false;
   recordingTransferNotice = "";
   render();
-  recordingLifecycleTimer = window.setTimeout(() => {
+  recordingLifecycleTimer = setPrototypeTimeout(() => {
     recordingLifecycleTimer = null;
     if (recordingLifecycleState !== "starting") return;
     recordingLifecycleState = "recording";
@@ -3054,11 +3107,11 @@ function beginRecordingSave() {
   recordingSaveState = "saving";
   deviceRecordingActive = true;
   go("APP-HOME-01");
-  recordingLifecycleTimer = window.setTimeout(() => {
+  recordingLifecycleTimer = setPrototypeTimeout(() => {
     recordingLifecycleTimer = null;
     if (recordingLifecycleState !== "ending") return;
     recordingLifecycleState = "saving";
-    recordingLifecycleTimer = window.setTimeout(() => {
+    recordingLifecycleTimer = setPrototypeTimeout(() => {
       recordingLifecycleTimer = null;
       if (recordingSaveState !== "saving") return;
       confirmRecordingSaved();
@@ -3083,7 +3136,7 @@ function retryRecordingSaveConfirmation() {
   recordingLifecycleState = "saving";
   recordingSaveState = "saving";
   render();
-  recordingLifecycleTimer = window.setTimeout(() => {
+  recordingLifecycleTimer = setPrototypeTimeout(() => {
     recordingLifecycleTimer = null;
     if (recordingSaveState !== "saving") return;
     confirmRecordingSaved();
@@ -3329,7 +3382,7 @@ function renderHomeTransferFileCards() {
 function showHomeFileNotice(message) {
   homeFileNotice = message;
   if (homeFileNoticeTimer) window.clearTimeout(homeFileNoticeTimer);
-  homeFileNoticeTimer = window.setTimeout(() => {
+  homeFileNoticeTimer = setPrototypeTimeout(() => {
     homeFileNoticeTimer = null;
     homeFileNotice = "";
     if (currentPageId === "APP-HOME-01") render();
@@ -3498,7 +3551,7 @@ function openHomePriorityMenu(taskId, focusAction = false) {
       (menuAction || trigger)?.focus();
     });
   }
-  homePriorityMenuTimer = window.setTimeout(() => {
+  homePriorityMenuTimer = setPrototypeTimeout(() => {
     homePriorityMenuTimer = null;
     if (homePriorityMenuTaskId !== taskId) return;
     const menu = document.querySelector(".file-priority-popover");
@@ -3546,7 +3599,7 @@ function setHomePriorityTask(taskId) {
   closeHomePriorityMenu();
   homePriorityNotice = "已设为优先，将在当前文件后传输";
   if (homePriorityNoticeTimer) window.clearTimeout(homePriorityNoticeTimer);
-  homePriorityNoticeTimer = window.setTimeout(() => {
+  homePriorityNoticeTimer = setPrototypeTimeout(() => {
     homePriorityNoticeTimer = null;
     homePriorityNotice = "";
     if (currentPageId === "APP-HOME-01") render();
@@ -3637,7 +3690,7 @@ function endHomeFastTransfer() {
   homeHotspotSuccessNotice = false;
   homePriorityNotice = "已断开 Wi-Fi，继续使用蓝牙传输";
   if (homePriorityNoticeTimer) window.clearTimeout(homePriorityNoticeTimer);
-  homePriorityNoticeTimer = window.setTimeout(() => {
+  homePriorityNoticeTimer = setPrototypeTimeout(() => {
     homePriorityNoticeTimer = null;
     homePriorityNotice = "";
     if (currentPageId === "APP-HOME-01") render();
@@ -3924,7 +3977,7 @@ function authNotice(message, tone = "") {
 function startResetPasswordCountdown() {
   if (resetPasswordTimer) window.clearInterval(resetPasswordTimer);
   resetPasswordCountdown = 60;
-  resetPasswordTimer = window.setInterval(() => {
+  resetPasswordTimer = setPrototypeInterval(() => {
     resetPasswordCountdown = Math.max(0, resetPasswordCountdown - 1);
     const resendButton = document.querySelector("[data-action='resend-reset-code']");
     if (resendButton) {
@@ -3941,7 +3994,7 @@ function startResetPasswordCountdown() {
 function startRegisterCodeCountdown() {
   if (registerCodeTimer) window.clearInterval(registerCodeTimer);
   registerCodeCountdown = 60;
-  registerCodeTimer = window.setInterval(() => {
+  registerCodeTimer = setPrototypeInterval(() => {
     registerCodeCountdown = Math.max(0, registerCodeCountdown - 1);
     const resendButton = document.querySelector("[data-action='resend-register-code']");
     if (resendButton) {
@@ -4441,7 +4494,7 @@ function renderHome() {
 
 function renderHomeTrashToast() {
   if (!showcasePreset && !homeTrashToastTimer) {
-    homeTrashToastTimer = window.setTimeout(() => {
+    homeTrashToastTimer = setPrototypeTimeout(() => {
       homeTrashToastTimer = null;
       if (currentPageId === "APP-HOME-03") go("APP-HOME-01");
     }, 3000);
@@ -4594,7 +4647,7 @@ function loadMoreRecycle(delay = 520) {
   recycleLoadError = false;
   clearRecycleLoadTimer();
   render();
-  recycleLoadTimer = window.setTimeout(() => {
+  recycleLoadTimer = setPrototypeTimeout(() => {
     recycleLoadTimer = null;
     if (currentPageId !== "APP-FILE-23") {
       recycleLoading = false;
@@ -4942,7 +4995,7 @@ function loadMoreSearchResults(delay = 520) {
   searchResultLoadError = false;
   clearSearchResultLoadTimer();
   render();
-  searchResultLoadTimer = window.setTimeout(() => {
+  searchResultLoadTimer = setPrototypeTimeout(() => {
     searchResultLoadTimer = null;
     if (currentPageId !== "APP-FILE-12") {
       searchResultLoading = false;
@@ -5181,7 +5234,7 @@ function nextRecordingMarkId() {
 function showRecordingNotice(message) {
   recordingNotice = message;
   if (recordingNoticeTimer) window.clearTimeout(recordingNoticeTimer);
-  recordingNoticeTimer = window.setTimeout(() => {
+  recordingNoticeTimer = setPrototypeTimeout(() => {
     recordingNoticeTimer = null;
     recordingNotice = "";
     if (currentPageId === "APP-REC-04") render();
@@ -5486,11 +5539,11 @@ function startAskPlaudThinking({ stage = "thinking", auto = true } = {}) {
     render();
     return;
   }
-  askPlaudThinkingTimer = window.setTimeout(() => {
+  askPlaudThinkingTimer = setPrototypeTimeout(() => {
     if (askPlaudMode !== "thinking" || !["thinking", "process"].includes(askPlaudThinkingStage)) return;
     askPlaudThinkingStage = "process";
     render();
-    askPlaudThinkingTimer = window.setTimeout(() => {
+    askPlaudThinkingTimer = setPrototypeTimeout(() => {
       if (askPlaudMode !== "thinking" || askPlaudThinkingStage !== "process") return;
       askPlaudThinkingTimer = null;
       askPlaudThinkingStage = "complete";
@@ -5683,7 +5736,7 @@ function fileDetailSecondsToTime(totalSeconds) {
 function showFileDetailNotice(message) {
   fileDetailNotice = message;
   if (fileDetailNoticeTimer) window.clearTimeout(fileDetailNoticeTimer);
-  fileDetailNoticeTimer = window.setTimeout(() => {
+  fileDetailNoticeTimer = setPrototypeTimeout(() => {
     fileDetailNoticeTimer = null;
     fileDetailNotice = "";
     if (["APP-FILE-01", "APP-FILE-06", "APP-FILE-10", "APP-FILE-15"].includes(currentPageId)) render();
@@ -5699,7 +5752,7 @@ function clearMoveFolderToastTimer() {
 function showMoveFolderToast(folderName) {
   moveFolderToast = folderName;
   clearMoveFolderToastTimer();
-  moveFolderToastTimer = window.setTimeout(() => {
+  moveFolderToastTimer = setPrototypeTimeout(() => {
     moveFolderToastTimer = null;
     moveFolderToast = "";
     if (currentPageId === "APP-FILE-01") render();
@@ -6147,7 +6200,7 @@ function loadMoreTranscript() {
   if (showcasePreset || transcriptEmpty || transcriptLoading || transcriptVisibleCount >= fileDetailContent.transcript.length) return;
   transcriptLoading = true;
   render();
-  transcriptLoadTimer = window.setTimeout(() => {
+  transcriptLoadTimer = setPrototypeTimeout(() => {
     transcriptLoadTimer = null;
     transcriptVisibleCount = Math.min(fileDetailContent.transcript.length, transcriptVisibleCount + transcriptPageSize);
     transcriptLoading = false;
@@ -6828,7 +6881,7 @@ function showAccountAvatarNotice(message) {
   accountAvatarNotice = message;
   clearAccountAvatarNoticeTimer();
   render();
-  accountAvatarNoticeTimer = window.setTimeout(() => {
+  accountAvatarNoticeTimer = setPrototypeTimeout(() => {
     accountAvatarNoticeTimer = null;
     accountAvatarNotice = "";
     if (currentPageId === "APP-ME-16") render();
@@ -7717,7 +7770,7 @@ function showRedeemNotice(message, tone = "success") {
   clearRedeemNoticeTimer();
   render();
   if (showcasePreset) return;
-  redeemNoticeTimer = window.setTimeout(() => {
+  redeemNoticeTimer = setPrototypeTimeout(() => {
     redeemNoticeTimer = null;
     redeemNotice = "";
     redeemNoticeTone = "";
@@ -7741,7 +7794,7 @@ function submitRedeemCode() {
   redeemNoticeTone = "";
   render();
   clearRedeemSubmitTimer();
-  redeemSubmitTimer = window.setTimeout(() => {
+  redeemSubmitTimer = setPrototypeTimeout(() => {
     redeemSubmitTimer = null;
     if (currentPageId !== "APP-ME-08") {
       redeemSubmitting = false;
@@ -7799,7 +7852,7 @@ function loadMoreHomeFiles(delay = 520) {
   homeFileLoadError = false;
   clearHomeFileLoadTimer();
   render();
-  homeFileLoadTimer = window.setTimeout(() => {
+  homeFileLoadTimer = setPrototypeTimeout(() => {
     homeFileLoadTimer = null;
     if (currentPageId !== "APP-HOME-01") {
       homeFileLoading = false;
@@ -7841,7 +7894,7 @@ function loadMoreBilling() {
   if (showcasePreset || billingEmpty || billingLoading || billingVisibleCount >= billingCatalog.length) return;
   billingLoading = true;
   render();
-  billingLoadTimer = window.setTimeout(() => {
+  billingLoadTimer = setPrototypeTimeout(() => {
     billingLoadTimer = null;
     billingVisibleCount = Math.min(billingCatalog.length, billingVisibleCount + billingPageSize);
     billingLoading = false;
@@ -7904,7 +7957,7 @@ function renderBillingHistory() {
 
 function renderRestorePurchase() {
   if (!showcasePreset && restorePurchaseState === "loading" && !restorePurchaseTimer) {
-    restorePurchaseTimer = window.setTimeout(() => {
+    restorePurchaseTimer = setPrototypeTimeout(() => {
       restorePurchaseTimer = null;
       if (currentPageId !== "APP-ME-10" || restorePurchaseState !== "loading") return;
       restorePurchaseState = "not-found";
@@ -7964,7 +8017,7 @@ function loadMoreUsageRecords() {
   usageRecordLoading = true;
   clearUsageRecordLoadTimer();
   render();
-  usageRecordLoadTimer = window.setTimeout(() => {
+  usageRecordLoadTimer = setPrototypeTimeout(() => {
     usageRecordLoadTimer = null;
     if (currentPageId !== "APP-ME-12") {
       usageRecordLoading = false;
@@ -9002,7 +9055,7 @@ function renderFlow() {
   }).join("");
 }
 
-// Runtime review controls use real transitions; showcase iframes remain static.
+// Only phone interactions advance transient states; review controls and showcases stay static.
 function clearReviewTransition() {
   window.clearTimeout(reviewTransitionTimer);
   reviewTransitionTimer = null;
@@ -9011,7 +9064,7 @@ function clearReviewTransition() {
 function scheduleReviewTransition(callback, delay = 1200) {
   clearReviewTransition();
   const owner = currentPageId;
-  reviewTransitionTimer = window.setTimeout(() => {
+  reviewTransitionTimer = setPrototypeTimeout(() => {
     reviewTransitionTimer = null;
     if (!showcasePreset && currentPageId === owner) callback();
   }, delay);
@@ -9043,7 +9096,7 @@ function reviewActionAvailable(action, value) {
 function showRecycleNotice(message) {
   window.clearTimeout(recycleNoticeTimer);
   recycleNotice = message;
-  recycleNoticeTimer = window.setTimeout(() => {
+  recycleNoticeTimer = setPrototypeTimeout(() => {
     recycleNoticeTimer = null;
     recycleNotice = "";
     if (currentPageId === "APP-FILE-23") render();
@@ -9433,6 +9486,7 @@ function render() {
 }
 
 document.addEventListener("click", (event) => {
+  setPrototypeInteractionSource(event.target);
   if (homeFileSuppressClick) {
     homeFileSuppressClick = false;
     event.preventDefault();
@@ -9865,7 +9919,7 @@ document.addEventListener("click", (event) => {
     deviceConnectionPendingId = deviceId;
     deviceActionNotice = "";
     render();
-    deviceConnectionTimer = window.setTimeout(() => {
+    deviceConnectionTimer = setPrototypeTimeout(() => {
       deviceConnectionTimer = null;
       const device = boundHomeDevices.find((item) => item.id === deviceId);
       if (!device) return;
@@ -10150,7 +10204,7 @@ document.addEventListener("click", (event) => {
     if (generationMode === "custom" && !selectedTemplateId) {
       generationNotice = "请选择模板";
       render();
-      window.setTimeout(() => {
+      setPrototypeTimeout(() => {
         if (currentPageId === "APP-AI-01" && generationNotice === "请选择模板") {
           generationNotice = "";
           render();
@@ -10289,7 +10343,7 @@ document.addEventListener("click", (event) => {
     registerNoticeTone = "";
     registerSubmitting = true;
     render();
-    window.setTimeout(() => {
+    setPrototypeTimeout(() => {
       registerSubmitting = false;
       if (currentPageId !== "APP-ONB-02") return;
       registerCode = "";
@@ -10320,7 +10374,7 @@ document.addEventListener("click", (event) => {
     registerCodeNoticeTone = "";
     registerCodeVerifying = true;
     render();
-    window.setTimeout(() => {
+    setPrototypeTimeout(() => {
       registerCodeVerifying = false;
       if (currentPageId !== "APP-ONB-03") return;
       if (code !== prototypeVerificationCode) {
@@ -10355,7 +10409,7 @@ document.addEventListener("click", (event) => {
     codeLoginNoticeTone = "";
     codeLoginSending = true;
     render();
-    window.setTimeout(() => {
+    setPrototypeTimeout(() => {
       codeLoginSending = false;
       if (currentPageId !== "APP-ONB-06") return;
       if (!Object.prototype.hasOwnProperty.call(prototypeAccounts, codeLoginEmail)) {
@@ -10402,7 +10456,7 @@ document.addEventListener("click", (event) => {
     codeLoginNoticeTone = "";
     codeLoginSubmitting = true;
     render();
-    window.setTimeout(() => {
+    setPrototypeTimeout(() => {
       codeLoginSubmitting = false;
       if (currentPageId !== "APP-ONB-06") return;
       if (!codeLoginCodeSent) {
@@ -10503,7 +10557,7 @@ document.addEventListener("click", (event) => {
     loginNoticeTone = "";
     loginSubmitting = true;
     render();
-    window.setTimeout(() => {
+    setPrototypeTimeout(() => {
       loginSubmitting = false;
       if (currentPageId !== "APP-ONB-01") return;
       if (!Object.prototype.hasOwnProperty.call(prototypeAccounts, loginEmail)) {
@@ -10544,7 +10598,7 @@ document.addEventListener("click", (event) => {
     resetPasswordNoticeTone = "";
     resetPasswordSubmitting = true;
     render();
-    window.setTimeout(() => {
+    setPrototypeTimeout(() => {
       resetPasswordSubmitting = false;
       if (currentPageId !== "APP-ONB-05") return;
       if (!Object.prototype.hasOwnProperty.call(prototypeAccounts, resetPasswordEmail)) {
@@ -10581,7 +10635,7 @@ document.addEventListener("click", (event) => {
     resetPasswordNoticeTone = "";
     resetPasswordVerifying = true;
     render();
-    window.setTimeout(() => {
+    setPrototypeTimeout(() => {
       resetPasswordVerifying = false;
       if (currentPageId !== "APP-ONB-07") return;
       if (code !== prototypeVerificationCode) {
@@ -10660,7 +10714,7 @@ document.addEventListener("click", (event) => {
     }
     hotspotTransferState = "connecting";
     render();
-    syncPrototypeTimer = window.setTimeout(() => {
+    syncPrototypeTimer = setPrototypeTimeout(() => {
       syncPrototypeTimer = null;
       if (currentPageId !== "APP-SYNC-01" || hotspotTransferState !== "connecting") return;
       hotspotTransferState = "success";
@@ -10668,7 +10722,7 @@ document.addEventListener("click", (event) => {
       homeHotspotSuccessNotice = true;
       go("APP-HOME-01");
       if (homeHotspotSuccessNoticeTimer) window.clearTimeout(homeHotspotSuccessNoticeTimer);
-      homeHotspotSuccessNoticeTimer = window.setTimeout(() => {
+      homeHotspotSuccessNoticeTimer = setPrototypeTimeout(() => {
         homeHotspotSuccessNoticeTimer = null;
         homeHotspotSuccessNotice = false;
         if (currentPageId === "APP-HOME-01") render();
@@ -10679,7 +10733,7 @@ document.addEventListener("click", (event) => {
   if (action && action.dataset.action === "confirm-hotspot-join") {
     hotspotTransferState = "connecting";
     render();
-    syncPrototypeTimer = window.setTimeout(() => {
+    syncPrototypeTimer = setPrototypeTimeout(() => {
       syncPrototypeTimer = null;
       if (currentPageId !== "APP-SYNC-01") return;
       hotspotTransferState = "success";
@@ -10687,7 +10741,7 @@ document.addEventListener("click", (event) => {
       homeHotspotSuccessNotice = true;
       go("APP-HOME-01");
       if (homeHotspotSuccessNoticeTimer) window.clearTimeout(homeHotspotSuccessNoticeTimer);
-      homeHotspotSuccessNoticeTimer = window.setTimeout(() => {
+      homeHotspotSuccessNoticeTimer = setPrototypeTimeout(() => {
         homeHotspotSuccessNoticeTimer = null;
         homeHotspotSuccessNotice = false;
         if (currentPageId === "APP-HOME-01") render();
@@ -11782,6 +11836,7 @@ document.addEventListener("click", (event) => {
 });
 
 document.addEventListener("pointerdown", (event) => {
+  if (event.target.closest("#phone")) setPrototypeInteractionSource(event.target);
   const recordingMinimizeTarget = event.target.closest(".recording-handle");
   if (recordingMinimizeTarget && currentPageId === "APP-REC-04" && recordingBlocksAudioTransfer()) {
     recordingMinimizePointer = { id: event.pointerId, startY: event.clientY };
@@ -12358,6 +12413,7 @@ document.addEventListener("paste", (event) => {
 });
 
 document.addEventListener("submit", (event) => {
+  setPrototypeInteractionSource(event.target);
   const filterFolderForm = event.target.closest("[data-action='save-filter-folder']");
   if (filterFolderForm) {
     event.preventDefault();
