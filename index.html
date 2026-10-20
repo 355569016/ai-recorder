@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AI录音卡 App 原型与页面效果说明 v3.0</title>
-  <link rel="stylesheet" href="./styles.css?v=rec04-markers-v2">
+  <link rel="stylesheet" href="./styles.css?v=0c81fa74933a">
 </head>
 <body>
   <aside class="sidebar">
@@ -272,6 +272,10 @@ let recycleSelectionMode = false;
 let selectedRecycleIds = new Set();
 let recycleDeleteConfirmOpen = false;
 let recycleNotice = "";
+let recycleNoticeTimer = null;
+let reviewTransitionTimer = null;
+let restorePurchaseTimer = null;
+let homeTrashToastTimer = null;
 let loggedInDevices = [
   { id: "web1", name: "AI录音卡 Web1", current: true, type: "通过 web 登录", lastActive: "2026-07-16 16:46:33" }
 ];
@@ -668,8 +672,8 @@ const pages = [
       "只有达到自动重试限额的同步失败文件在右侧保留轻量“同步失败 · 重试”操作，其他状态不占用独立操作列。",
       "点击导入音频打开导入音频弹层，可从文件或相册调起系统选择器。",
       "底部中间录音按钮是全局主按钮，不是普通 Tab。",
-      "正常文件左滑直接进入全部文件选择模式，并默认选中当前文件；不再露出二次“选择”按钮。",
-      "正常文件长按约 500ms 打开单文件快捷菜单，菜单包含适用的生成、移动到文件夹、重命名和移至回收站。",
+      "正常文件长按约 500ms 进入全部文件选择模式，并默认选中当前文件；不再露出二次“选择”按钮。",
+      "正常文件左滑在当前行展开“生成、重命名、回收站”三个标准宽度按钮和紧凑省略号“更多”；仅更多压缩视觉占位，保留至少 44×44 点击区域。更多锚定当前行并显示文件名，仅提供“移至文件夹”；不使用全屏遮罩。生成中/已生成在原位置显示状态并禁用；右滑、点击其他位置或上下滚动收起，一次只展开一行。移至回收站仍须二次确认。",
       "选择模式顶部显示已选数量和完成，底部操作根据单选/多选和文件生成状态动态启用；合并文件暂不纳入本轮。",
       "重命名使用底部弹层和系统键盘；名称为空、仅空格、含换行或超过 80 个字符时不可保存。",
       "没有正常文件且没有同步中/等待传输/失败文件时显示首页空状态；空状态不展示列表下方导入按钮，导入仍从标题栏入口进入；筛选结果为空使用独立的筛选空状态。",
@@ -682,7 +686,7 @@ const pages = [
       "当前没有同步任务时，首页不显示同步状态条，也不显示正在传输或等待传输的置灰文件记录；全部文件直接展示已完成同步的正常文件列表。",
       "同步失败处理强规则：传输失败后先由系统自动重试，不立即向用户显示失败；设备重新连接后自动继续重试。只有达到自动重试限额后，文件才显示轻量“同步失败 · 重试”操作。自动重试限额及退避间隔由同步重试策略配置。"
     ],
-    states: ["未添加录音卡", "已绑定未连接", "设备连接中", "设备连接成功", "当前无同步任务", "录音中查看文件", "保存成功后继续传输", "单任务同步中", "多任务同步中", "Wi-Fi 快传中", "结束快传并由蓝牙续传", "文件正在传输且不可点击", "文件等待传输状态可操作", "手机空间不足暂停", "手机空间不足弹窗", "空间不足弹窗已关闭", "已传到手机", "等待同步云端", "同步云端中", "私有云同步关闭", "已优先", "同步失败自动重试", "设备重连后自动重试", "达到自动重试限额后失败可重试", "单个任务同步完成", "本批次同步完成", "新同步批次", "全部文件空状态", "筛选结果空状态", "左滑直接进入选择模式", "文件选择模式", "单文件快捷菜单", "重命名弹层", "移至回收站确认", "加载更多", "加载中", "加载失败", "已加载全部"],
+    states: ["未添加录音卡", "已绑定未连接", "设备连接中", "设备连接成功", "当前无同步任务", "录音中查看文件", "保存成功后继续传输", "单任务同步中", "多任务同步中", "Wi-Fi 快传中", "结束快传并由蓝牙续传", "文件正在传输且不可点击", "文件等待传输状态可操作", "手机空间不足暂停", "手机空间不足弹窗", "空间不足弹窗已关闭", "已传到手机", "等待同步云端", "同步云端中", "私有云同步关闭", "已优先", "同步失败自动重试", "设备重连后自动重试", "达到自动重试限额后失败可重试", "单个任务同步完成", "本批次同步完成", "新同步批次", "全部文件空状态", "筛选结果空状态", "长按进入选择模式", "文件选择模式", "单文件快捷菜单", "重命名弹层", "移至回收站确认", "加载更多", "加载中", "加载失败", "已加载全部"],
     deps: ["BLE 状态包：电量、存储、录音状态。", "BLE/STA/SoftAP 传输：暂停、恢复、已确认偏移量和校验值。", "本地数据库：文件列表、同步队列、转写状态。", "同步队列：录音抢占时保存任务顺序、传输通道和已确认 offset。", "同步重试策略：重试限额、退避间隔、设备重连触发。", "云端文件：上传/删除/状态，接口待后端定义。"],
     acceptance: [
       "打开 App 默认处于硬件录音场景时，首页只展示设备录音中状态，不展示同步进度模块。",
@@ -710,7 +714,7 @@ const pages = [
       "点击设备状态旁下拉箭头展开添加设备和多个已绑定设备。",
       "已绑定设备示例至少包含两个已连接设备和一个已断开设备，点击设备行可以切换当前设备。",
       "标题显示为全部文件，倒三角筛选/排序入口与导入音频按钮位于同一标题栏。",
-      "正常文件行不显示生成、详情或右箭头，整行点击进入对应详情状态；左滑直接切换到全部文件选择模式并选中当前行；未转写文件进入 APP-FILE-10 并保留详情页内生成入口，AI 已生成文件进入 APP-FILE-01。",
+      "正常文件行不显示生成、详情或右箭头，整行点击进入对应详情状态；长按切换到全部文件选择模式并选中当前行；左滑打开当前文件行内操作区；未转写文件进入 APP-FILE-10 并保留详情页内生成入口，AI 已生成文件进入 APP-FILE-01。",
       "仅达到自动重试限额的同步失败行显示轻量“同步失败 · 重试”，点击后进入正在重试状态。",
       "导入音频弹层包含从文件里导入和从相册里导入两个系统选择入口。",
       "下拉/继续滚动可加载更多文件，每次追加 10 条；加载中保留已有文件并禁止重复触发，加载失败保留列表并提供重试；仅当总文件数超过首屏 10 条且全部文件加载完成后显示已加载全部文件，总文件数不超过 10 条时不展示结束提示或占位样式。",
@@ -741,11 +745,11 @@ const pages = [
     goal: "在文件列表中搜索录音、导入音频和 AI 内容，并展示最近搜索与结果。",
     entry: "文件首页右上角搜索按钮。",
     fields: [["search_query", "搜索词", "用户输入/最近搜索"], ["created_time_filter", "创建时间", "本地筛选"], ["file_location_filter", "文件位置", "本地筛选"], ["recent_searches", "最近搜索", "本地缓存"], ["cloud_sync_enabled", "私有云同步开关", "本地设置/云端账号"], ["search_results", "搜索结果", "本地数据库/云端索引"]],
-    rules: ["搜索页归属于文件模块。", "顶部包含返回、搜索输入框和右侧筛选按钮。", "点击筛选按钮展开创建时间和文件位置条件；再次点击收起条件且不清除已选条件。", "有任一筛选条件已应用时，筛选按钮和已选条件按钮使用蓝色高亮；收起条件后筛选按钮仍保持高亮。", "文件位置筛选弹层包含 AI Recorder A1·对话模式、AI Recorder A1·通话模式和导入。", "无输入且存在历史时展示最近搜索和最近 30 天内容；无历史时展示暂无搜索记录空状态。", "私有云同步已开启时不展示“开启私有云同步”入口；未开启时才展示开启提示。", "搜索页不展示竞品提问入口、星标图标或相关文案。", "最近搜索右侧使用镂空垃圾桶图标清空。"],
-    states: ["默认有最近搜索", "无搜索记录", "无搜索记录·私有云已开启", "输入中", "筛选条件展开", "筛选条件已选择", "筛选条件已选择·折叠", "创建时间筛选弹窗", "文件位置筛选弹窗", "有结果", "无结果", "清空最近搜索"],
-    deps: ["本地数据库：文件名、转写文本、AI 笔记索引。", "本地缓存：最近搜索。"],
+    rules: ["搜索页归属于文件模块。", "顶部包含返回、搜索输入框和右侧筛选按钮。", "点击筛选按钮展开创建时间和文件位置条件；再次点击收起条件且不清除已选条件。", "有任一筛选条件已应用时，筛选按钮和已选条件按钮使用蓝色高亮；收起条件后筛选按钮仍保持高亮。", "文件位置筛选弹层包含 AI Recorder A1·对话模式、AI Recorder A1·通话模式和导入。", "无输入且存在历史时展示最近搜索和最近 30 天内容；无历史时展示暂无搜索记录空状态。", "私有云同步已开启时不展示“开启私有云同步”入口；未开启时才展示开启提示。", "点击“开启私有云同步”直接开启，不跳转或二次确认；成功 Toast 提示“私有云已开启”并隐藏入口；失败 Toast 提示“开启失败，请稍后再试。”，保持关闭并保留入口供重试。", "搜索页不展示竞品提问入口、星标图标或相关文案。", "最近搜索右侧使用镂空垃圾桶图标清空。"],
+    states: ["默认有最近搜索", "无搜索记录", "无搜索记录·私有云已开启", "私有云开启成功", "私有云开启失败", "输入中", "筛选条件展开", "筛选条件已选择", "筛选条件已选择·折叠", "创建时间筛选弹窗", "文件位置筛选弹窗", "有结果", "无结果", "清空最近搜索"],
+    deps: ["本地数据库：文件名、转写文本、AI 笔记索引。", "本地缓存：最近搜索。", "云服务：开启私有云同步及成功/失败结果；原型仅模拟结果。"],
     acceptance: ["文件首页右上角进入搜索页。", "点击搜索框右侧筛选按钮后展示创建时间和文件位置两个条件。", "应用创建时间或文件位置筛选后，筛选按钮和已选条件按钮显示蓝色高亮。", "筛选条件展开时再次点击筛选按钮可折叠条件，筛选值保持不变；再次点击可恢复展示。", "点击文件位置后打开底部弹层，展示 AI Recorder A1·对话模式、AI Recorder A1·通话模式和导入，未选择时应用按钮置灰。", "搜索页点击创建时间进入创建时间弹层。", "无搜索记录且私有云未开启时展示开启私有云同步提示；私有云已开启时不展示该入口。", "搜索页不出现向 Plaud 提问、星标或其他竞品内容。", "搜索页输入或点击搜索词后进入搜索结果页。", "搜索页与文件首页、文件详情同属文件列表模块。"],
-    prototypeActions: [["最近搜索", "set-search-history-state", "history"], ["暂无搜索记录", "set-search-history-state", "empty"], ["私有云已开启", "set-search-cloud-state", "enabled"], ["筛选条件展开", "set-search-filter-state", "expanded"], ["筛选条件已选择", "set-search-filter-state", "selected"], ["筛选条件已选择·折叠", "set-search-filter-state", "selected-collapsed"], ["文件位置筛选弹窗", "set-search-filter-state", "location"]]
+    prototypeActions: [["最近搜索", "set-search-history-state", "history"], ["暂无搜索记录", "set-search-history-state", "empty"], ["私有云已开启", "set-search-cloud-state", "enabled"], ["开启私有云失败", "set-search-cloud-state", "fail-next"], ["筛选条件展开", "set-search-filter-state", "expanded"], ["筛选条件已选择", "set-search-filter-state", "selected"], ["筛选条件已选择·折叠", "set-search-filter-state", "selected-collapsed"], ["文件位置筛选弹窗", "set-search-filter-state", "location"]]
   },
   {
     id: "APP-FILE-03",
@@ -1936,6 +1940,8 @@ const stateDetailOverrides = {
   "APP-FILE-02": {
     "默认": ["展示搜索输入框、右侧筛选按钮、最近搜索和最近 30 天内容", "输入框可直接输入；筛选条件按需展开"],
     "无搜索记录": ["展示暂无搜索记录空状态；私有云未开启时显示开启私有云同步提示", "保留搜索和筛选入口"],
+    "私有云开启成功": ["保持搜索页，私有云状态更新为开启并隐藏开启入口", "Toast：「私有云已开启」，约 3 秒后消失"],
+    "私有云开启失败": ["保持搜索页及关闭状态，保留开启入口供再次点击重试", "Toast：「开启失败，请稍后再试。」，约 3 秒后消失"],
     "无搜索记录·私有云已开启": ["展示暂无搜索记录空状态；私有云已开启时不展示开启私有云同步入口", "保留搜索和筛选入口"],
     "输入中": ["保留键盘和当前输入，根据关键词更新结果，不锁定页面其他操作", "输入内容实时显示"],
     "筛选条件已选择": ["创建时间和文件位置条件显示为蓝色选中样式，筛选按钮同步高亮，条件处于展开状态", "点击筛选按钮可折叠条件，已选条件保持不变"],
@@ -2258,6 +2264,25 @@ let homeSyncTransportBeforeRecording = homeSyncTransport;
 let homeSyncPausedByRecording = false;
 let homeSyncBatchSerial = 1;
 let cloudSyncEnabled = true;
+let searchCloudEnableWillFail = false;
+let searchCloudNotice = "";
+let searchCloudNoticeTimer = null;
+
+// Prototype-only result simulation; production must use the cloud service response.
+function enableSearchCloudSync() {
+  if (cloudSyncEnabled) return;
+  const failed = searchCloudEnableWillFail;
+  searchCloudEnableWillFail = false;
+  cloudSyncEnabled = !failed;
+  searchCloudNotice = failed ? "开启失败，请稍后再试。" : "私有云已开启";
+  window.clearTimeout(searchCloudNoticeTimer);
+  searchCloudNoticeTimer = window.setTimeout(() => {
+    searchCloudNotice = "";
+    searchCloudNoticeTimer = null;
+    render();
+  }, 3000);
+  render();
+}
 let homeConnectionPhase = "connected";
 let homeConnectionTimer = null;
 let homeStorageShortagePromptOpen = false;
@@ -2692,7 +2717,129 @@ function schedulePrototypeViewportTopReset() {
   });
 }
 
+// Requirement IDs remain stable. A lightweight view can be hosted by a page
+// without running page-exit cleanup or changing its review/navigation context.
+const hostedViewRelations = {
+  "APP-FILE-03": { host: "APP-HOME-01", parents: ["APP-HOME-01"], origins: ["APP-FILE-02"] },
+  "APP-FILE-13": { host: "APP-HOME-01", parents: ["APP-HOME-01"] },
+  "APP-FILE-11": { host: "APP-FILE-02", parents: ["APP-FILE-02"], topic: "筛选条件" },
+  "APP-FILE-14": { host: "APP-FILE-02", parents: ["APP-FILE-02"] },
+  "APP-FILE-04": { host: "APP-FILE-01", parents: ["APP-FILE-01", "APP-FILE-10", "APP-FILE-15"], closeAliases: ["APP-FILE-01"] },
+  "APP-FILE-05": { host: "APP-FILE-01", parents: ["APP-FILE-01", "APP-FILE-10", "APP-FILE-15"], closeAliases: ["APP-FILE-01"] },
+  "APP-FILE-06": { host: "APP-FILE-01", parents: ["APP-FILE-01", "APP-FILE-10", "APP-FILE-15"], closeAliases: ["APP-FILE-01"] },
+  "APP-FILE-07": { host: "APP-FILE-01", parents: ["APP-FILE-01", "APP-FILE-10", "APP-FILE-15"], closeAliases: ["APP-FILE-01"] },
+  "APP-FILE-17": { host: "APP-FILE-01", parents: ["APP-FILE-01", "APP-FILE-10", "APP-FILE-15"], closeAliases: ["APP-FILE-01"], kind: "局部工具" },
+  "APP-FILE-18": { host: "APP-FILE-01", parents: ["APP-FILE-01", "APP-FILE-10", "APP-FILE-15"], closeAliases: ["APP-FILE-01"] },
+  "APP-FILE-09": { host: "APP-FILE-20", parents: ["APP-FILE-08", "APP-FILE-20"], closeAliases: ["APP-FILE-20"] },
+  "APP-FILE-21": { host: "APP-FILE-20", parents: ["APP-FILE-08", "APP-FILE-20"], closeAliases: ["APP-FILE-20"] },
+  "APP-AI-02": { host: "APP-AI-01", parents: ["APP-AI-01"] },
+  "APP-AI-03": { host: "APP-AI-01", parents: ["APP-AI-01"] },
+  "APP-ME-21": { host: "APP-ME-17", parents: ["APP-ME-17"] },
+  "APP-ME-24": { host: "APP-ME-04", parents: ["APP-ME-04"] },
+  "APP-ME-07": { host: "APP-ME-06", parents: ["APP-ME-06"] },
+  "APP-ME-14": { host: "APP-ME-13", parents: ["APP-ME-13"] }
+};
+let hostedViewContext = null;
+const hostedViewReturnHosts = new Map();
+let searchTimeEditSnapshot = null;
+let searchLocationEditSnapshot = null;
+const hostedScrollSelector = "#phone .screen-content, #phone .file-detail-page, #phone .search-screen";
+
+function reviewPageId() { return hostedViewContext?.hostId || currentPageId; }
+function hostedViewsFor(pageId) {
+  return Object.entries(hostedViewRelations).filter(([, relation]) => relation.parents.includes(pageId));
+}
+function captureHostedScroll() {
+  return [...document.querySelectorAll(hostedScrollSelector)].map((node) => ({ top: node.scrollTop, left: node.scrollLeft }));
+}
+function restoreHostedScroll(scrolls) {
+  [...document.querySelectorAll(hostedScrollSelector)].forEach((node, index) => {
+    if (scrolls[index]) { node.scrollTop = scrolls[index].top; node.scrollLeft = scrolls[index].left; }
+  });
+}
+function rememberSearchTimeEdit() {
+  searchTimeEditSnapshot = { filter: searchTimeFilter, start: searchCustomStart, end: searchCustomEnd,
+    year: searchCalendarYear, month: searchCalendarMonth };
+}
+function discardSearchTimeEdit() {
+  if (searchTimeEditSnapshot) {
+    searchTimeFilter = searchTimeEditSnapshot.filter;
+    searchCustomStart = searchTimeEditSnapshot.start;
+    searchCustomEnd = searchTimeEditSnapshot.end;
+    searchCalendarYear = searchTimeEditSnapshot.year;
+    searchCalendarMonth = searchTimeEditSnapshot.month;
+  }
+  searchTimeEditSnapshot = null;
+  searchCalendarPickerTarget = "";
+}
+function discardSearchLocationEdit() {
+  if (searchLocationEditSnapshot !== null) searchLocationFilter = searchLocationEditSnapshot;
+  searchLocationEditSnapshot = null;
+  searchLocationSheetOpen = false;
+}
+function activateReviewActionOwner(owner) {
+  if (owner === reviewPageId() && searchLocationSheetOpen) discardSearchLocationEdit();
+  if (!hostedViewContext || owner !== reviewPageId()) return;
+  if (currentPageId === "APP-FILE-11") discardSearchTimeEdit();
+  if (currentPageId === "APP-FILE-03") {
+    filterFolderSheetMode = ""; activeFilterFolderId = ""; pendingDeleteFilterFolderId = ""; filterFolderError = "";
+  }
+  currentPageId = owner;
+  hostedViewContext = null;
+}
+
+function handleHostedNavigation(id) {
+  const relation = hostedViewRelations[id];
+  const root = reviewPageId();
+  if (hostedViewContext && currentPageId === "APP-FILE-03" && id !== currentPageId) {
+    filterFolderSheetMode = ""; activeFilterFolderId = ""; pendingDeleteFilterFolderId = ""; filterFolderError = "";
+  }
+  if (relation) {
+    if (currentPageId === "APP-FILE-11" && id !== currentPageId) discardSearchTimeEdit();
+    if (searchLocationSheetOpen) discardSearchLocationEdit();
+    const eligible = [...relation.parents, ...(relation.origins || [])];
+    const hostId = eligible.includes(root) ? root : (hostedViewReturnHosts.get(id) || relation.host);
+    const scrolls = hostedViewContext?.hostId === hostId ? hostedViewContext.scrolls : (root === hostId ? captureHostedScroll() : []);
+    const oldId = currentPageId;
+    if (id === "APP-FILE-11" && oldId !== id) rememberSearchTimeEdit();
+    if (id === "APP-FILE-17" && oldId !== id) {
+      findReplaceFindText = ""; findReplaceReplaceText = ""; findReplaceMatchIndex = 0; findReplaceNotice = "";
+    }
+    hostedViewContext = { hostId, scrolls };
+    hostedViewReturnHosts.set(id, hostId);
+    previousPageId = id === "APP-FILE-03" ? hostId : oldId;
+    currentPageId = id;
+    render();
+    restoreHostedScroll(scrolls);
+    if (id === "APP-FILE-17") focusFindReplaceInput();
+    if (root !== hostId) schedulePrototypeViewportTopReset();
+    return true;
+  }
+  if (hostedViewContext) {
+    const activeRelation = hostedViewRelations[currentPageId];
+    const closing = id === root || activeRelation?.closeAliases?.includes(id);
+    if (currentPageId === "APP-FILE-11") discardSearchTimeEdit();
+    const scrolls = hostedViewContext.scrolls;
+    hostedViewContext = null;
+    if (closing) {
+      previousPageId = currentPageId;
+      currentPageId = root;
+      render();
+      restoreHostedScroll(scrolls);
+      return true;
+    }
+  }
+  if (searchLocationSheetOpen) discardSearchLocationEdit();
+  return false;
+}
+
 function go(id) {
+  clearReviewTransition();
+  window.clearTimeout(homeTrashToastTimer);
+  homeTrashToastTimer = null;
+  window.clearTimeout(restorePurchaseTimer);
+  restorePurchaseTimer = null;
+  if (handleHostedNavigation(id)) return;
   if (syncPrototypeTimer) {
     window.clearTimeout(syncPrototypeTimer);
     syncPrototypeTimer = null;
@@ -3110,6 +3257,28 @@ function renderHomeStorageShortagePrompt() {
   `;
 }
 
+function homeFileActionIcon(kind) {
+  const paths = {
+    generate: '<path d="m12 3 2.6 6.4L21 12l-6.4 2.6L12 21l-2.6-6.4L3 12l6.4-2.6Z"/>',
+    rename: '<path d="m15 4 5 5M4 20l5-1L20 8a2 2 0 0 0-5-5L4 14Z"/>',
+    recycle: '<path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/>',
+    more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+    move: '<path d="M3 7V4h6l3 3h9v13H3V7Zm7 7h8m-3-3 3 3-3 3"/>'
+  };
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[kind] || ""}</svg>`;
+}
+
+function renderHomeInlineActions(file) {
+  const canGenerate = file.generationState === "untranscribed";
+  const generationLabel = canGenerate ? "生成" : file.generationState === "generating" ? "生成中" : "已生成";
+  return `<div class="home-inline-actions" role="group" aria-label="${h(file.name)}的文件操作">
+    <button class="home-inline-action generate" data-action="generate-home-file" data-file-id="${h(file.id)}" ${canGenerate ? "" : "disabled"} aria-label="${h(file.name)}，${generationLabel}"><span>${homeFileActionIcon("generate")}</span><small>${generationLabel}</small></button>
+    <button class="home-inline-action" data-action="open-home-file-rename" data-file-id="${h(file.id)}" aria-label="重命名${h(file.name)}"><span>${homeFileActionIcon("rename")}</span><small>重命名</small></button>
+    <button class="home-inline-action recycle" data-action="request-home-file-recycle" data-file-id="${h(file.id)}" aria-label="将${h(file.name)}移至回收站"><span>${homeFileActionIcon("recycle")}</span><small>回收站</small></button>
+    <button class="home-inline-more" data-action="open-home-file-menu" data-file-id="${h(file.id)}" aria-label="${h(file.name)}的更多操作" aria-haspopup="menu" aria-expanded="${homeQuickMenuFileId === file.id}">${homeFileActionIcon("more")}</button>
+  </div>`;
+}
+
 function fileCard(file) {
   const blockedByRecording = Boolean(file.blockedByRecording);
   const blockedByConnection = Boolean(file.blockedByConnection);
@@ -3157,8 +3326,8 @@ function fileCard(file) {
     ? `<button class="file-card-main file-transfer-blocked-main" data-action="request-home-transfer-while-recording" aria-label="${h(file.name)}，等待传输，正在录音时不可传输">${content}</button>`
     : content;
   return `
-    <div class="file-card ${file.featured ? "featured" : ""} ${disabled ? `file-card-transfer-disabled ${file.transferState}` : ""} ${file.errorText ? "file-card-has-recovery" : ""} ${fileId ? "home-file-card" : ""}"${fileId ? ` data-file-id="${h(fileId)}"` : ""}${file.transferState === "syncing" ? ' aria-disabled="true"' : ""}>
-      ${disabled || file.errorText ? `${blockedContent}${statusNode}` : fileId && !selectionActive ? `<div class="home-file-swipe-shell">${main}</div>` : main}
+    <div class="file-card ${file.featured ? "featured" : ""} ${disabled ? `file-card-transfer-disabled ${file.transferState}` : ""} ${file.errorText ? "file-card-has-recovery" : ""} ${fileId ? "home-file-card" : ""} ${fileId && homeSwipeOpenId === fileId && !selectionActive ? "actions-open" : ""}"${fileId ? ` data-file-id="${h(fileId)}"` : ""}${file.transferState === "syncing" ? ' aria-disabled="true"' : ""}>
+      ${disabled || file.errorText ? `${blockedContent}${statusNode}` : fileId && !selectionActive ? `<div class="home-file-swipe-shell">${main}${homeSwipeOpenId === fileId ? renderHomeInlineActions(file) : ""}</div>${homeQuickMenuFileId === fileId ? renderHomeQuickMenu() : ""}` : main}
     </div>
   `;
 }
@@ -3257,21 +3426,11 @@ function renderHomeNormalFileCards() {
 
 function renderHomeQuickMenu() {
   const file = getHomeFileById(homeQuickMenuFileId);
-  if (!file) return "";
-  const canGenerate = file.generationState === "untranscribed";
-  return `
-    <div class="scrim home-file-menu-scrim" data-action="close-home-file-menu"></div>
-    <section class="home-file-quick-menu" role="dialog" aria-modal="true" aria-label="文件快捷操作">
-      <div class="home-file-quick-summary">
-        <strong>${h(file.name)}</strong>
-        <span>${h(file.meta)}</span>
-      </div>
-      ${canGenerate ? `<button data-action="generate-home-file" data-file-id="${h(file.id)}"><span class="quick-menu-icon">✦</span>生成</button>` : ""}
-      <button data-action="open-home-file-move" data-file-id="${h(file.id)}"><span class="quick-menu-icon">⇥</span>移至文件夹</button>
-      <button data-action="open-home-file-rename" data-file-id="${h(file.id)}"><span class="quick-menu-icon">↗</span>重命名</button>
-      <button class="danger" data-action="request-home-file-recycle" data-file-id="${h(file.id)}"><span class="quick-menu-icon">▥</span>移至回收站</button>
-    </section>
-  `;
+  if (!file || homeSwipeOpenId !== file.id) return "";
+  return `<section class="home-inline-popover" role="menu" aria-label="${h(file.name)}的更多操作">
+    <strong>${h(file.name)}</strong>
+    <button role="menuitem" data-action="open-home-file-move" data-file-id="${h(file.id)}">${homeFileActionIcon("move")}<span>移至文件夹</span></button>
+  </section>`;
 }
 
 function renderHomeRenameSheet() {
@@ -3638,6 +3797,7 @@ function setHomeCloudDemoState(state) {
 }
 
 function setHomeSyncRecoveryState(state) {
+  homeDeviceAdded = true;
   const activeDevice = getActiveHomeDevice();
   if (!activeDevice) return;
   setHomeConnectionState("connected");
@@ -3705,6 +3865,7 @@ function openHomeFileRename(fileId) {
   const file = getHomeFileById(fileId);
   if (!file) return;
   homeQuickMenuFileId = "";
+  homeSwipeOpenId = "";
   homeFileRenameId = fileId;
   homeFileRenameDraft = file.name;
   homeFileRenameError = "";
@@ -3715,6 +3876,7 @@ function openHomeFileMove(fileIds) {
   const ids = [...fileIds].filter((id) => getHomeFileById(id));
   if (!ids.length) return;
   homeQuickMenuFileId = "";
+  homeSwipeOpenId = "";
   homeFileMoveIds = new Set(ids);
   selectedMoveFolderId = "";
   moveFolderCreateOpen = false;
@@ -3726,6 +3888,7 @@ function requestHomeFileRecycle(fileIds) {
   const ids = [...fileIds].filter((id) => getHomeFileById(id));
   if (!ids.length) return;
   homeQuickMenuFileId = "";
+  homeSwipeOpenId = "";
   homeFileRecycleIds = new Set(ids);
   homeFileRecycleConfirmOpen = true;
   render();
@@ -4337,10 +4500,16 @@ function renderHomePriorityToast() {
 
 function renderHome() {
   if (homeFileSelectionMode) return renderHomeSelectionScreen();
-  return `${screen(renderHomeContent(), { title: "文件", action: "search", active: "files" })}${homePriorityMenuTaskId ? '<button class="home-priority-dismiss" data-action="close-home-priority-menu" aria-label="关闭传输顺序操作"></button>' : ""}${homeQuickMenuFileId ? renderHomeQuickMenu() : ""}${homeFileRenameId ? renderHomeRenameSheet() : ""}${renderHomeFileRecycleConfirm()}${renderHomeMoveFolderSheet()}${homeStorageShortagePromptOpen ? renderHomeStorageShortagePrompt() : ""}${homeHotspotSuccessNotice ? renderHotspotSuccessToast() : ""}${renderHomePriorityToast()}${homeFileNotice ? `<div class="toast-message home-file-toast" role="status">${h(homeFileNotice)}</div>` : ""}`;
+  return `${screen(renderHomeContent(), { title: "文件", action: "search", active: "files" })}${homePriorityMenuTaskId ? '<button class="home-priority-dismiss" data-action="close-home-priority-menu" aria-label="关闭传输顺序操作"></button>' : ""}${homeFileRenameId ? renderHomeRenameSheet() : ""}${renderHomeFileRecycleConfirm()}${renderHomeMoveFolderSheet()}${homeStorageShortagePromptOpen ? renderHomeStorageShortagePrompt() : ""}${homeHotspotSuccessNotice ? renderHotspotSuccessToast() : ""}${renderHomePriorityToast()}${homeFileNotice ? `<div class="toast-message home-file-toast" role="status">${h(homeFileNotice)}</div>` : ""}`;
 }
 
 function renderHomeTrashToast() {
+  if (!showcasePreset && !homeTrashToastTimer) {
+    homeTrashToastTimer = window.setTimeout(() => {
+      homeTrashToastTimer = null;
+      if (currentPageId === "APP-HOME-03") go("APP-HOME-01");
+    }, 3000);
+  }
   return `
     ${renderHome()}
     <div class="toast-message">已移至回收站，30天内可以操作恢复</div>
@@ -4483,7 +4652,7 @@ function resetRecyclePagination() {
   recycleScrollTop = 0;
 }
 
-function loadMoreRecycle() {
+function loadMoreRecycle(delay = 520) {
   if (showcasePreset || recycleLoading || recycleBinItems.length <= recycleVisibleCount) return;
   recycleLoading = true;
   recycleLoadError = false;
@@ -4499,10 +4668,11 @@ function loadMoreRecycle() {
     recycleLoading = false;
     recycleLoadMoreVisible = false;
     render();
-  }, 520);
+  }, delay);
 }
 
 function handleRecycleScroll(event) {
+  if (Math.abs(recycleScrollTop - event.currentTarget.scrollTop) <= 1) return;
   if (showcasePreset || currentPageId !== "APP-FILE-23" || recycleLoading || recycleBinItems.length <= recycleVisibleCount) return;
   const scroller = event.currentTarget;
   recycleScrollTop = scroller.scrollTop;
@@ -4620,7 +4790,7 @@ function renderSearch() {
       <section class="search-empty-history" aria-label="暂无搜索记录">
         <div class="search-history-empty-icon" aria-hidden="true"><i></i><b></b></div>
         <h2>暂无搜索记录</h2>
-        ${cloudSyncEnabled ? "" : `<p><span>开启私有云同步</span>，搜索其他设备上的录音</p>`}
+        ${cloudSyncEnabled ? "" : `<p><button type="button" class="search-cloud-enable" data-action="enable-search-cloud-sync">开启私有云同步</button>，搜索其他设备上的录音</p>`}
       </section>`;
   return `
     <div class="statusbar"><span>9:41</span><span>5G</span><span>82%</span></div>
@@ -4641,6 +4811,7 @@ function renderSearch() {
       ${historyContent}
     </main>
     ${searchLocationSheetOpen ? renderSearchLocationSheet() : ""}
+    ${searchCloudNotice ? `<div class="toast-message" role="status" aria-live="polite">${h(searchCloudNotice)}</div>` : ""}
   `;
 }
 
@@ -4829,7 +5000,7 @@ function resetSearchResultPagination() {
   searchResultScrollTop = 0;
 }
 
-function loadMoreSearchResults() {
+function loadMoreSearchResults(delay = 520) {
   if (showcasePreset || searchResultState !== "results" || searchResultLoading || searchResultsCatalog.length <= searchResultVisibleCount) return;
   searchResultLoading = true;
   searchResultLoadError = false;
@@ -4845,10 +5016,11 @@ function loadMoreSearchResults() {
     searchResultLoading = false;
     searchResultLoadMoreVisible = false;
     render();
-  }, 520);
+  }, delay);
 }
 
 function handleSearchResultScroll(event) {
+  if (Math.abs(searchResultScrollTop - event.currentTarget.scrollTop) <= 1) return;
   if (showcasePreset || currentPageId !== "APP-FILE-12" || searchResultState !== "results" || searchResultLoading || searchResultsCatalog.length <= searchResultVisibleCount) return;
   const scroller = event.currentTarget;
   searchResultScrollTop = scroller.scrollTop;
@@ -5379,7 +5551,7 @@ function startAskPlaudThinking({ stage = "thinking", auto = true } = {}) {
     return;
   }
   askPlaudThinkingTimer = window.setTimeout(() => {
-    if (askPlaudMode !== "thinking" || askPlaudThinkingStage !== "thinking") return;
+    if (askPlaudMode !== "thinking" || !["thinking", "process"].includes(askPlaudThinkingStage)) return;
     askPlaudThinkingStage = "process";
     render();
     askPlaudThinkingTimer = window.setTimeout(() => {
@@ -6175,9 +6347,9 @@ function renderFileDetailGenerating() {
   `;
 }
 
-function renderAudioSettings() {
+function renderAudioSettings(renderBackground = renderFileDetail) {
   return `
-    ${renderFileDetail()}
+    ${renderBackground()}
     <div class="scrim light" data-go="APP-FILE-01"></div>
     <section class="audio-bottom-sheet">
       <div class="sheet-title-row">
@@ -6193,10 +6365,10 @@ function renderAudioSettings() {
   `;
 }
 
-function renderSpeedSheet() {
+function renderSpeedSheet(renderBackground = renderFileDetail) {
   const rates = ["3.0X", "2.0X", "1.5X", "1.25X", "1.0X", "0.5X"];
   return `
-    ${renderFileDetail()}
+    ${renderBackground()}
     <div class="scrim light" data-go="APP-FILE-01"></div>
     <section class="audio-bottom-sheet speed-sheet">
       <div class="sheet-title-row">
@@ -6211,9 +6383,9 @@ function renderSpeedSheet() {
   `;
 }
 
-function renderShareSheet() {
+function renderShareSheet(renderBackground = renderFileDetail) {
   return `
-    ${renderFileDetail()}
+    ${renderBackground()}
     <div class="scrim light" data-go="APP-FILE-01"></div>
     <section class="share-sheet">
       <div class="sheet-grabber"></div>
@@ -6311,9 +6483,9 @@ function closeExportSheet() {
   go("APP-FILE-06");
 }
 
-function renderMoreMenu() {
+function renderMoreMenu(renderBackground = renderFileDetail) {
   return `
-    ${renderFileDetail()}
+    ${renderBackground()}
     <section class="more-popover">
       <button data-go="APP-FILE-16"><span>⇥</span>移至文件夹</button>
       <button data-go="APP-FILE-17"><span>▣</span>查找和替换</button>
@@ -6358,14 +6530,14 @@ function renderMoveFolderSheet() {
   `;
 }
 
-function renderFindReplace() {
+function renderFindReplace(renderBackground = renderFileDetail) {
   const matches = syncFindReplaceMatchIndex();
   const hasMatches = matches.length > 0;
   // Once a search term exists, keep the replacement action visually available.
   // A 0/0 result remains an inline feedback state rather than a disabled control.
   const canReplace = Boolean(findReplaceFindText.trim());
   return `
-    ${renderFileDetail()}
+    ${renderBackground()}
     <section class="find-replace-panel" aria-label="查找和替换">
       <div class="find-line">
         <label for="findReplaceFindInput"><span class="search-mini-icon"></span><input id="findReplaceFindInput" value="${h(findReplaceFindText)}" placeholder="查找" autocomplete="off" aria-label="查找文本"></label>
@@ -6385,9 +6557,9 @@ function renderFindReplace() {
   `;
 }
 
-function renderRetranscribeSheet() {
+function renderRetranscribeSheet(renderBackground = renderFileDetail) {
   return `
-    ${renderFileDetail()}
+    ${renderBackground()}
     <div class="scrim light" data-go="APP-FILE-07"></div>
     <section class="retranscribe-sheet">
       <h2>重新转写提醒</h2>
@@ -6509,7 +6681,7 @@ function renderShareLinkGenerated() {
   `;
 }
 
-function renderSharePermissionSheet() {
+function renderSharePermissionSheet(renderBackground = renderShareLinkGenerated) {
   const permissionItems = [
     ["recording", "录音", "audio"],
     ["transcript", "转写", "doc"],
@@ -6518,7 +6690,7 @@ function renderSharePermissionSheet() {
   ];
   const hasSelection = Object.values(sharePermissionState).some(Boolean);
   return `
-    ${renderShareLinkGenerated()}
+    ${renderBackground()}
     <div class="scrim light" data-go="APP-FILE-20"></div>
     <section class="permission-sheet">
       <div class="sheet-title-row">
@@ -6539,7 +6711,7 @@ function renderSharePermissionSheet() {
   `;
 }
 
-function renderShareExpirySheet() {
+function renderShareExpirySheet(renderBackground = renderShareLinkGenerated) {
   const options = [
     ["永久有效", true],
     ["7 天后失效", false],
@@ -6547,7 +6719,7 @@ function renderShareExpirySheet() {
     ["30 天后失效", false]
   ];
   return `
-    ${renderShareLinkGenerated()}
+    ${renderBackground()}
     <section class="share-expiry-popover">
       ${options.map(([label, active]) => `
         <button data-go="APP-FILE-20">
@@ -7685,7 +7857,7 @@ function resetHomeFilePagination() {
   homeFileScrollTop = 0;
 }
 
-function loadMoreHomeFiles() {
+function loadMoreHomeFiles(delay = 520) {
   if (showcasePreset || homeFileLoading || homeFileItems.length <= homeFileVisibleCount) return;
   homeFileLoading = true;
   homeFileLoadError = false;
@@ -7701,10 +7873,21 @@ function loadMoreHomeFiles() {
     homeFileLoading = false;
     homeFileLoadMoreVisible = false;
     render();
-  }, 520);
+  }, delay);
 }
 
 function handleHomeFileScroll(event) {
+  if (currentPageId === "APP-HOME-01") {
+    const scrollChanged = Math.abs(homeFileScrollTop - event.currentTarget.scrollTop) > 1;
+    homeFileScrollTop = event.currentTarget.scrollTop;
+    if (!scrollChanged) return;
+    if (homeSwipeOpenId && scrollChanged) {
+      homeSwipeOpenId = "";
+      homeQuickMenuFileId = "";
+      render();
+      return;
+    }
+  }
   if (showcasePreset || currentPageId !== "APP-HOME-01" || homeFileLoading || homeFileItems.length <= homeFileVisibleCount) return;
   const scroller = event.currentTarget;
   homeFileScrollTop = scroller.scrollTop;
@@ -7784,6 +7967,14 @@ function renderBillingHistory() {
 }
 
 function renderRestorePurchase() {
+  if (!showcasePreset && restorePurchaseState === "loading" && !restorePurchaseTimer) {
+    restorePurchaseTimer = window.setTimeout(() => {
+      restorePurchaseTimer = null;
+      if (currentPageId !== "APP-ME-10" || restorePurchaseState !== "loading") return;
+      restorePurchaseState = "not-found";
+      render();
+    }, 1200);
+  }
   const backdrop = `
     ${renderUsage()}
     <div class="scrim" data-go="APP-ME-01"></div>
@@ -8506,7 +8697,7 @@ function renderNav() {
   }, {});
   document.getElementById("nav").innerHTML = Object.entries(grouped).map(([group, items]) => `
     <div class="nav-section">${h(group)}</div>
-    ${items.map((page) => `<button class="nav-item ${page.id === currentPageId ? "active" : ""}" data-go="${page.id}"><b>${h(page.title)}</b><span>${h(page.id)}</span></button>`).join("")}
+    ${items.map((page) => `<button class="nav-item ${page.id === reviewPageId() ? "active" : ""}" data-go="${page.id}"><b>${h(page.title)}${hostedViewRelations[page.id] ? `<small class="hosted-nav-label">${h(hostedViewRelations[page.id].kind || "弹层")} · ${h(pageById(hostedViewRelations[page.id].host).title)}</small>` : ""}</b><span>${h(page.id)}</span></button>`).join("")}
   `).join("");
 }
 
@@ -8612,6 +8803,8 @@ const verifiedPageShowcases = {
     ["最近搜索", "file02-history"],
     ["暂无搜索记录", "file02-no-history"],
     ["私有云已开启", "file02-cloud-enabled"],
+    ["私有云开启成功", "file02-cloud-success"],
+    ["私有云开启失败", "file02-cloud-error"],
     ["筛选条件展开", "file02-filters"],
     ["筛选条件已选择", "file02-filters-selected"],
     ["筛选条件已选择·折叠", "file02-filters-selected-collapsed"],
@@ -8760,33 +8953,88 @@ const verifiedPageShowcases = {
   ]
 };
 
-function showcaseUrl(pageId, preset) {
+function showcaseUrl(pageId, preset, hostId = "") {
   const url = new URL(window.location.href);
   url.search = "";
   url.searchParams.set("page", pageId);
-  url.searchParams.set("showcase", preset);
+  url.searchParams.set("showcase", preset || "hosted-default");
+  if (hostId) url.searchParams.set("host", hostId);
   return url.href;
 }
 
+// Review-only layout metadata; business actions and state presets stay unchanged.
+function prototypeReviewTopic(pageId, label, action = "") {
+  if (pageId === "APP-HOME-01") {
+    if (/空间/.test(label)) return "空间异常与恢复";
+    if (/云|已传到手机/.test(label)) return "云端同步";
+    if (/设备|录音卡|连接/.test(label)) return "设备连接";
+    if (/批次|重置|恢复文件示例|完成当前任务/.test(label)) return "演示控制";
+    if (/传输|同步|快传|录音中/.test(label)) return "设备传输";
+    return "文件列表";
+  }
+  if (pageId === "APP-FILE-01" && /^转写/.test(label)) return "转写记录";
+  if (/加载|有结果|无结果|空状态|恢复列表|账单|使用记录/.test(label)) return "列表与加载";
+  if (/搜索记录|最近搜索/.test(label)) return "搜索记录";
+  if (/云/.test(label)) return "云端同步";
+  if (/筛选|选择开始|自定义|日历/.test(label)) return "筛选条件";
+  if (/提问|洞察|思考|回答|来源|ask/.test(label + action)) return "提问与回答";
+  if (/转写/.test(label)) return "转写记录";
+  if (/标记|相机|照片/.test(label)) return "录音与标记";
+  if (/总结|章节|待办|导图/.test(label)) return "总结内容";
+  if (/错误|失败|未找到/.test(label)) return "异常反馈";
+  if (/确认|弹窗|权限/.test(label)) return "弹窗与确认";
+  return "页面状态";
+}
+
+function groupPrototypeReviewItems(pageId, items) {
+  const groups = new Map();
+  items.forEach((item) => {
+    const topic = item.topic || prototypeReviewTopic(pageId, item.label, item.action);
+    if (!groups.has(topic)) groups.set(topic, []);
+    groups.get(topic).push(item);
+  });
+  if (pageId === "APP-HOME-01") {
+    const connectionOrder = ["未添加录音卡", "已绑定未连接", "正在连接", "连接成功", "切换设备", "设备详情", "添加设备"];
+    if (groups.has("设备连接")) {
+      groups.get("设备连接").sort((a, b) => connectionOrder.indexOf(a.label) - connectionOrder.indexOf(b.label));
+    }
+    const ordered = ["设备连接", "设备传输", "云端同步", "空间异常与恢复", "文件列表", "演示控制"];
+    return [...ordered.filter((topic) => groups.has(topic)), ...[...groups.keys()].filter((topic) => !ordered.includes(topic))]
+      .map((topic) => [topic, groups.get(topic)]);
+  }
+  return [...groups];
+}
+
+function reviewPageSnapshots(page) {
+  const snapshots = (verifiedPageShowcases[page.id] || []).map(([label, preset]) => ({ label, preset, pageId: page.id }));
+  hostedViewsFor(page.id).forEach(([id]) => {
+    const view = pageById(id);
+    snapshots.push({ label: `${view.title} · ${id}`, preset: "", pageId: id, hostId: page.id, topic: `${view.title} · ${id}` });
+    (verifiedPageShowcases[id] || []).forEach(([label, preset]) => {
+      snapshots.push({ label: `${view.title}：${label} · ${id}`, preset, pageId: id, hostId: page.id, topic: `${view.title} · ${id}` });
+    });
+  });
+  return snapshots;
+}
+
 function renderVerifiedPageSupplement(page) {
-  const showcases = verifiedPageShowcases[page.id] || [];
-  if (!showcases.length) return "";
+  const snapshots = reviewPageSnapshots(page);
+  if (!snapshots.length) return "";
+  const groups = groupPrototypeReviewItems(page.id, snapshots);
+  let number = 0;
   return `
-    <section class="page-supplement verified-page-supplement" aria-labelledby="pageSupplementTitle">
+    <section class="page-supplement verified-page-supplement review-previews" aria-labelledby="pageSupplementTitle">
       <header class="page-supplement-head">
-        <div>
-          <p>${h(page.id)}</p>
-          <h2 id="pageSupplementTitle">当前页面状态与反馈</h2>
-        </div>
-        <span>真实原型状态 · 不可交互</span>
+        <div><p>${h(page.id)}</p><h2 id="pageSupplementTitle">当前页面状态与反馈</h2></div>
+        <span>${snapshots.length} 个状态 · 真实原型状态</span>
       </header>
-      <div class="supplement-snapshot-grid">
-        ${showcases.map(([label, preset]) => `
+      <div class="supplement-snapshot-grid review-all-snapshots">
+        ${groups.map(([topic, items]) => items.map(({ label, preset, pageId, hostId }) => `
           <figure class="supplement-snapshot-card">
-            <figcaption>${h(label)}</figcaption>
-            <iframe title="${h(`${page.title}－${label}`)}" src="${h(showcaseUrl(page.id, preset))}" tabindex="-1" loading="eager"></iframe>
+            <figcaption><small>${h(topic)}</small><strong>${++number}. ${h(label)}</strong></figcaption>
+            <iframe title="${h(`${page.title}－${label}`)}" src="${h(showcaseUrl(pageId, preset, hostId))}" tabindex="-1" loading="lazy"></iframe>
           </figure>
-        `).join("")}
+        `).join("")).join("")}
       </div>
     </section>
   `;
@@ -8800,7 +9048,7 @@ function renderFlow() {
     target.innerHTML = "";
     return;
   }
-  const page = pageById(currentPageId);
+  const page = pageById(reviewPageId());
   if (target.dataset.renderedPageId === page.id) return;
   target.dataset.renderedPageId = page.id;
   if (page && page.id !== "APP-PRD-00") {
@@ -8818,15 +9066,75 @@ function renderFlow() {
   }).join("");
 }
 
+// Runtime review controls use real transitions; showcase iframes remain static.
+function clearReviewTransition() {
+  window.clearTimeout(reviewTransitionTimer);
+  reviewTransitionTimer = null;
+}
+
+function scheduleReviewTransition(callback, delay = 1200) {
+  clearReviewTransition();
+  const owner = currentPageId;
+  reviewTransitionTimer = window.setTimeout(() => {
+    reviewTransitionTimer = null;
+    if (!showcasePreset && currentPageId === owner) callback();
+  }, delay);
+}
+
+function focusReviewListFeedback(kind) {
+  requestAnimationFrame(() => {
+    const selector = { home: "#homeFileList", recycle: ".recycle-page", search: ".result-screen" }[kind];
+    const node = document.querySelector(selector);
+    const scroller = kind === "home" ? node?.closest(".screen-content") : node;
+    if (!scroller) return;
+    const top = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+    if (kind === "home") homeFileScrollTop = top;
+    if (kind === "recycle") recycleScrollTop = top;
+    if (kind === "search") searchResultScrollTop = top;
+    scroller.scrollTop = top;
+  });
+}
+
+function reviewActionAvailable(action, value) {
+  // This setting has no distinct home-screen presentation; retain its bottom preview.
+  if (action === "home-set-cloud-state" && value === "disabled") return false;
+  if (action === "close-home-storage-shortage") return homeStorageShortagePromptOpen;
+  if (action === "end-home-fast-transfer") return homeSyncTransport === "hotspot";
+  if (action === "home-complete-sync") return homeSyncQueue.some(task => task.status === "syncing");
+  return true;
+}
+
+function showRecycleNotice(message) {
+  window.clearTimeout(recycleNoticeTimer);
+  recycleNotice = message;
+  recycleNoticeTimer = window.setTimeout(() => {
+    recycleNoticeTimer = null;
+    recycleNotice = "";
+    if (currentPageId === "APP-FILE-23") render();
+  }, 3000);
+}
+
 function renderPrototypeLinks(page) {
   const target = document.getElementById("prototypeLinks");
-  const links = page.prototypeLinks || [];
-  const actions = page.prototypeActions || [];
+  const owned = hostedViewsFor(page.id);
+  const ownedIds = new Set(owned.map(([id]) => id));
+  const activeView = hostedViewContext ? pageById(currentPageId) : null;
+  const links = [...(page.prototypeLinks || []).filter(([, id]) => !ownedIds.has(id)), ...(activeView?.prototypeLinks || []).map(([label, id]) => [`${activeView.title}：${label}`, id])];
+  const actions = [...(page.prototypeActions || []).map(([label, action, value]) => [label, action, value, page.id]), ...(activeView?.prototypeActions || []).map(([label, action, value]) => [`${activeView.title}：${label}`, action, value, activeView.id])];
+  target.closest(".phone-row").classList.toggle("has-review-tools", Boolean(links.length || actions.length || owned.length));
   const hasSelectedFilters = Boolean(searchTimeFilter || searchLocationFilter);
-  target.innerHTML = links.length || actions.length ? `
-    <span>状态链路</span>
-    ${links.map(([label, id]) => `<button data-go="${h(id)}">${h(label)}</button>`).join("")}
-    ${actions.map(([label, action, value]) => {
+  const entries = links.map(([label, id]) => ({
+    label, navigation: true,
+    html: `<button class="review-navigation" data-go="${h(id)}">${h(label)}</button>`
+  }));
+  owned.forEach(([id, relation]) => {
+    const view = pageById(id);
+    entries.push({ label: view.title, topic: relation.topic || "弹层与局部操作", html: `<button class="${currentPageId === id ? "active" : ""}" data-go="${h(id)}">${h(view.title)}<small class="hosted-view-id">${h(id)}</small></button>` });
+  });
+  if (activeView) {
+    entries.push({ label: "关闭当前弹层", topic: "弹层与局部操作", html: `<button data-go="${h(page.id)}">关闭当前${hostedViewRelations[currentPageId].kind || "弹层"}</button>` });
+  }
+  actions.filter(([, action, value]) => reviewActionAvailable(action, value)).forEach(([label, action, value, owner]) => {
       const cloudStateActive = (value === "disabled" && !cloudSyncEnabled)
         || (value === "phone-ready" && cloudSyncEnabled && homeFileItems.every((file) => !file.cloudState))
         || (value === "waiting" && cloudSyncEnabled && homeFileItems[0]?.cloudState === "waiting")
@@ -8854,9 +9162,28 @@ function renderPrototypeLinks(page) {
         || (action === "set-search-time-filter" && ((value === "none" && !searchTimeFilter) || (value === "custom" && searchTimeFilter === "custom" && !searchCalendarPickerTarget && !(searchCustomStart && searchCustomEnd)) || (value === "calendar-start" && searchTimeFilter === "custom" && searchCalendarPickerTarget === "start") || (value === "custom-ready" && searchTimeFilter === "custom" && !searchCalendarPickerTarget && Boolean(searchCustomStart && searchCustomEnd))))
         || (action === "set-search-filter-state" && ((value === "expanded" && searchFiltersVisible && !searchLocationSheetOpen && !hasSelectedFilters) || (value === "selected" && searchFiltersVisible && !searchLocationSheetOpen && hasSelectedFilters) || (value === "selected-collapsed" && !searchFiltersVisible && !searchLocationSheetOpen && hasSelectedFilters) || (value === "location" && searchLocationSheetOpen)))
         || (action === "set-ask-demo-state" && askDemoActive);
-      return `<button class="${active ? "active" : ""}" data-action="${h(action)}"${value ? ` data-value="${h(value)}"` : ""}>${h(label)}</button>`;
+      entries.push({ label, action, active, topic: owner !== page.id ? `${activeView.title} · ${activeView.id}` : undefined,
+        html: `<button class="${active ? "active" : ""}" data-review-owner="${h(owner)}" data-action="${h(action)}"${value ? ` data-value="${h(value)}"` : ""}${active ? ' aria-pressed="true"' : ""}>${h(label)}</button>`
+      });
+  });
+  if (!entries.length) {
+    target.innerHTML = "";
+    return;
+  }
+  const grouped = entries.length > 6;
+  const groups = groupPrototypeReviewItems(page.id, entries);
+  const content = grouped ? `<div class="review-tool-groups">
+    ${groups.map(([topic, items]) => {
+      return `<section class="review-tool-group" data-topic="${h(topic)}">
+        <h3><span>${h(topic)}</span><small>${items.length}</small></h3>
+        <div class="review-tool-buttons">${items.filter((item) => !item.navigation).map((item) => item.html).join("")}</div>
+        ${items.some((item) => item.navigation) ? `<div class="review-tool-navigation">${items.filter((item) => item.navigation).map((item) => item.html).join("")}</div>` : ""}
+      </section>`;
     }).join("")}
-  ` : "";
+  </div>` : `<div class="review-tool-buttons review-simple-tools">${entries.map((item) => item.html).join("")}</div>`;
+  target.innerHTML = `<section class="review-tools-shell" aria-label="状态与操作">
+    <h2 class="review-tools-title">状态与操作<small>${entries.length}</small></h2>${content}
+  </section>`;
 }
 
 function renderSpecStateTable(page) {
@@ -9081,11 +9408,15 @@ function handleSettingsAction(action, target) {
 }
 
 function render() {
-  const page = pageById(currentPageId);
+  const view = pageById(currentPageId);
+  const page = pageById(reviewPageId());
+  document.body.dataset.hostPage = page.id;
+  document.body.dataset.activeView = currentPageId;
   document.body.classList.toggle("document-mode", page.id === "APP-PRD-00");
   document.getElementById("screenTitle").textContent = `${page.id} ${page.title}`;
   document.getElementById("screenGoal").textContent = page.goal;
-  document.getElementById("phone").innerHTML = (renderers[page.id] || renderHome)();
+  const backgroundRenderer = hostedViewContext && ["APP-FILE-01", "APP-FILE-10", "APP-FILE-15", "APP-FILE-08", "APP-FILE-20"].includes(page.id) ? renderers[page.id] : undefined;
+  document.getElementById("phone").innerHTML = (renderers[view.id] || renderHome)(backgroundRenderer);
   if (showcasePreset) {
     document.querySelectorAll("#phone [autofocus]").forEach((element) => element.removeAttribute("autofocus"));
   }
@@ -9131,6 +9462,14 @@ function render() {
   renderFlow();
   renderPrototypeLinks(page);
   renderSpec(page);
+  if (hostedViewContext) {
+    const hostBody = document.getElementById("specBody").innerHTML;
+    renderSpec(view);
+    const viewBody = document.getElementById("specBody").innerHTML;
+    renderSpec(page);
+    document.getElementById("specBody").innerHTML = `<section class="spec-section hosted-spec-context"><h3>当前${hostedViewRelations[view.id].kind || "弹层"}：${h(view.id)} ${h(view.title)}</h3><p>所属页面：${h(page.id)} ${h(page.title)}；原编号及验收要求保持有效。</p></section><details class="hosted-spec-details" open><summary>${h(view.id)} 完整需求与验收</summary>${viewBody}</details>${hostBody}`;
+    restoreHostedScroll(hostedViewContext.scrolls);
+  }
   if (page.id === "APP-FILE-01" && fileDetailActiveTab === "summary") {
     requestAnimationFrame(setupFileDetailSummarySectionSpy);
   }
@@ -9162,6 +9501,21 @@ document.addEventListener("click", (event) => {
     homeFileSuppressClick = false;
     event.preventDefault();
     return;
+  }
+  if (homeSwipeOpenId && currentPageId === "APP-HOME-01") {
+    const card = event.target.closest(".home-file-card[data-file-id]");
+    if (!card || card.dataset.fileId !== homeSwipeOpenId || event.target.closest(".file-card-main")) {
+      homeSwipeOpenId = "";
+      homeQuickMenuFileId = "";
+      render();
+      event.preventDefault();
+      return;
+    }
+  }
+  const reviewAction = event.target.closest("#prototypeLinks [data-review-owner]");
+  if (reviewAction) {
+    clearReviewTransition();
+    activateReviewActionOwner(reviewAction.dataset.reviewOwner);
   }
   const recordEntry = event.target.closest("[data-action='open-record-entry']");
   if (recordEntry && recordFabLongPressTriggered) {
@@ -9209,19 +9563,16 @@ document.addEventListener("click", (event) => {
   }
   if (action && action.dataset.action === "set-home-file-list-state" && !showcasePreset) {
     const nextState = action.dataset.value || "load-more";
+    homeFileSelectionMode = false;
+    clearHomeFileInteractionState();
+    if (homeFileItems.length <= 10) homeFileItems = defaultHomeFileItems.map(item => ({ ...item }));
     resetHomeFilePagination();
-    if (nextState === "loading") {
-      homeFileLoadMoreVisible = true;
-      homeFileLoading = true;
-    } else if (nextState === "error") {
-      homeFileLoadMoreVisible = true;
-      homeFileLoadError = true;
-    } else if (nextState === "loaded-all") {
-      homeFileVisibleCount = homeFileItems.length;
-    } else {
-      homeFileLoadMoreVisible = true;
-    }
-    render();
+    homeFileLoadMoreVisible = true;
+    if (nextState === "error") homeFileLoadError = true;
+    if (nextState === "loaded-all") homeFileVisibleCount = homeFileItems.length;
+    if (nextState === "loading") loadMoreHomeFiles(1200);
+    else render();
+    focusReviewListFeedback("home");
     return;
   }
   if (action && action.dataset.action === "load-more-recycle" && !showcasePreset) {
@@ -9236,21 +9587,19 @@ document.addEventListener("click", (event) => {
   }
   if (action && action.dataset.action === "set-recycle-list-state" && !showcasePreset) {
     const nextState = action.dataset.value || "load-more";
+    recycleSelectionMode = false;
+    selectedRecycleIds = new Set();
+    recycleDeleteConfirmOpen = false;
+    window.clearTimeout(recycleNoticeTimer);
+    recycleNotice = "";
+    if (recycleBinItems.length <= 10) recycleBinItems = defaultRecycleBinItems.map(item => ({ ...item }));
     resetRecyclePagination();
-    if (nextState === "loading") {
-      recycleLoadMoreVisible = true;
-      recycleLoading = true;
-    } else if (nextState === "error") {
-      recycleLoadMoreVisible = true;
-      recycleLoadError = true;
-    } else if (nextState === "loaded-all") {
-      recycleVisibleCount = recycleBinItems.length;
-    } else if (nextState === "empty") {
-      recycleBinItems = [];
-    } else {
-      recycleLoadMoreVisible = true;
-    }
-    render();
+    recycleLoadMoreVisible = true;
+    if (nextState === "error") recycleLoadError = true;
+    if (nextState === "loaded-all") recycleVisibleCount = recycleBinItems.length;
+    if (nextState === "loading") loadMoreRecycle(1200);
+    else render();
+    focusReviewListFeedback("recycle");
     return;
   }
   if (action && action.dataset.action === "load-more-search-results" && !showcasePreset) {
@@ -9273,18 +9622,12 @@ document.addEventListener("click", (event) => {
     const nextState = action.dataset.value || "load-more";
     searchResultState = "results";
     resetSearchResultPagination();
-    if (nextState === "loading") {
-      searchResultLoadMoreVisible = true;
-      searchResultLoading = true;
-    } else if (nextState === "error") {
-      searchResultLoadMoreVisible = true;
-      searchResultLoadError = true;
-    } else if (nextState === "loaded-all") {
-      searchResultVisibleCount = searchResultsCatalog.length;
-    } else {
-      searchResultLoadMoreVisible = true;
-    }
-    render();
+    searchResultLoadMoreVisible = true;
+    if (nextState === "error") searchResultLoadError = true;
+    if (nextState === "loaded-all") searchResultVisibleCount = searchResultsCatalog.length;
+    if (nextState === "loading") loadMoreSearchResults(1200);
+    else render();
+    focusReviewListFeedback("search");
     return;
   }
   if (action && action.dataset.action === "set-billing-state" && !showcasePreset) {
@@ -9318,6 +9661,8 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (action && action.dataset.action === "set-restore-purchase-state" && !showcasePreset) {
+    window.clearTimeout(restorePurchaseTimer);
+    restorePurchaseTimer = null;
     const nextState = action.dataset.value;
     restorePurchaseState = ["loading", "not-found", "success"].includes(nextState) ? nextState : "loading";
     if (currentPageId !== "APP-ME-10") {
@@ -9712,12 +10057,13 @@ document.addEventListener("click", (event) => {
   }
   if (action && action.dataset.action === "open-search-location-filter") {
     searchFiltersVisible = true;
+    searchLocationEditSnapshot = searchLocationFilter;
     searchLocationSheetOpen = true;
     render();
     return;
   }
   if (action && action.dataset.action === "close-search-location-filter") {
-    searchLocationSheetOpen = false;
+    discardSearchLocationEdit();
     render();
     return;
   }
@@ -9727,12 +10073,14 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (action && action.dataset.action === "clear-search-location-filter") {
+    searchLocationEditSnapshot = null;
     searchLocationFilter = "";
     render();
     return;
   }
   if (action && action.dataset.action === "apply-search-location-filter") {
     if (!searchLocationFilter) return;
+    searchLocationEditSnapshot = null;
     searchLocationSheetOpen = false;
     render();
     return;
@@ -9790,6 +10138,7 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (action && action.dataset.action === "clear-search-time-filter") {
+    searchTimeEditSnapshot = null;
     searchTimeFilter = "";
     searchCustomStart = "";
     searchCustomEnd = "";
@@ -9803,6 +10152,7 @@ document.addEventListener("click", (event) => {
     const customReady = searchTimeFilter === "custom" && searchCustomStart && searchCustomEnd;
     if (!searchTimeFilter || (searchTimeFilter === "custom" && !customReady)) return;
     searchFiltersVisible = true;
+    searchTimeEditSnapshot = null;
     go("APP-FILE-02");
     return;
   }
@@ -10415,6 +10765,11 @@ document.addEventListener("click", (event) => {
       syncPrototypeTimer = null;
     }
     hotspotTransferState = action.dataset.value || "awaiting";
+    if (hotspotTransferState === "connecting") scheduleReviewTransition(() => {
+      hotspotTransferState = "success";
+      startHomeFastTransfer();
+      go("APP-HOME-01");
+    });
     if (hotspotTransferState === "success") {
       startHomeFastTransfer();
     }
@@ -10424,13 +10779,19 @@ document.addEventListener("click", (event) => {
   if (action && action.dataset.action === "set-sync-transport") {
     homeDeviceAdded = true;
     if (action.dataset.value === "hotspot") startHomeFastTransfer();
-    else homeSyncTransport = "ble";
+    else {
+      if (reviewAction && !homeSyncQueue.length) resetMultiHomeSyncBatch();
+      homeSyncTransport = "ble";
+    }
     render();
     return;
   }
   if (action && action.dataset.action === "home-set-connection-state") {
     homeDeviceAdded = true;
-    setHomeConnectionState(action.dataset.value || "disconnected");
+    if (action.dataset.value === "connecting") {
+      setHomeConnectionState("disconnected");
+      beginHomeConnectionRecovery();
+    } else setHomeConnectionState(action.dataset.value || "disconnected");
     render();
     return;
   }
@@ -10541,7 +10902,8 @@ document.addEventListener("click", (event) => {
     askPlaudSkill = stage === "insight" ? "获取洞察" : "";
     askPlaudMode = stage === "complete" ? "answer" : "thinking";
     askPlaudThinkingStage = stage === "complete" ? "complete" : stage === "process" ? "process" : stage === "paused" ? "paused" : "thinking";
-    render();
+    if (["direct", "insight", "thinking", "process"].includes(stage)) startAskPlaudThinking({ stage: askPlaudThinkingStage });
+    else render();
     return;
   }
   if (action && action.dataset.action === "file-detail-set-tab") {
@@ -10781,23 +11143,38 @@ document.addEventListener("click", (event) => {
     activeSearchQuery = searchDraft;
     resetSearchResultPagination();
     render();
+    if (searchResultState === "loading") scheduleReviewTransition(() => {
+      if (searchResultState !== "loading") return;
+      searchResultState = "results"; render();
+    });
     return;
   }
   if (action && action.dataset.action === "set-search-history-state") {
     searchHasHistory = action.dataset.value !== "empty";
     if (!searchHasHistory) cloudSyncEnabled = false;
+    searchCloudEnableWillFail = false;
+    searchCloudNotice = "";
+    window.clearTimeout(searchCloudNoticeTimer);
     searchFiltersVisible = false;
     searchLocationSheetOpen = false;
     render();
     return;
   }
+  if (action && action.dataset.action === "enable-search-cloud-sync") {
+    enableSearchCloudSync();
+    return;
+  }
   if (action && action.dataset.action === "set-search-cloud-state") {
     cloudSyncEnabled = action.dataset.value === "enabled";
+    searchCloudEnableWillFail = action.dataset.value === "fail-next";
+    searchCloudNotice = "";
+    window.clearTimeout(searchCloudNoticeTimer);
     searchHasHistory = false;
     searchFiltersVisible = false;
     searchLocationSheetOpen = false;
     searchLocationFilter = "";
-    render();
+    if (reviewAction && searchCloudEnableWillFail) enableSearchCloudSync();
+    else render();
     return;
   }
   if (action && action.dataset.action === "set-search-filter-state") {
@@ -10984,8 +11361,8 @@ document.addEventListener("click", (event) => {
   if (action && action.dataset.action === "open-home-file-menu") {
     const fileId = action.dataset.fileId || "";
     if (!getHomeFileById(fileId)) return;
-    homeSwipeOpenId = "";
-    homeQuickMenuFileId = fileId;
+    homeSwipeOpenId = fileId;
+    homeQuickMenuFileId = homeQuickMenuFileId === fileId ? "" : fileId;
     render();
     return;
   }
@@ -10998,6 +11375,7 @@ document.addEventListener("click", (event) => {
     const file = getHomeFileById(action.dataset.fileId || "");
     if (!file || file.generationState !== "untranscribed") return;
     homeQuickMenuFileId = "";
+    homeSwipeOpenId = "";
     go("APP-AI-01");
     return;
   }
@@ -11261,7 +11639,7 @@ document.addEventListener("click", (event) => {
     resetRecyclePagination();
     selectedRecycleIds = new Set();
     recycleSelectionMode = false;
-    recycleNotice = `已恢复 ${count} 个文件`;
+    showRecycleNotice(`已恢复 ${count} 个文件`);
     render();
     return;
   }
@@ -11284,7 +11662,7 @@ document.addEventListener("click", (event) => {
     selectedRecycleIds = new Set();
     recycleSelectionMode = false;
     recycleDeleteConfirmOpen = false;
-    recycleNotice = `已永久删除 ${count} 个文件`;
+    showRecycleNotice(`已永久删除 ${count} 个文件`);
     render();
     return;
   }
@@ -11492,7 +11870,7 @@ document.addEventListener("pointerdown", (event) => {
     return;
   }
   const homeFileCard = event.target.closest(".home-file-card[data-file-id]");
-  if (homeFileCard && currentPageId === "APP-HOME-01" && !homeFileSelectionMode) {
+  if (homeFileCard && event.target.closest(".file-card-main") && currentPageId === "APP-HOME-01" && !homeFileSelectionMode) {
     const fileId = homeFileCard.dataset.fileId || "";
     homeFilePointer = { id: fileId, startX: event.clientX, startY: event.clientY, moved: false, longPressed: false };
     if (homeFileLongPressTimer) window.clearTimeout(homeFileLongPressTimer);
@@ -11501,9 +11879,7 @@ document.addEventListener("pointerdown", (event) => {
       homeFilePointer.longPressed = true;
       homeFileSuppressClick = true;
       homeFileLongPressTimer = null;
-      homeQuickMenuFileId = fileId;
-      homeSwipeOpenId = "";
-      render();
+      startHomeFileSelection(fileId);
     }, 500);
     return;
   }
@@ -11561,12 +11937,29 @@ document.addEventListener("pointerup", (event) => {
   const dy = event.clientY - pointer.startY;
   if (Math.abs(dx) > Math.abs(dy) && dx < -56) {
     homeFileSuppressClick = true;
-    startHomeFileSelection(pointer.id);
+    homeQuickMenuFileId = "";
+    homeSwipeOpenId = pointer.id;
+    render();
+  } else if (Math.abs(dx) > Math.abs(dy) && dx > 56 && homeSwipeOpenId === pointer.id) {
+    homeFileSuppressClick = true;
+    homeSwipeOpenId = "";
+    homeQuickMenuFileId = "";
+    render();
+  } else if (pointer.moved) {
+    homeFileSuppressClick = true;
+    const card = document.querySelector(`.home-file-card[data-file-id="${CSS.escape(pointer.id)}"]`);
+    const main = card?.querySelector(".file-card-main");
+    if (main) main.style.transform = "";
   }
 });
 
 document.addEventListener("pointercancel", () => {
   recordingMinimizePointer = null;
+  if (homeFilePointer) {
+    const card = document.querySelector(`.home-file-card[data-file-id="${CSS.escape(homeFilePointer.id)}"]`);
+    const main = card?.querySelector(".file-card-main");
+    if (main) main.style.transform = "";
+  }
   homeFilePointer = null;
   clearHomeFileLongPressTimer();
 });
@@ -11588,12 +11981,10 @@ document.addEventListener("contextmenu", (event) => {
     return;
   }
   const homeFileCard = event.target.closest(".home-file-card[data-file-id]");
-  if (homeFileCard && !homeFileSelectionMode) {
+  if (homeFileCard && currentPageId === "APP-HOME-01") {
     event.preventDefault();
     clearHomeFileLongPressTimer();
-    homeQuickMenuFileId = homeFileCard.dataset.fileId || "";
-    homeSwipeOpenId = "";
-    render();
+    if (!homeFileSelectionMode) startHomeFileSelection(homeFileCard.dataset.fileId || "");
     return;
   }
   const priorityTrigger = event.target.closest("[data-action='open-home-priority-menu']");
@@ -12354,6 +12745,7 @@ function applyShowcasePreset(preset) {
       homeDeviceMenuOpen = true;
       break;
     case "home01-file-menu":
+      homeSwipeOpenId = "home-file-board";
       homeQuickMenuFileId = "home-file-board";
       break;
     case "home01-rename":
@@ -12731,7 +13123,17 @@ function applyShowcasePreset(preset) {
       searchDraft = "";
       activeSearchQuery = "";
       break;
+    case "file02-cloud-success":
+    case "file02-cloud-error":
+      searchHasHistory = false;
+      searchFiltersVisible = false;
+      searchLocationSheetOpen = false;
+      cloudSyncEnabled = preset === "file02-cloud-success";
+      searchCloudNotice = cloudSyncEnabled ? "私有云已开启" : "开启失败，请稍后再试。";
+      break;
     case "file02-no-history":
+      searchCloudEnableWillFail = false;
+      searchCloudNotice = "";
       searchHasHistory = false;
       cloudSyncEnabled = false;
       searchFiltersVisible = false;
@@ -13133,6 +13535,15 @@ function applyShowcasePreset(preset) {
 }
 
 applyShowcasePreset(showcasePreset);
+if (hostedViewRelations[currentPageId]) {
+  const relation = hostedViewRelations[currentPageId];
+  const requestedHost = prototypeUrlParams.get("host");
+  const hostId = [...relation.parents, ...(relation.origins || [])].includes(requestedHost) ? requestedHost : relation.host;
+  hostedViewContext = { hostId, scrolls: [] };
+  hostedViewReturnHosts.set(currentPageId, hostId);
+  previousPageId = hostId;
+  if (currentPageId === "APP-FILE-11") rememberSearchTimeEdit();
+}
 
 if (currentPageId === "APP-DEV-08" && !showcasePreset) {
   beginFirmwareUpdateFlow();

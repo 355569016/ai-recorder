@@ -1,0 +1,110 @@
+[
+  {
+    "id": "APP-FILE-03",
+    "host": "APP-HOME-01",
+    "originalDomPreserved": true,
+    "error": false
+  },
+  {
+    "id": "APP-FILE-13",
+    "host": "APP-HOME-01",
+    "originalDomPreserved": true,
+    "error": false
+  },
+  {
+    "id": "APP-FILE-11",
+    "host": "APP-FILE-02",
+    "originalDomPreserved": true,
+    "error": false
+  },
+  {
+    "id": "APP-FILE-14",
+    "host": "APP-FILE-02",
+    "originalDomPreserved": true,
+    "error": false
+  },
+  {
+    "id": "APP-FILE-04",
+    "host": "APP-FILE-01",
+    "originalDomPreserved": true,
+    "error": false
+  },
+  {
+    "id": "APP-FILE-05",
+    "host": "APP-FILE-01",
+    "originalDomPreserved": true,
+    "error": false
+  },
+  {
+    "id": "APP-FILE-06",
+    "host": "APP-FILE-01",
+    "originalDomPreserved": true,
+    "error": false
+  },
+  {
+    "id": "APP-FILE-07",
+    "host": "APP-FILE-01",
+    "originalDomPreserved": true,
+    "error": false
+  },
+  {
+    "id": "APP-FILE-17",
+    "host": "APP-FILE-01",
+    "originalDomPreserved": true,
+    "error": false
+  },
+  {
+    "id": "APP-FILE-18",
+    "host": "APP-FILE-01",
+    "originalDomPreserved": true,
+    "error": false
+  },
+  {
+    "id": "APP-FILE-09",
+    "host": "APP-FILE-20",
+    "originalDomPreserved": true,
+    "error": false
+  },
+  {
+    "id": "APP-FILE-21",
+    "host": "APP-FILE-20",
+    "originalDomPreserved": true,
+    "error": false
+  },
+  {
+    "id": "APP-AI-02",
+    "host": "APP-AI-01",
+    "originalDomPreserved": true,
+    "error": false
+  },
+  {
+    "id": "APP-AI-03",
+    "host": "APP-AI-01",
+    "originalDomPreserved": true,
+    "error": false
+  },
+  {
+    "id": "APP-ME-21",
+    "host": "APP-ME-17",
+    "originalDomPreserved": true,
+    "error": false
+  },
+  {
+    "id": "APP-ME-24",
+    "host": "APP-ME-04",
+    "originalDomPreserved": true,
+    "error": false
+  },
+  {
+    "id": "APP-ME-07",
+    "host": "APP-ME-06",
+    "originalDomPreserved": true,
+    "error": false
+  },
+  {
+    "id": "APP-ME-14",
+    "host": "APP-ME-13",
+    "originalDomPreserved": true,
+    "error": false
+  }
+]

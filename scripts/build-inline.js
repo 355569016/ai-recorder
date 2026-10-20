@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 
 const root = path.resolve(__dirname, "..");
 const indexPath = path.join(root, "index.html");
@@ -28,7 +29,13 @@ function stripExistingAppScripts(html) {
   return output;
 }
 
-const stripped = stripExistingAppScripts(index);
+const styleVersion = crypto.createHash("sha256")
+  .update(fs.readFileSync(path.join(root, "styles.css")))
+  .digest("hex").slice(0, 12);
+const stripped = stripExistingAppScripts(index).replace(
+  /href="\.\/styles\.css(?:\?[^"]*)?"/,
+  `href="./styles.css?v=${styleVersion}"`
+);
 if (!/<\/body>/.test(stripped)) {
   throw new Error("Cannot find </body> in index.html");
 }
